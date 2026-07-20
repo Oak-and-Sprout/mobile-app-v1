@@ -26,7 +26,8 @@ sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-s
 
 ## iOS
 
-The ios/ platform is generated and committed (requires full Xcode + CocoaPods):
+The ios/ platform is generated and committed (requires full Xcode; dependencies
+resolve via Swift Package Manager — no CocoaPods needed):
 
     npx cap run ios      # build and run on a simulator/device
 
