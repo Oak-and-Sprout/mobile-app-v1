@@ -17,11 +17,18 @@ export default function ServerList({
   const reload = () => { void listServers().then(setServers) }
   useEffect(reload, [])
 
-  async function open(entry: ServerEntry) {
+  // `retry` below is handed to the offline screen and invoked after ServerList itself may
+  // have unmounted (the app has since navigated to 'offline'). A 'locked'/'needs-login'
+  // outcome on that later call can't rely on this component's setNotice still doing anything,
+  // so it navigates back to server-list instead — mirrors App.tsx's openDefault pattern.
+  async function open(entry: ServerEntry, viaRetry = false) {
     setNotice(null)
     const outcome = await connect(entry)
-    if (outcome === 'offline') navigate({ name: 'offline', retry: () => void open(entry) })
-    if (outcome === 'locked') setNotice('Too many attempts — try again in a few minutes.')
+    if (outcome === 'offline') navigate({ name: 'offline', retry: () => void open(entry, true) })
+    else if (outcome === 'locked' || outcome === 'needs-login') {
+      if (viaRetry) navigate({ name: 'server-list' })
+      else if (outcome === 'locked') setNotice('Too many attempts — try again in a few minutes.')
+    }
   }
 
   async function remove(entry: ServerEntry) {

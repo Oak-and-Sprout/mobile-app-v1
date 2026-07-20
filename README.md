@@ -32,3 +32,7 @@ Requires full Xcode and CocoaPods (or Capacitor SPM support):
   login screen until the sprout-track native-aware layer ships (follow-up plan).
 - Bridge spike (spec §10 risk 3) still to be validated on-device: Capacitor bridge
   availability on arbitrary `allowNavigation` hosts.
+- The biometric gate is enforced in the app layer (verify-then-return: prompt for
+  biometrics, then read the stored credentials) rather than via OS-level Keychain/Keystore
+  access control on the entry itself. Hardening to accessControl-backed storage (so the
+  OS refuses to release the secret without a fresh biometric check) is a planned follow-up.

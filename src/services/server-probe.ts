@@ -78,9 +78,10 @@ export async function fetchFamilyBySlug(baseUrl: string, slug: string, fetchFn: 
 }
 
 export async function fetchAuthType(baseUrl: string, slug: string, fetchFn: typeof fetch = fetch): Promise<AuthType> {
-  const { payload } = await getJson(
+  const { status, payload } = await getJson(
     `${baseUrl}/api/auth/caretaker-exists?familySlug=${encodeURIComponent(slug)}`, fetchFn,
   )
+  if (status !== 200) throw new ProbeError('unreachable')
   const exists = Boolean((payload as { exists?: unknown } | null)?.exists)
   return exists ? 'CARETAKER' : 'SYSTEM'
 }

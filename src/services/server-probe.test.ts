@@ -71,4 +71,9 @@ describe('fetchAuthType', () => {
     const fetchFn = vi.fn().mockResolvedValue(jsonResponse({ success: true, data: { exists: false } }))
     await expect(fetchAuthType('https://x.com', 's', fetchFn as unknown as typeof fetch)).resolves.toBe('SYSTEM')
   })
+  test('throws unreachable on a non-200 status instead of defaulting to SYSTEM', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(jsonResponse({ error: 'server error' }, 500))
+    await expect(fetchAuthType('https://x.com', 's', fetchFn as unknown as typeof fetch))
+      .rejects.toMatchObject({ kind: 'unreachable' })
+  })
 })

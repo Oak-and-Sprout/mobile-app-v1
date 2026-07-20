@@ -2,10 +2,7 @@
   "name": "sprout-track-mobile",
   "version": "0.1.0",
   "description": "This repo is for the Sprout Track V1 mobile app for Android and iOS devices",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs"
-  },
+  "private": true,
   "scripts": {
     "test": "vitest run",
     "dev": "vite",
@@ -20,16 +17,13 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/Oak-and-Sprout/mobile-app-v1/issues"
   },
   "homepage": "https://github.com/Oak-and-Sprout/mobile-app-v1#readme",
   "type": "module",
   "dependencies": {
-    "@capacitor/android": "^8.4.2",
     "@capacitor/app": "^8.1.1",
-    "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/network": "^8.0.1",
     "@capacitor/preferences": "^8.0.1",
@@ -40,7 +34,9 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.2",
     "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.4.2",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
