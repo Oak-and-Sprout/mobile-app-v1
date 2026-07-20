@@ -16,7 +16,7 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'welcome' })
   useEffect(() => {
     void listServers().then(servers => {
-      if (servers.length > 0) setScreen({ name: 'server-list' })
+      setScreen(s => (s.name === 'welcome' && servers.length > 0) ? { name: 'server-list' } : s)
     })
   }, [])
   return (

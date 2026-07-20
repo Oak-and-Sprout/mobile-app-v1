@@ -30,3 +30,23 @@ test('offline outcome navigates to the offline screen', async () => {
   await waitFor(() =>
     expect(navigate).toHaveBeenCalledWith(expect.objectContaining({ name: 'offline' })))
 })
+
+test('two families on the same server have distinct remove-button names', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'jones-family', familyName: 'Jones Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  render(<ServerList navigate={vi.fn()} connect={vi.fn()} />)
+  const removeButtons = await screen.findAllByRole('button', { name: /^remove /i })
+  expect(removeButtons).toHaveLength(2)
+  const names = removeButtons.map(b => b.getAttribute('aria-label'))
+  expect(new Set(names).size).toBe(2)
+  expect(names).toEqual(expect.arrayContaining([
+    expect.stringContaining('smith-family'),
+    expect.stringContaining('jones-family'),
+  ]))
+})

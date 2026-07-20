@@ -50,7 +50,7 @@ export default function ServerList({
             </span>
             <span className="block text-sm text-gray-500">{new URL(entry.baseUrl).host}</span>
           </button>
-          <button aria-label={`Remove ${new URL(entry.baseUrl).host}`} className="p-2 text-gray-400"
+          <button aria-label={`Remove ${entry.familySlug}`} className="p-2 text-gray-400"
             onClick={() => void remove(entry)}>
             ✕
           </button>
