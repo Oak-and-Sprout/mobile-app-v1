@@ -27,9 +27,12 @@ Requires full Xcode and CocoaPods (or Capacitor SPM support):
 
 ## Known v0 limitations
 
-- Session handoff is v0: the shell verifies and stores credentials (and seeds the
-  server's refresh cookie via native HTTP), but the web app may still show its own
-  login screen until the sprout-track native-aware layer ships (follow-up plan).
+- Silent session handoff requires a Sprout Track server running the native-aware
+  layer (sprout-track branch `feature/native-aware-layer`); older servers fall
+  back to showing the web login screen once.
+- Native push requires the server to set `FCM_SERVICE_ACCOUNT_JSON`; the app
+  skips the permission prompt when `/api/deployment-config` reports
+  `nativePushEnabled: false`.
 - Bridge spike (spec §10 risk 3) still to be validated on-device: Capacitor bridge
   availability on arbitrary `allowNavigation` hosts.
 - The biometric gate is enforced in the app layer (verify-then-return: prompt for
