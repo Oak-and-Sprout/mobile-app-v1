@@ -35,6 +35,12 @@ test('maps 429 to locked', async () => {
   expect(result).toEqual({ ok: false, error: 'locked', retryAfterSeconds: undefined })
 })
 
+test('maps 429 with remainingTime to locked with retryAfterSeconds', async () => {
+  const post = vi.fn().mockResolvedValue({ status: 429, body: { success: false, data: { remainingTime: 30 } } })
+  const result = await loginWithCredentials(entry, { type: 'pin', loginId: null, securityPin: '1' }, post)
+  expect(result).toEqual({ ok: false, error: 'locked', retryAfterSeconds: 30 })
+})
+
 test('maps 401 to invalid and network error to unreachable', async () => {
   const post401 = vi.fn().mockResolvedValue({ status: 401, body: { success: false } })
   expect((await loginWithCredentials(entry, { type: 'pin', loginId: null, securityPin: '1' }, post401)))
@@ -53,4 +59,18 @@ test('single-flights concurrent logins for the same server', async () => {
   const [r1, r2] = await Promise.all([p1, p2])
   expect(post).toHaveBeenCalledOnce()
   expect(r1).toEqual(r2)
+})
+
+test('single-flight cleanup: after resolve, subsequent login hits network again', async () => {
+  const post = vi.fn().mockResolvedValue(ok('jwt-1'))
+  // First concurrent pair (not awaited until both are queued)
+  const p1 = loginWithCredentials(entry, { type: 'pin', loginId: null, securityPin: '1' }, post)
+  const p2 = loginWithCredentials(entry, { type: 'pin', loginId: null, securityPin: '1' }, post)
+  await Promise.all([p1, p2])
+  expect(post).toHaveBeenCalledOnce() // both shared one call
+  // Third call after cleanup
+  post.mockClear()
+  post.mockResolvedValue(ok('jwt-2'))
+  await loginWithCredentials(entry, { type: 'pin', loginId: null, securityPin: '1' }, post)
+  expect(post).toHaveBeenCalledOnce() // inFlight.delete ran, so third call is fresh
 })
