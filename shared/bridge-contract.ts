@@ -13,10 +13,15 @@ export type NativeToWebMessage =
 
 type AnyMessage = WebToNativeMessage | NativeToWebMessage
 
-const KNOWN_TYPES: ReadonlySet<string> = new Set([
-  'keepAwake', 'capturePhoto', 'sessionExpired', 'loggedOut', 'registerPushToken',
-  'sessionInjected', 'appResumed',
-])
+const VALIDATORS: Record<string, (m: Record<string, unknown>) => boolean> = {
+  keepAwake: m => typeof m.on === 'boolean',
+  capturePhoto: () => true,
+  sessionExpired: () => true,
+  loggedOut: m => typeof m.reason === 'string',
+  registerPushToken: m => typeof m.jwt === 'string',
+  sessionInjected: m => typeof m.slug === 'string',
+  appResumed: () => true,
+}
 
 export function encodeMessage(msg: AnyMessage): string {
   return JSON.stringify({ v: BRIDGE_CONTRACT_VERSION, msg })
@@ -34,6 +39,7 @@ export function decodeMessage(raw: string): { v: number; msg: AnyMessage } | nul
   if (typeof v !== 'number' || v > BRIDGE_CONTRACT_VERSION) return null
   if (typeof msg !== 'object' || msg === null) return null
   const type = (msg as { type?: unknown }).type
-  if (typeof type !== 'string' || !KNOWN_TYPES.has(type)) return null
+  if (typeof type !== 'string' || !VALIDATORS[type]) return null
+  if (VALIDATORS[type]?.(msg as Record<string, unknown>) !== true) return null
   return { v, msg: msg as AnyMessage }
 }
