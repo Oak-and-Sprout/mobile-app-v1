@@ -50,3 +50,31 @@ test('touchServer bumps lastUsedAt and sorts most-recent first', async () => {
   expect(servers[0].id).toBe(b.id)
   expect(servers[0].lastUsedAt).not.toBeNull()
 })
+
+test('setDefaultServer with nonexistent id leaves default unchanged', async () => {
+  const a = await saveServer(smith)
+  const b = await saveServer({ ...smith, familySlug: 'jones-family', familyName: 'Jones' })
+  await setDefaultServer(b.id)
+  expect((await getDefaultServer())?.id).toBe(b.id)
+  // Try to set a nonexistent id as default
+  await setDefaultServer('nonexistent-id')
+  // Should still have b as default
+  expect((await getDefaultServer())?.id).toBe(b.id)
+  const servers = await listServers()
+  expect(servers.filter(s => s.isDefault).map(s => s.id)).toEqual([b.id])
+})
+
+test('removeServer promoting default entry promotes most-recently-used', async () => {
+  const a = await saveServer(smith)
+  const b = await saveServer({ ...smith, familySlug: 'jones-family', familyName: 'Jones' })
+  // Set b as default
+  await setDefaultServer(b.id)
+  // Touch a to make it most recent
+  await touchServer(a.id)
+  // Remove b (the current default)
+  await removeServer(b.id)
+  // a should become the new default (it's the most recently used)
+  expect((await getDefaultServer())?.id).toBe(a.id)
+  const servers = await listServers()
+  expect(servers.filter(s => s.isDefault).map(s => s.id)).toEqual([a.id])
+})

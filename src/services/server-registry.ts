@@ -59,13 +59,28 @@ export async function saveServer(
 }
 
 export async function removeServer(id: string): Promise<void> {
-  await writeAll((await readAll()).filter(e => e.id !== id))
+  const entries = (await readAll()).filter(e => e.id !== id)
+  // If entries remain and none is default, promote the most-recently-used
+  if (entries.length > 0 && !entries.some(e => e.isDefault)) {
+    // Sort to find the most-recently-used (first in sort order)
+    const sorted = entries.sort((a, b) => {
+      if (a.lastUsedAt === b.lastUsedAt) return 0
+      if (a.lastUsedAt === null) return 1
+      if (b.lastUsedAt === null) return -1
+      return b.lastUsedAt.localeCompare(a.lastUsedAt)
+    })
+    sorted[0].isDefault = true
+  }
+  await writeAll(entries)
 }
 
 export async function setDefaultServer(id: string): Promise<void> {
   const entries = await readAll()
-  for (const e of entries) e.isDefault = e.id === id
-  await writeAll(entries)
+  // Only proceed if the id exists in the entries
+  if (entries.some(e => e.id === id)) {
+    for (const e of entries) e.isDefault = e.id === id
+    await writeAll(entries)
+  }
 }
 
 export async function getDefaultServer(): Promise<ServerEntry | null> {
