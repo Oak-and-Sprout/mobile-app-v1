@@ -11,8 +11,12 @@ const config: CapacitorConfig = {
     // LAN self-hosts may be plain http (spec §3); shell shows a cleartext warning.
     cleartext: true,
   },
+  ios: {
+    appendUserAgent: 'SproutTrackApp/0.1.0 (ios)',
+  },
   android: {
     allowMixedContent: false,
+    appendUserAgent: 'SproutTrackApp/0.1.0 (android)',
   },
 }
 
