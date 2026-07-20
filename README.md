@@ -15,6 +15,15 @@ Plan:   `docs/superpowers/plans/2026-07-20-capacitor-shell-first-pass.md`
     npm run sync       # build + cap sync
     npm run android    # run on Android device/emulator (needs Android SDK)
 
+The Android build needs a Java runtime. If `java` isn't on your PATH, point
+`JAVA_HOME` at Android Studio's bundled one (add to `~/.zshrc` to persist):
+
+    export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+
+To test against a Sprout Track server running on your Mac (`npm run dev` in the
+sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-slug>`
+— `10.0.2.2` is the emulator's alias for the host machine; cleartext http is enabled.
+
 ## iOS (not yet generated)
 
 Requires full Xcode and CocoaPods (or Capacitor SPM support):
