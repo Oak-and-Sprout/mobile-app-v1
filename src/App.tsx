@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Welcome from './screens/Welcome'
 import ServerList from './screens/ServerList'
+import AddServer from './screens/AddServer'
 
 export type Screen =
   | { name: 'welcome' }
@@ -15,7 +16,7 @@ export default function App() {
     <div data-testid="app-root">
       {screen.name === 'welcome' && <Welcome navigate={setScreen} />}
       {screen.name === 'server-list' && <ServerList navigate={setScreen} />}
-      {screen.name === 'add-server' && <div>Add server (Task 8)</div>}
+      {screen.name === 'add-server' && <AddServer navigate={setScreen} prefillBaseUrl={screen.prefillBaseUrl} />}
       {screen.name === 'settings' && <div>Settings (Task 10)</div>}
       {screen.name === 'offline' && <div>Offline (Task 9)</div>}
     </div>
