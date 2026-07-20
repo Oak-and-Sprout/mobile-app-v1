@@ -4,9 +4,13 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from './App'
 import { saveServer } from './services/server-registry'
 import * as connectService from './services/connect'
+import { encodeMessage } from '../shared/bridge-contract'
 
 beforeEach(() => localStorage.clear())
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  vi.restoreAllMocks()
+  window.history.replaceState(null, '', '/')
+})
 
 test('renders the app root', () => {
   render(<App />)
@@ -49,4 +53,17 @@ test('offline retry that resolves locked returns to server-list', async () => {
   await user.click(screen.getByRole('button', { name: /retry/i }))
   await waitFor(() => expect(screen.getByText(/my families/i)).toBeInTheDocument())
   expect(connectSpy).toHaveBeenCalledTimes(2)
+})
+
+test('a ?bridge-event= switch-family param shows the server list instead of auto-opening', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const connectSpy = vi.spyOn(connectService, 'connectToFamily')
+  const bridgeEvent = encodeURIComponent(encodeMessage({ type: 'loggedOut', reason: 'switch-family' }))
+  window.history.replaceState(null, '', `/?bridge-event=${bridgeEvent}`)
+  render(<App />)
+  await waitFor(() => expect(screen.getByText(/my families/i)).toBeInTheDocument())
+  expect(connectSpy).not.toHaveBeenCalled()
 })

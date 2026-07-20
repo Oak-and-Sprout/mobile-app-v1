@@ -6,6 +6,7 @@ import Offline from './screens/Offline'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
 import { connectToFamily } from './services/connect'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
+import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
 
 export type Screen =
   | { name: 'welcome' }
@@ -20,6 +21,12 @@ export default function App() {
   useEffect(() => { screenRef.current = screen }, [screen])
 
   useEffect(() => {
+    // A `?bridge-event=` param means the web app handed control back to the shell (e.g. the
+    // user picked "switch family" from in-app settings). Read it before the async work below
+    // and strip it from the URL immediately so it isn't reprocessed on a later remount.
+    const bootAction = bootActionFromSearch(window.location.search)
+    stripBridgeEvent()
+
     // Shared by the initial launch attempt and the offline screen's retry button, so a
     // 'locked'/'needs-login' outcome on retry surfaces the same way it would at launch
     // instead of being silently dropped. `guard` is the screen name this call was
@@ -38,6 +45,10 @@ export default function App() {
       const servers = await listServers()
       if (servers.length === 0) return
       const fallback = () => setScreen(s => (s.name === 'welcome') ? { name: 'server-list' } : s)
+      if (bootAction === 'show-server-list') {
+        fallback()
+        return
+      }
       const def = await getDefaultServer()
       const autoOpen = def ? await isAutoOpenEnabled() : false
       // Only auto-connect if the user is still on the welcome screen — a click that
