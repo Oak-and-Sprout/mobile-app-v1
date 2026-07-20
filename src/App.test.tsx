@@ -1,9 +1,12 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, expect, test } from 'vitest'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from './App'
 import { saveServer } from './services/server-registry'
+import * as connectService from './services/connect'
 
 beforeEach(() => localStorage.clear())
+afterEach(() => vi.restoreAllMocks())
 
 test('renders the app root', () => {
   render(<App />)
@@ -30,4 +33,20 @@ test('does not clobber in-progress navigation when servers exist at launch', asy
     await new Promise(resolve => setTimeout(resolve, 0))
   })
   expect(screen.getByText(/connect to a family/i)).toBeInTheDocument()
+})
+
+test('offline retry that resolves locked returns to server-list', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const connectSpy = vi.spyOn(connectService, 'connectToFamily')
+    .mockResolvedValueOnce('offline')
+    .mockResolvedValueOnce('locked')
+  const user = userEvent.setup()
+  render(<App />)
+  await screen.findByText(/can't reach the server/i)
+  await user.click(screen.getByRole('button', { name: /retry/i }))
+  await waitFor(() => expect(screen.getByText(/my families/i)).toBeInTheDocument())
+  expect(connectSpy).toHaveBeenCalledTimes(2)
 })

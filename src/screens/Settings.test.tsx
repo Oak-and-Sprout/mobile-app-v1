@@ -18,6 +18,23 @@ test('clear all data wipes the registry', async () => {
   await waitFor(async () => expect(await listServers()).toHaveLength(0))
 })
 
+test('clear all data also clears vault credentials', async () => {
+  const entry = await saveServer({
+    baseUrl: 'https://x.com', familySlug: 's', familyName: 'S',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const vaultKey = `sprout-creds:${entry.id}`
+  localStorage.setItem(vaultKey, JSON.stringify({
+    biometric: false,
+    creds: { type: 'pin', loginId: null, securityPin: '1234' },
+  }))
+  const user = userEvent.setup()
+  render(<Settings navigate={vi.fn()} />)
+  await user.click(screen.getByRole('button', { name: /clear all data/i }))
+  await user.click(screen.getByRole('button', { name: /yes, clear everything/i }))
+  await waitFor(() => expect(localStorage.getItem(vaultKey)).toBeNull())
+})
+
 test('auto-open toggle persists', async () => {
   const user = userEvent.setup()
   render(<Settings navigate={vi.fn()} />)

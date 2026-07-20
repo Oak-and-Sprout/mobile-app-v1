@@ -5,7 +5,7 @@ import AddServer from './screens/AddServer'
 import Offline from './screens/Offline'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
 import { connectToFamily } from './services/connect'
-import { getDefaultServer, listServers } from './services/server-registry'
+import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 
 export type Screen =
   | { name: 'welcome' }
@@ -20,6 +20,20 @@ export default function App() {
   useEffect(() => { screenRef.current = screen }, [screen])
 
   useEffect(() => {
+    // Shared by the initial launch attempt and the offline screen's retry button, so a
+    // 'locked'/'needs-login' outcome on retry surfaces the same way it would at launch
+    // instead of being silently dropped. `guard` is the screen name this call was
+    // launched from — the resulting setScreen only applies if the user hasn't since
+    // navigated away from it (welcome for the initial attempt, offline for retries).
+    async function openDefault(def: ServerEntry, guard: 'welcome' | 'offline') {
+      const outcome = await connectToFamily(def)
+      if (outcome === 'offline') {
+        setScreen(s => s.name === guard ? { name: 'offline', retry: () => void openDefault(def, 'offline') } : s)
+      } else if (outcome !== 'navigated') {
+        setScreen(s => s.name === guard ? { name: 'server-list' } : s)
+      }
+    }
+
     void (async () => {
       const servers = await listServers()
       if (servers.length === 0) return
@@ -29,12 +43,7 @@ export default function App() {
       // Only auto-connect if the user is still on the welcome screen — a click that
       // navigated away while these awaits were pending must not be clobbered.
       if (def && autoOpen && screenRef.current.name === 'welcome') {
-        const outcome = await connectToFamily(def)
-        if (outcome === 'offline') {
-          setScreen(s => s.name === 'welcome' ? { name: 'offline', retry: () => void connectToFamily(def) } : s)
-        } else if (outcome !== 'navigated') {
-          fallback()
-        }
+        await openDefault(def, 'welcome')
       } else {
         fallback()
       }
