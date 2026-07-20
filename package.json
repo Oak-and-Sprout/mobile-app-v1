@@ -10,7 +10,9 @@
     "test": "vitest run",
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sync": "npm run build && npx cap sync",
+    "android": "npx cap run android"
   },
   "repository": {
     "type": "git",
@@ -25,13 +27,20 @@
   "homepage": "https://github.com/Oak-and-Sprout/mobile-app-v1#readme",
   "type": "module",
   "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/cli": "^8.4.2",
     "@capacitor/core": "^8.4.2",
+    "@capacitor/network": "^8.0.1",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@capgo/capacitor-native-biometric": "^8.6.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -41,7 +50,7 @@
     "@vitejs/plugin-react": "^6.0.3",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.3.3",
-    "typescript": "^7.0.2",
+    "typescript": "^5.9.3",
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
   }
