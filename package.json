@@ -25,6 +25,8 @@
   "homepage": "https://github.com/Oak-and-Sprout/mobile-app-v1#readme",
   "type": "module",
   "dependencies": {
+    "@capacitor/core": "^8.4.2",
+    "@capacitor/preferences": "^8.0.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
