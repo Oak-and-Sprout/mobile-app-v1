@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Screen } from '../App'
 import { connectToFamily, type ConnectOutcome } from '../services/connect'
 import { createVault } from '../services/credential-vault'
-import { listServers, removeServer, type ServerEntry } from '../services/server-registry'
+import { listServers, removeServer, setDefaultServer, type ServerEntry } from '../services/server-registry'
 
 export default function ServerList({
   navigate,
@@ -53,6 +53,10 @@ export default function ServerList({
           <button aria-label={`Remove ${entry.familySlug}`} className="p-2 text-gray-400"
             onClick={() => void remove(entry)}>
             ✕
+          </button>
+          <button aria-label={`Make ${entry.familySlug} default`} className="p-2 text-gray-400"
+            onClick={() => void setDefaultServer(entry.id).then(reload)}>
+            {entry.isDefault ? '★' : '☆'}
           </button>
         </div>
       ))}
