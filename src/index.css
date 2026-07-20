@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand: #0d9488;
+  --color-brand-emerald: #059669;
+  --color-brand-hover: #0f766e;
+  --color-brand-deep: #065f46;
+  --color-mint: #ecfdf5;
+  --color-mint-border: #a7f3d0;
+  --color-cream: #f9fafb;
+  --color-dark-accent: #5eead4;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  @apply bg-white text-gray-900 font-sans antialiased dark:bg-gray-900 dark:text-gray-100;
+}
