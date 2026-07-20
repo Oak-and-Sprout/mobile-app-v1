@@ -222,9 +222,16 @@ Server side (`sprout-track/tests`, node env):
   the consumer (fragment ignored → web login shows once), so merge order is
   flexible.
 
-## 8. Out of scope
+## 8. Out of scope for this pass — still on the v1 roadmap
 
-- OS accessControl-backed Keychain hardening (existing follow-up).
-- Push assets (google-services.json, Firebase iOS SDK).
-- Dark mode for the shell (storybook theme is single-scheme paper).
-- The mockup's fake webview/demo screens and tweaks panel.
+These are deferred from this pass but remain part of the v1 picture and are
+tracked as follow-ups (see CLAUDE.md / memory / `.superpowers/sdd/progress.md`):
+
+- OS accessControl-backed Keychain hardening of the credential vault.
+- Push delivery assets: `android/app/google-services.json` + Firebase iOS SDK.
+- Dark mode for the shell (storybook theme ships single-scheme paper first).
+- On-device bridge spike (bridge availability on `allowNavigation` hosts).
+
+Permanently out of scope (mockup demo scaffolding, never shipping):
+
+- The mockup's fake webview/demo screen and the tweaks panel.
