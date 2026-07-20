@@ -24,15 +24,15 @@ To test against a Sprout Track server running on your Mac (`npm run dev` in the
 sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-slug>`
 — `10.0.2.2` is the emulator's alias for the host machine; cleartext http is enabled.
 
-## iOS (not yet generated)
+## iOS
 
-Requires full Xcode and CocoaPods (or Capacitor SPM support):
+The ios/ platform is generated and committed (requires full Xcode + CocoaPods):
 
-    sudo gem install cocoapods   # or: brew install cocoapods
-    npm i @capacitor/ios
-    npx cap add ios
-    npx @capacitor/assets generate --ios
-    npx cap run ios
+    npx cap run ios      # build and run on a simulator/device
+
+Info.plist carries camera/photo-library/Face ID usage descriptions and an ATS
+exception for plain-http LAN servers. The iOS Simulator reaches a server on
+your Mac directly at `http://localhost:3000/<family-slug>` (no host alias needed).
 
 ## Known v0 limitations
 
@@ -43,8 +43,9 @@ Requires full Xcode and CocoaPods (or Capacitor SPM support):
   skips the permission prompt when `/api/deployment-config` reports
   `nativePushEnabled: false`.
 - Native push also needs the Firebase app config on the app side: Android requires
-  `android/app/google-services.json` (not yet added); iOS is not yet generated and
-  will need the Firebase iOS SDK to obtain FCM-compatible tokens.
+  `android/app/google-services.json` (not yet added); iOS will need the Firebase
+  iOS SDK to obtain FCM-compatible tokens (the plugin's registration event yields
+  APNs tokens, which the FCM v1 API does not accept).
 - Bridge spike (spec §10 risk 3) still to be validated on-device: Capacitor bridge
   availability on arbitrary `allowNavigation` hosts.
 - The biometric gate is enforced in the app layer (verify-then-return: prompt for
