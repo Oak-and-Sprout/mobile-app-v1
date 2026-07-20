@@ -1,0 +1,92 @@
+import { Capacitor } from '@capacitor/core'
+import { NativeBiometric } from '@capgo/capacitor-native-biometric'
+
+export type StoredCredentials =
+  | { type: 'pin'; loginId: string | null; securityPin: string }
+  | { type: 'account'; email: string; password: string }
+
+export interface VaultBackend {
+  get(key: string): Promise<string | null>
+  set(key: string, value: string): Promise<void>
+  delete(key: string): Promise<void>
+  verifyIdentity(reason: string): Promise<boolean>
+}
+
+interface VaultRecord { biometric: boolean; creds: StoredCredentials }
+
+const keyFor = (serverId: string) => `sprout-creds:${serverId}`
+
+export class CredentialVault {
+  constructor(private backend: VaultBackend) {}
+
+  async store(serverId: string, creds: StoredCredentials, opts: { biometric: boolean }): Promise<void> {
+    const record: VaultRecord = { biometric: opts.biometric, creds }
+    await this.backend.set(keyFor(serverId), JSON.stringify(record))
+  }
+
+  async retrieve(serverId: string): Promise<StoredCredentials | null> {
+    const raw = await this.backend.get(keyFor(serverId))
+    if (!raw) return null
+    let record: VaultRecord
+    try {
+      record = JSON.parse(raw) as VaultRecord
+    } catch {
+      return null
+    }
+    if (record.biometric) {
+      const ok = await this.backend.verifyIdentity('Unlock your Sprout Track family')
+      if (!ok) return null
+    }
+    return record.creds
+  }
+
+  async has(serverId: string): Promise<boolean> {
+    return (await this.backend.get(keyFor(serverId))) !== null
+  }
+
+  async clear(serverId: string): Promise<void> {
+    await this.backend.delete(keyFor(serverId))
+  }
+}
+
+/** Keychain/Keystore via NativeBiometric credential storage; server field namespaces the entry. */
+function nativeBackend(): VaultBackend {
+  return {
+    async get(key) {
+      try {
+        const { password } = await NativeBiometric.getCredentials({ server: key })
+        return password ?? null
+      } catch {
+        return null
+      }
+    },
+    async set(key, value) {
+      await NativeBiometric.setCredentials({ server: key, username: 'credentials', password: value })
+    },
+    async delete(key) {
+      await NativeBiometric.deleteCredentials({ server: key })
+    },
+    async verifyIdentity(reason) {
+      try {
+        await NativeBiometric.verifyIdentity({ reason, title: 'Sprout Track' })
+        return true
+      } catch {
+        return false
+      }
+    },
+  }
+}
+
+/** Browser dev fallback ONLY — plaintext localStorage, never shipped as the native path. */
+function webDevBackend(): VaultBackend {
+  return {
+    async get(key) { return localStorage.getItem(key) },
+    async set(key, value) { localStorage.setItem(key, value) },
+    async delete(key) { localStorage.removeItem(key) },
+    async verifyIdentity() { return true },
+  }
+}
+
+export function createVault(): CredentialVault {
+  return new CredentialVault(Capacitor.isNativePlatform() ? nativeBackend() : webDevBackend())
+}
