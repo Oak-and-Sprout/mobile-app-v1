@@ -37,6 +37,7 @@ const ERROR_TEXT: Record<string, string> = {
   invalid: 'Login failed — check your PIN.',
   locked: 'Too many attempts — try again in a few minutes.',
   'missing-slug': 'Add your family name to the address (e.g. myhost.com/smith-family).',
+  'save-failed': 'Login worked but saving the family failed — try again.',
 }
 
 export default function AddServer({
@@ -62,6 +63,7 @@ export default function AddServer({
 
   async function locate() {
     setError(null)
+    setLocated(null)
     setBusy(true)
     try {
       const { baseUrl, familySlug } = parseServerInput(input)
@@ -70,6 +72,11 @@ export default function AddServer({
       const family = await deps.fetchFamilyBySlug(baseUrl, familySlug)
       const authType = await deps.fetchAuthType(baseUrl, familySlug)
       setLocated({ baseUrl, config, family, authType })
+      setUseAccount(false)
+      setLoginId('')
+      setPin('')
+      setEmail('')
+      setPassword('')
     } catch (e) {
       const kind = e instanceof ProbeError ? e.kind : (e as Error).message
       setError(ERROR_TEXT[kind] ?? ERROR_TEXT.unreachable)
@@ -92,15 +99,19 @@ export default function AddServer({
         setError(ERROR_TEXT[result.error])
         return
       }
-      const saved = await deps.saveServer({
-        baseUrl: located.baseUrl,
-        familySlug: located.family.slug,
-        familyName: located.family.name,
-        deploymentMode: located.config.deploymentMode,
-        authType: useAccount ? 'ACCOUNT' : located.authType,
-      })
-      await deps.vault.store(saved.id, creds, { biometric })
-      navigate({ name: 'server-list' })
+      try {
+        const saved = await deps.saveServer({
+          baseUrl: located.baseUrl,
+          familySlug: located.family.slug,
+          familyName: located.family.name,
+          deploymentMode: located.config.deploymentMode,
+          authType: useAccount ? 'ACCOUNT' : located.authType,
+        })
+        await deps.vault.store(saved.id, creds, { biometric })
+        navigate({ name: 'server-list' })
+      } catch {
+        setError(ERROR_TEXT['save-failed'])
+      }
     } finally {
       setBusy(false)
     }
