@@ -33,6 +33,9 @@ Requires full Xcode and CocoaPods (or Capacitor SPM support):
 - Native push requires the server to set `FCM_SERVICE_ACCOUNT_JSON`; the app
   skips the permission prompt when `/api/deployment-config` reports
   `nativePushEnabled: false`.
+- Native push also needs the Firebase app config on the app side: Android requires
+  `android/app/google-services.json` (not yet added); iOS is not yet generated and
+  will need the Firebase iOS SDK to obtain FCM-compatible tokens.
 - Bridge spike (spec §10 risk 3) still to be validated on-device: Capacitor bridge
   availability on arbitrary `allowNavigation` hosts.
 - The biometric gate is enforced in the app layer (verify-then-return: prompt for
