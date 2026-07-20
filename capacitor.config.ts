@@ -11,6 +11,14 @@ const config: CapacitorConfig = {
     // LAN self-hosts may be plain http (spec §3); shell shows a cleartext warning.
     cleartext: true,
   },
+  plugins: {
+    // Route the shell's window.fetch through native HTTP: probe/login calls to
+    // user-entered servers would otherwise die on CORS and (for http:// LAN
+    // hosts) mixed-content blocking, since the shell origin is https/capacitor.
+    CapacitorHttp: {
+      enabled: true,
+    },
+  },
   ios: {
     appendUserAgent: 'SproutTrackApp/0.1.0 (ios)',
   },
