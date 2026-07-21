@@ -56,7 +56,7 @@ test('clear confirm shows the "keep it" fallback which backs out without clearin
   const user = userEvent.setup()
   render(<Settings navigate={vi.fn()} />)
   await user.click(screen.getByRole('button', { name: /clear all data/i }))
-  expect(screen.getByText(/this clears the book from this phone — the server keeps everything\. sure\?/i)).toBeInTheDocument()
+  expect(screen.getByText(/this clears the book from this phone - the server keeps everything\. sure\?/i)).toBeInTheDocument()
   await user.click(screen.getByRole('button', { name: /keep it/i }))
   expect(screen.queryByText(/this clears the book from this phone/i)).not.toBeInTheDocument()
   expect(await listServers()).toHaveLength(1)
@@ -65,13 +65,13 @@ test('clear confirm shows the "keep it" fallback which backs out without clearin
 test('auto-open toggle is a switch and persists', async () => {
   const user = userEvent.setup()
   render(<Settings navigate={vi.fn()} />)
-  const toggle = await screen.findByRole('switch', { name: /open my family automatically/i })
+  const toggle = await screen.findByRole('switch', { name: /open my starred family automatically/i })
   expect(toggle).toHaveAttribute('aria-checked', 'true')
   await user.click(toggle)
   expect(toggle).toHaveAttribute('aria-checked', 'false')
   render(<Settings navigate={vi.fn()} />)
   await waitFor(async () => {
-    const toggles = await screen.findAllByRole('switch', { name: /open my family automatically/i })
+    const toggles = await screen.findAllByRole('switch', { name: /open my starred family automatically/i })
     expect(toggles[toggles.length - 1]).toHaveAttribute('aria-checked', 'false')
   })
 })
@@ -82,13 +82,13 @@ test('description names the default family when one exists', async () => {
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
   })
   render(<Settings navigate={vi.fn()} />)
-  expect(await screen.findByText(/jump straight into/i)).toBeInTheDocument()
+  expect(await screen.findByText(/skip the list/i)).toBeInTheDocument()
   expect(screen.getByText('Smith Family')).toBeInTheDocument()
 })
 
-test('description falls back to a generic label when there is no default family', async () => {
+test('description falls back when there is no default family', async () => {
   render(<Settings navigate={vi.fn()} />)
-  expect(await screen.findByText(/jump straight into your default family/i)).toBeInTheDocument()
+  expect(await screen.findByText(/skip the list/i)).toBeInTheDocument()
 })
 
 test('footer shows the app version', () => {

@@ -7,7 +7,7 @@ import { formatLastOpened } from '../lib/relative-time'
 import { createVault } from '../services/credential-vault'
 import { listServers, removeServer, setDefaultServer, type ServerEntry } from '../services/server-registry'
 
-const LOCKED_COPY = 'Too many tries — the server is taking a breather. Try again in a few minutes.'
+const LOCKED_COPY = 'Too many tries - the server is taking a breather. Try again in a few minutes.'
 
 export default function Families({
   navigate, toast: bootToast, notice,

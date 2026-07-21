@@ -24,13 +24,12 @@ export default function Connecting({
   }, [])
 
   const host = new URL(entry.baseUrl).host
-  const how = entry.authType === 'ACCOUNT' ? 'signing you in with your account' : 'signing you in with your saved PIN'
   return (
     <div className="m-scr">
       <div className="center-scr">
         <img className="pulse-logo" src="/logo.png" alt="" />
         <h2>Opening {entry.familyName}…</h2>
-        <p style={{ color: 'var(--color-sub)', fontSize: 14.5 }}>{host} · {how}</p>
+        <p style={{ color: 'var(--color-sub)', fontSize: 14.5 }}>{host} · signing you in with your saved credentials</p>
         <div className="dots"><i></i><i></i><i></i></div>
       </div>
     </div>

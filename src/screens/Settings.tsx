@@ -41,23 +41,23 @@ export default function Settings({ navigate }: { navigate: (s: Screen) => void }
         <div className="sect">
           <div className="swrow">
             <div className="t">
-              <b>Open my family automatically</b>
-              <p>Skip the list — jump straight into {defName ? <b style={{ fontWeight: 700 }}>{defName}</b> : 'your default family'} when the app opens. Your unlock is still the gate.</p>
+              <b>Open my starred family automatically</b>
+              <p>Skip the list - the family marked with <Ic id="i-starf" s={13} style={{ color: 'var(--color-apricot)', verticalAlign: -1 }} /> {defName ? <>(<b style={{ fontWeight: 700 }}>{defName}</b>)</> : ''} opens the moment the app does. Your unlock is still the gate.</p>
             </div>
             <button className={'sw' + (autoOpen ? ' on' : '')} role="switch" aria-checked={autoOpen}
-              aria-label="Open my family automatically" onClick={() => void toggleAutoOpen(!autoOpen)}><i></i></button>
+              aria-label="Open my starred family automatically" onClick={() => void toggleAutoOpen(!autoOpen)}><i></i></button>
           </div>
         </div>
         <div className="sect">
-          <div className="sect-hd"><Ic id="i-shield" s={19} /><h3>Your PINs stay put</h3></div>
-          <p>Saved sign-ins live in this phone&rsquo;s secure keychain and never leave it. Remove a family and its PIN goes with it.</p>
+          <div className="sect-hd"><Ic id="i-shield" s={19} /><h3>Your sign-ins stay put</h3></div>
+          <p>Saved PINs and passwords live in this phone&rsquo;s secure keychain and never leave it. Remove a family and its sign-in goes with it.</p>
         </div>
         <div className="sect">
           <div className="sect-hd"><Ic id="i-alert" s={19} style={{ color: 'var(--color-rust)' }} /><h3 style={{ color: 'var(--color-rust)' }}>Clear this phone</h3></div>
-          <p style={{ marginBottom: 12 }}>Removes every saved family and PIN from this phone. Your family&rsquo;s data stays safe on the server.</p>
+          <p style={{ marginBottom: 12 }}>Removes every saved family and sign-in from this phone. Your family&rsquo;s data stays safe on the server.</p>
           {confirming ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              <p style={{ fontWeight: 700, color: 'var(--color-rust)' }}>This clears the book from this phone — the server keeps everything. Sure?</p>
+              <p style={{ fontWeight: 700, color: 'var(--color-rust)' }}>This clears the book from this phone - the server keeps everything. Sure?</p>
               <div style={{ display: 'flex', gap: 9 }}>
                 <button className="m-btn danger solid sm" onClick={() => void clearAll()}>Yes, clear it</button>
                 <button className="m-btn ghost sm" onClick={() => setConfirming(false)}>Keep it</button>

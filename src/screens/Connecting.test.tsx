@@ -14,12 +14,12 @@ describe('Connecting', () => {
     render(<Connecting entry={entry} navigate={vi.fn()} connect={() => new Promise(() => {})} />)
     expect(screen.getByText('Opening Smith Family…')).toBeInTheDocument()
     expect(screen.getByText(/track\.example\.com/)).toBeInTheDocument()
-    expect(screen.getByText(/saved PIN/)).toBeInTheDocument()
+    expect(screen.getByText(/signing you in with your saved credentials/)).toBeInTheDocument()
   })
 
-  it('mentions the account for ACCOUNT entries', () => {
+  it('shows the same message for ACCOUNT entries', () => {
     render(<Connecting entry={{ ...entry, authType: 'ACCOUNT' }} navigate={vi.fn()} connect={() => new Promise(() => {})} />)
-    expect(screen.getByText(/your account/)).toBeInTheDocument()
+    expect(screen.getByText(/signing you in with your saved credentials/)).toBeInTheDocument()
   })
 
   it('navigates to offline on offline outcome', async () => {
