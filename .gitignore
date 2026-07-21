@@ -5,3 +5,6 @@ dist/
 tsconfig.tsbuildinfo
 .DS_Store
 sprout-track/
+
+# Heavyweight mockup art kept local-only (design reference lives in docs/mockups)
+docs/mockups/v1-storybook/art/family-porch-flipped.png

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sprout Track — Account &amp; login</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400..800;1,7..72,400..700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="account.css">
+</head><body data-screen-label="V1 Account &amp; Login" data-overlay="dim" data-art="on">
+<svg style="display:none" aria-hidden="true"><defs>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c1.5-3.5 4-5 7-5s5.5 1.5 7 5"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7.5l9 6 9-6"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="3.5"/><path d="M10.5 13L20 4M16.5 5.5L19 8"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-chat" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M8 17l3 4 1-4"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-house" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-out" viewBox="0 0 24 24"><path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M15 8l4 4-4 4M19 12h-9"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-phone" viewBox="0 0 24 24"><path d="M6 3h4l1.5 4.5L9 9.5a12 12 0 0 0 5.5 5.5l2-2.5L21 14v4a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-down" viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 20h14"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-face" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M9.4 11h.01M14.6 11h.01M9 14.5c.8 1 1.8 1.5 3 1.5s2.2-.5 3-1.5"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19.5c.7-3.2 2.7-4.8 5.5-4.8s4.8 1.6 5.5 4.8M17 6.7a2.8 2.8 0 0 1 0 5.6M18.5 15c1.8.6 2.9 1.9 3.4 4"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-back" viewBox="0 0 24 24"><path d="M19 12H5m6-6l-6 6 6 6"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-chevd" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-alert" viewBox="0 0 24 24"><path d="M12 4.5L21 20H3zM12 10.5v4M12 17.3h.01"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-img" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4 17l4.5-4.5 3.5 3.5 3-3 5 5"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-send" viewBox="0 0 24 24"><path d="M20.5 3.5L3.5 10.5l7 2.5 2.5 7zM20.5 3.5l-10 9.5"/></symbol>
+</defs></svg>
+<header class="nav"><div class="wrap">
+<a class="logo" href="index.html"><img src="logo.png" alt="" width="26" height="26" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav class="nav-links">
+<a href="features.html">Features</a>
+<a href="pricing.html">Pricing</a>
+<a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a>
+<span id="nav-out" style="display:inline-flex;gap:22px;align-items:center"><a href="#" data-open="login">Log in</a><a class="btn" href="#" data-open="signup">Start my free trial</a></span>
+<span class="acct-wrap" id="acct-wrap" hidden><button class="btn acct-btn" id="acctBtn">Hi, Sprout <svg width="15" height="15"><use href="#i-chevd"/></svg></button>
+<div class="menu" id="acctMenu" hidden>
+<div class="menu-id"><b>Sprout Test</b><span>sprout-track@jroverton.com</span></div>
+<a href="#" data-open="account"><svg width="18" height="18"><use href="#i-gear"/></svg>Account settings</a>
+<a href="#" data-open="messages"><svg width="18" height="18"><use href="#i-chat"/></svg>Messages</a>
+<hr>
+<a href="#" id="dashLink"><svg width="18" height="18"><use href="#i-house"/></svg>Go to family dashboard</a>
+<hr>
+<a href="#" class="out" id="logoutLink"><svg width="18" height="18"><use href="#i-out"/></svg>Log out</a>
+</div></span>
+</nav>
+</div></header>
+
+<section class="hero"><div class="wrap">
+<div>
+<span class="kick">The shareable baby tracker</span>
+<h1>Everyone who loves your baby, <em>on the same page.</em></h1>
+<p class="lede">Sprout Track keeps parents, grandparents, and caretakers logging feeds, naps, and diapers in one shared place. The afternoon handoff stops needing a sticky note.</p>
+<div class="cta-row">
+<a class="btn big" href="#" data-open="signup">Start my free trial</a>
+<a class="btn big ghost" href="https://sprout-track.com/demo" rel="noopener" style="flex-direction:column;gap:2px;line-height:1.25"><span>Poke around the live demo</span><span class="assure" style="margin:0;font-size:13px;font-weight:400">ID: 01 · PIN: 111111</span></a>
+</div>
+<p class="assure">14 days free, no card required. Then $2.99/month, cancel anytime.</p>
+<p class="proof"><b>70+ families</b> track with Sprout Track <span class="dot"></span> open source, <b>322 stars</b> on GitHub</p>
+</div>
+<div style="position:relative">
+<img class="sprite" src="art/butterfly.svg" alt="" width="74" style="top:-46px;right:-8px;transform:rotate(8deg)">
+<div class="frame">
+<div class="frame-bar"><i></i><i></i><i></i><span>sprout-track.com</span></div>
+<img class="hero-shot" src="../uploads/pasted-1784247683193-0.png" alt="Sprout Track log entry: daily summary and timeline for the Rodriguez family">
+</div>
+<img class="sprite" src="art/teddy.svg" alt="" width="120" style="bottom:-38px;left:-52px;transform:rotate(-6deg)">
+</div>
+</div></section>
+
+<footer><div class="wrap">
+<a class="logo" href="index.html" style="font-size:17px"><img src="logo.png" alt="" width="20" height="20" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="https://sprout-track.com/demo" rel="noopener">Demo</a><a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></nav>
+<span>© 2025–2026 <a href="https://www.openglades.com" rel="noopener">Open Glades LLC</a> · Kansas City</span>
+</div></footer>
+
+<div class="ovl" id="ovl">
+<div class="ovl-bg" id="ovl-bg"></div>
+
+<section class="pane auth" id="pane-login" data-screen-label="Sign in">
+<header class="pane-hd"><div class="tt"><h2>Welcome back.</h2><p>Sign in to your family&rsquo;s page.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<div class="pane-bd"><form id="loginForm" class="f-grid">
+<div><label class="fl" for="liEmail">Email</label><input class="fi" id="liEmail" type="email" placeholder="you@example.com" required></div>
+<div><label class="fl" for="liPw">Password</label><input class="fi" id="liPw" type="password" placeholder="Your password" required></div>
+<button class="btn wide" type="submit">Sign me in</button>
+<div class="auth-alt">New here? <a href="#" data-open="signup">Start your free trial</a><br>Forgot your password? <a href="#" data-open="reset">Reset it</a></div>
+</form></div>
+</section>
+
+<section class="pane auth" id="pane-signup" data-screen-label="Create account">
+<img class="pane-art" src="art/star.svg" alt="" width="38" style="transform:rotate(12deg)">
+<header class="pane-hd"><div class="tt"><h2>Create your account.</h2><p>14 days free, no card needed.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<div class="pane-bd"><form id="signupForm" class="f-grid">
+<div class="f-2"><div><label class="fl" for="suFirst">First name</label><input class="fi" id="suFirst" placeholder="Betty" required></div><div><label class="fl" for="suLast">Last name</label><input class="fi" id="suLast" placeholder="Sprout" required></div></div>
+<div><label class="fl" for="suEmail">Email</label><input class="fi" id="suEmail" type="email" placeholder="you@example.com" required></div>
+<div><label class="fl" for="suPw">Password</label><input class="fi" id="suPw" type="password" placeholder="Make it a good one" required>
+<div class="reqs"><span id="r8"><i></i>8+ characters</span><span id="rnum"><i></i>A number</span><span id="rlo"><i></i>A lowercase letter</span><span id="rsym"><i></i>A symbol</span><span id="rup"><i></i>An uppercase letter</span></div></div>
+<button class="btn wide" type="submit">Start my free trial</button>
+<p class="legal">By signing up you agree to our <a href="terms.html">Terms</a> and <a href="privacy.html">Privacy Policy</a>.</p>
+<div class="auth-alt">Already have an account? <a href="#" data-open="login">Sign in</a></div>
+</form></div>
+</section>
+
+<section class="pane auth" id="pane-reset" data-screen-label="Reset password">
+<header class="pane-hd"><div class="tt"><h2>Reset your password.</h2><p>We&rsquo;ll email you a link. It works for one hour.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<div class="pane-bd"><form id="resetForm" class="f-grid">
+<div><label class="fl" for="rsEmail">Email</label><input class="fi" id="rsEmail" type="email" placeholder="you@example.com" required></div>
+<button class="btn wide" type="submit">Email me the link</button>
+<div class="auth-alt">Remembered it? <a href="#" data-open="login">Back to sign in</a></div>
+</form></div>
+</section>
+
+<section class="pane mgr" id="pane-messages" data-screen-label="Messages">
+<header class="pane-hd"><div class="tt"><h2>Messages</h2><p>Talk directly with the developer — replies land right here.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<div class="pane-bd" id="thrList"></div>
+<div class="pane-ft" style="justify-content:flex-start"><button class="btn sm" id="newMsgBtn"><svg width="15" height="15"><use href="#i-plus"/></svg>New message</button></div>
+</section>
+
+<section class="pane mgr" id="pane-newmsg" data-screen-label="New message">
+<header class="pane-hd"><button class="backbtn" data-back><svg width="19" height="19"><use href="#i-back"/></svg></button><div class="tt"><h2>Start a new message.</h2><p>A bug, an idea, a thank-you — all welcome.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<form id="newMsgForm" style="display:flex;flex-direction:column;flex:1;min-height:0">
+<div class="pane-bd f-grid">
+<div><label class="fl" for="nmSubject">Subject</label><input class="fi" id="nmSubject" placeholder="What&rsquo;s it about?" required></div>
+<div><label class="fl" for="nmBody">Message</label><textarea class="fi" id="nmBody" placeholder="What&rsquo;s working? What&rsquo;s fiddly at 3 am?" required></textarea></div>
+<div><input type="file" id="nmImgIn" accept="image/*" multiple hidden><button class="btn ghost sm" type="button" id="nmImgBtn"><svg width="15" height="15"><use href="#i-img"/></svg>Attach photos</button>
+<div class="attrow" id="nmAtts"></div></div>
+</div>
+<div class="pane-ft"><button class="btn ghost" type="button" data-back>Cancel</button><button class="btn" type="submit">Send it</button></div>
+</form>
+</section>
+
+<section class="pane mgr" id="pane-chat" data-screen-label="Chat thread">
+<header class="pane-hd"><button class="backbtn" data-back><svg width="19" height="19"><use href="#i-back"/></svg></button><div class="tt"><h2 id="chatTitle">Thread</h2><p id="chatCount"></p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<div class="pane-bd" id="chatBody"></div>
+<div class="pend" id="pendWrap" hidden><img id="pendImg" alt="Photo ready to send"><span>Photo attached</span><button type="button" id="pendX">Remove</button></div>
+<form class="composer" id="composer">
+<input type="file" id="imgIn" accept="image/*" hidden>
+<button class="cbtn" type="button" id="imgBtn" aria-label="Add a photo"><svg width="19" height="19"><use href="#i-img"/></svg></button>
+<input class="fi" id="chatIn" placeholder="Type a reply&hellip;" autocomplete="off">
+<button class="cbtn send" type="submit" aria-label="Send"><svg width="18" height="18"><use href="#i-send"/></svg></button>
+</form>
+</section>
+
+<section class="pane mgr" id="pane-account" data-screen-label="Account manager">
+<img class="pane-art" src="art/butterfly.svg" alt="" width="42" style="transform:rotate(9deg)">
+<header class="pane-hd"><div class="tt"><h2>Your account</h2></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<nav class="tabs"><button class="tab on" data-tab="account">Account</button><button class="tab" data-tab="family">Family &amp; people</button></nav>
+<div class="pane-bd">
+<div id="tab-account">
+<div class="sect" id="edAcct">
+<div class="sect-hd"><svg width="20" height="20"><use href="#i-user"/></svg><h3>Account</h3><button class="btn ghost sm ro" data-edit="edAcct">Edit</button></div>
+<div class="ro">
+<div class="irow"><svg width="16" height="16"><use href="#i-user"/></svg><b>Sprout Test</b></div>
+<div class="irow"><svg width="16" height="16"><use href="#i-mail"/></svg>sprout-track@jroverton.com</div>
+<div style="margin-top:12px"><button class="btn ghost sm" data-open="reset" data-push><svg width="15" height="15"><use href="#i-key"/></svg>Reset password</button></div>
+</div>
+<div class="ed"><div class="f-grid">
+<div class="f-2"><div><label class="fl">First name</label><input class="fi" value="Sprout"></div><div><label class="fl">Last name</label><input class="fi" value="Test"></div></div>
+<div><label class="fl">Email</label><input class="fi" type="email" value="sprout-track@jroverton.com"></div>
+<div style="display:flex;gap:10px"><button class="btn sm" data-saveedit="edAcct">Save</button><button class="btn ghost sm" data-canceledit="edAcct">Cancel</button></div>
+</div></div>
+</div>
+<div class="sect">
+<div class="sect-hd"><svg width="20" height="20"><use href="#i-shield"/></svg><h3>Subscription</h3></div>
+<div id="statusBody"></div>
+</div>
+<div class="sect" id="edFam">
+<div class="sect-hd"><svg width="20" height="20"><use href="#i-house"/></svg><h3>Family</h3><button class="btn ghost sm ro" data-edit="edFam">Edit</button></div>
+<div class="ro">
+<div class="irow"><svg width="16" height="16"><use href="#i-house"/></svg><b>Sprout Test</b></div>
+<div class="irow"><svg width="16" height="16"><use href="#i-key"/></svg><span class="mono">sprout-track.com/sprout-test</span></div>
+</div>
+<div class="ed"><div class="f-grid">
+<div><label class="fl">Family name</label><input class="fi" value="Sprout Test"></div>
+<div><label class="fl">Family link</label><input class="fi mono" value="/sprout-test"><p class="fh">Your family&rsquo;s private address — share it with caretakers.</p></div>
+<div style="display:flex;gap:10px"><button class="btn sm" data-saveedit="edFam">Save</button><button class="btn ghost sm" data-canceledit="edFam">Cancel</button></div>
+</div></div>
+</div>
+<div class="sect">
+<div class="sect-hd"><svg width="20" height="20"><use href="#i-down"/></svg><h3>Your data</h3></div>
+<p>Everything your family has logged — feeds, naps, contacts, settings — in one file, whenever you like.</p>
+<button class="btn ghost sm" onclick="toast('Your export is on its way to sprout-track@jroverton.com.')"><svg width="15" height="15"><use href="#i-down"/></svg>Download my data</button>
+</div>
+<div class="sect">
+<div class="sect-hd"><svg width="20" height="20" style="color:var(--rust)"><use href="#i-alert"/></svg><h3 style="color:var(--rust)">Close account</h3></div>
+<p>Closing your account permanently ends access to your family&rsquo;s data. Download your data first if you want to keep it.</p>
+<button class="btn danger sm" id="closeBtn">Close my account</button>
+<div id="closeConfirm" hidden>
+<p style="font-weight:700;color:var(--rust)">This closes the book for good. Are you sure?</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn danger solid sm" id="closeYes">Yes, close it</button><button class="btn ghost sm" id="closeKeep">Keep my account</button></div>
+</div>
+</div>
+</div>
+<div id="tab-family" hidden>
+<div class="sect">
+<div class="sect-hd"><svg width="20" height="20"><use href="#i-face"/></svg><h3>Babies</h3><button class="btn ghost sm" data-baby=""><svg width="15" height="15"><use href="#i-plus"/></svg>Add baby</button></div>
+<div class="prow"><span class="nm">Jackson Sprout</span><span class="chip c-blue">Boy</span><span class="meta">1 year 8 months · feed nudge 3h · diaper nudge 2h</span><span class="sp"></span><a class="edit" href="#" data-baby="jackson">Edit</a></div>
+</div>
+<div class="sect">
+<div class="sect-hd"><svg width="20" height="20"><use href="#i-people"/></svg><h3>Caretakers</h3><button class="btn ghost sm" data-ct=""><svg width="15" height="15"><use href="#i-plus"/></svg>Add caretaker</button></div>
+<div class="prow"><span class="nm">Sprout</span><span class="chip c-teal">Admin</span><span class="chip c-apr">Owner</span><span class="meta">Signs in with ID 64</span><span class="sp"></span><a class="edit" href="#" data-ct="sprout">Edit</a></div>
+<div class="prow"><span class="nm">Rachael</span><span class="chip c-blue">User</span><span class="meta">Signs in with ID 11</span><span class="sp"></span><a class="edit" href="#" data-ct="rachael">Edit</a></div>
+</div>
+<div class="sect">
+<div class="sect-hd"><svg width="20" height="20"><use href="#i-phone"/></svg><h3>Contacts</h3><button class="btn ghost sm" data-open="contact" data-push><svg width="15" height="15"><use href="#i-plus"/></svg>Add contact</button></div>
+<div class="empty"><svg width="30" height="30"><use href="#i-phone"/></svg><b>No contacts yet</b>The pediatrician, grandma, the sitter — the numbers you dig for at 2 am.</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="pane mgr" id="pane-baby" data-screen-label="Baby form">
+<header class="pane-hd"><button class="backbtn" data-back><svg width="19" height="19"><use href="#i-back"/></svg></button><div class="tt"><h2 id="babyTitle">Add a baby</h2><p id="babySub">You can change any of this later.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<form id="babyForm" style="display:flex;flex-direction:column;flex:1;min-height:0">
+<div class="pane-bd f-grid">
+<div class="f-2"><div><label class="fl" for="bFirst">First name</label><input class="fi" id="bFirst" placeholder="Jackson" required></div><div><label class="fl" for="bLast">Last name</label><input class="fi" id="bLast" placeholder="Sprout"></div></div>
+<div class="f-2"><div><label class="fl" for="bDob">Birth date</label><input class="fi" id="bDob" type="date" required></div><div><label class="fl" for="bGender">Gender</label><select class="fi" id="bGender"><option value="" selected>Choose…</option><option value="boy">Boy</option><option value="girl">Girl</option></select></div></div>
+<div class="fgroup"><b>Gentle nudges</b><p class="fh">Sprout Track quietly warns whoever&rsquo;s on duty when it&rsquo;s been this long.</p>
+<div class="f-2"><div><label class="fl" for="bFeed">Since last feed <small>(hh:mm)</small></label><input class="fi" id="bFeed" value="03:00" placeholder="03:00"></div><div><label class="fl" for="bDiaper">Since last diaper <small>(hh:mm)</small></label><input class="fi" id="bDiaper" value="02:00" placeholder="02:00"></div></div>
+<div style="margin-top:14px"><label class="fl" for="bTimer">Feed timer counts from</label><select class="fi" id="bTimer"><option>Start of feeding</option><option>End of feeding</option></select></div>
+</div>
+</div>
+<div class="pane-ft"><button class="btn ghost" type="button" data-back>Cancel</button><button class="btn" type="submit" id="babySave">Add baby</button></div>
+</form>
+</section>
+
+<section class="pane mgr" id="pane-caretaker" data-screen-label="Caretaker form">
+<header class="pane-hd"><button class="backbtn" data-back><svg width="19" height="19"><use href="#i-back"/></svg></button><div class="tt"><h2 id="ctTitle">Add a caretaker</h2><p>Anyone who helps — parents, grandparents, the nanny.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<form id="ctForm" style="display:flex;flex-direction:column;flex:1;min-height:0">
+<div class="pane-bd f-grid">
+<div class="f-2"><div><label class="fl" for="cName">Name</label><input class="fi" id="cName" placeholder="Rachael" required></div><div><label class="fl" for="cRel">Relationship <small>(optional)</small></label><input class="fi" id="cRel" placeholder="Grandma, nanny, dad…"></div></div>
+<div><label class="fl" for="cRole">Role</label><select class="fi" id="cRole"><option value="user">Regular user</option><option value="admin">Administrator</option></select><p class="fh">Admins can edit family settings and people.</p></div>
+<div class="fgroup"><b>How they sign in</b><p class="fh">A 2-digit ID and a PIN — easy enough for grandma&rsquo;s phone.</p>
+<div class="f-2"><div><label class="fl" for="cId">Login ID</label><input class="fi" id="cId" placeholder="11" maxlength="2" inputmode="numeric" required></div><div><label class="fl" for="cPin">PIN <small>(6–10 digits)</small></label><input class="fi" id="cPin" type="password" placeholder="••••••" maxlength="10" inputmode="numeric" required></div></div>
+<div style="margin-top:14px"><label class="fl" for="cPin2">Confirm PIN</label><input class="fi" id="cPin2" type="password" placeholder="Same PIN again" maxlength="10" inputmode="numeric" required></div>
+</div>
+<label class="fcheck"><input type="checkbox" id="cInactive"><span>Mark as inactive — they keep their history but can&rsquo;t sign in.</span></label>
+</div>
+<div class="pane-ft"><button class="btn ghost" type="button" data-back>Cancel</button><button class="btn" type="submit" id="ctSave">Add caretaker</button></div>
+</form>
+</section>
+
+<section class="pane mgr" id="pane-contact" data-screen-label="Contact form">
+<header class="pane-hd"><button class="backbtn" data-back><svg width="19" height="19"><use href="#i-back"/></svg></button><div class="tt"><h2>Add a contact</h2><p>The numbers everyone should be able to find.</p></div><button class="xbtn" data-close><svg width="18" height="18"><use href="#i-x"/></svg></button></header>
+<form id="contactForm" style="display:flex;flex-direction:column;flex:1;min-height:0">
+<div class="pane-bd f-grid">
+<div class="f-2"><div><label class="fl" for="coName">Name</label><input class="fi" id="coName" placeholder="Dr. Alvarez" required></div><div><label class="fl" for="coRole">Role</label><input class="fi" id="coRole" placeholder="Pediatrician, grandma, sitter…" required></div></div>
+<div class="f-2"><div><label class="fl" for="coPhone">Phone <small>(optional)</small></label><input class="fi" id="coPhone" type="tel" placeholder="(816) 555-0134"></div><div><label class="fl" for="coEmail">Email <small>(optional)</small></label><input class="fi" id="coEmail" type="email" placeholder="name@example.com"></div></div>
+</div>
+<div class="pane-ft"><button class="btn ghost" type="button" data-back>Cancel</button><button class="btn" type="submit">Save contact</button></div>
+</form>
+</section>
+</div>
+
+<div id="tweaks-root"></div>
+<script src="account.js"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="../tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "surface": "drawer",
+  "authSurface": "drawer",
+  "tone": "warm",
+  "overlay": "dim",
+  "art": true,
+  "signedIn": false,
+  "subscription": "trial"
+}/*EDITMODE-END*/;
+function TweaksApp(){
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  React.useEffect(() => { window.__setTweak = setTweak; window.applyTweaks(t); });
+  return (
+    <TweaksPanel>
+      <TweakSection label="Presentation" />
+      <TweakRadio label="Account manager" value={t.surface} options={['drawer','modal']} onChange={(v)=>setTweak('surface',v)} />
+      <TweakRadio label="Sign-in forms" value={t.authSurface} options={['centered','drawer']} onChange={(v)=>setTweak('authSurface',v)} />
+      <TweakRadio label="Backdrop" value={t.overlay} options={['dim','blur']} onChange={(v)=>setTweak('overlay',v)} />
+      <TweakRadio label="Surface tone" value={t.tone} options={['warm','bright']} onChange={(v)=>setTweak('tone',v)} />
+      <TweakToggle label="Storybook art" value={t.art} onChange={(v)=>setTweak('art',v)} />
+      <TweakSection label="Demo state" />
+      <TweakToggle label="Signed in" value={t.signedIn} onChange={(v)=>setTweak('signedIn',v)} />
+      <TweakRadio label="Subscription" value={t.subscription} options={['trial','active','expired']} onChange={(v)=>setTweak('subscription',v)} />
+    </TweaksPanel>
+  );
+}
+ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<TweaksApp />);
+</script>
+</body></html>
