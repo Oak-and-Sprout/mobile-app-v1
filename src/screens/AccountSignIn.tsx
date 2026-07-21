@@ -5,6 +5,7 @@ import { CredentialVault, createVault, type StoredCredentials } from '../service
 import { fetchFamilyBySlug } from '../services/server-probe'
 import { saveServer } from '../services/server-registry'
 import { loginWithCredentials } from '../services/session'
+import { titleFromSlug } from '../lib/slug'
 
 const SAAS_BASE = 'https://sprout-track.com'
 
@@ -27,10 +28,6 @@ const ERROR_TEXT: Record<string, string> = {
 }
 
 const NO_FAMILY_TEXT = 'This account doesn’t have a family yet. Set one up at sprout-track.com, then come back.'
-
-function titleFromSlug(slug: string): string {
-  return slug.split(/[-_]/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
-}
 
 export default function AccountSignIn({
   navigate, deps: depsOverride,
