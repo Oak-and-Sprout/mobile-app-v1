@@ -2,33 +2,27 @@ import { useState } from 'react'
 import type { Screen } from '../App'
 import { Header, ErrBox } from '../components/chrome'
 import Toast from '../components/Toast'
+import { BioCheck } from '../components/BioCheck'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
 import { fetchFamilyBySlug } from '../services/server-probe'
 import { saveServer } from '../services/server-registry'
 import { loginWithCredentials } from '../services/session'
-import { titleFromSlug } from '../lib/slug'
+import { SAAS_BASE, fetchSetupStatus } from '../services/account'
+import { routeAfterAccountLogin, screenForRoute, type AccountRoutingDeps } from '../services/account-routing'
 
-const SAAS_BASE = 'https://sprout-track.com'
-
-export interface AccountSignInDeps {
+export interface AccountSignInDeps extends AccountRoutingDeps {
   login: typeof loginWithCredentials
-  fetchFamilyBySlug: typeof fetchFamilyBySlug
-  saveServer: typeof saveServer
-  vault: Pick<CredentialVault, 'store'>
 }
 
 const defaultDeps = (): AccountSignInDeps => ({
-  login: loginWithCredentials, fetchFamilyBySlug, saveServer, vault: createVault(),
+  login: loginWithCredentials, fetchSetupStatus, fetchFamilyBySlug, saveServer, vault: createVault(),
 })
 
 const ERROR_TEXT: Record<string, string> = {
   invalid: 'That email and password didn’t match. Give it another look and try again.',
-  locked: 'Too many tries — the server is taking a breather. Try again in a few minutes.',
+  locked: 'Too many tries - the server is taking a breather. Try again in a few minutes.',
   unreachable: 'Can’t reach that server. Check the address and your connection.',
-  'save-failed': 'Login worked but saving the family failed — try again.',
 }
-
-const NO_FAMILY_TEXT = 'This account doesn’t have a family yet. Set one up at sprout-track.com, then come back.'
 
 export default function AccountSignIn({
   navigate, notice, deps: depsOverride,
@@ -54,25 +48,19 @@ export default function AccountSignIn({
         setError(ERROR_TEXT[result.error])
         return
       }
-      const slug = result.familySlug
-      if (!slug) {
-        setError(NO_FAMILY_TEXT)
+      const route = await routeAfterAccountLogin({
+        base: SAAS_BASE,
+        token: result.token,
+        creds,
+        biometric,
+        familySlug: result.familySlug || undefined,
+        verified: result.verified ?? true,
+      }, deps)
+      if (route.kind === 'error') {
+        setError(route.message)
         return
       }
-      let name = titleFromSlug(slug)
-      try {
-        name = (await deps.fetchFamilyBySlug(SAAS_BASE, slug)).name
-      } catch { /* login already succeeded; slug-derived name is fine */ }
-      try {
-        const saved = await deps.saveServer({
-          baseUrl: SAAS_BASE, familySlug: slug, familyName: name,
-          deploymentMode: 'saas', authType: 'ACCOUNT',
-        })
-        await deps.vault.store(saved.id, creds, { biometric })
-        navigate({ name: 'families', toast: `Saved — ${name} is on this phone now.` })
-      } catch {
-        setError(ERROR_TEXT['save-failed'])
-      }
+      navigate(screenForRoute(route, { token: result.token, creds, biometric }))
     } finally {
       setBusy(false)
     }
@@ -80,29 +68,29 @@ export default function AccountSignIn({
 
   return (
     <div className="m-scr">
-      <Header title="Sign in to Sprout Track" onBack={() => navigate({ name: 'fork' })} />
+      <Header title="Welcome back." onBack={() => navigate({ name: 'fork' })} />
       <div className="m-bd">
         <div className="f-grid">
-          <p className="fh" style={{ marginTop: 0 }}>The same account you use on sprout-track.com — your family comes with it, no address to type.</p>
+          <p className="fh" style={{ marginTop: 0 }}>Sign in to your family&rsquo;s page with your sprout-track.com account.</p>
           <div>
-            <label className="fl" htmlFor="acEm">Email</label>
-            <input className="fi" id="acEm" type="email" autoCapitalize="none" placeholder="you@example.com"
+            <label className="fl" htmlFor="aiEm">Email</label>
+            <input className="fi" id="aiEm" type="email" autoCapitalize="none" placeholder="you@example.com"
               value={email} onChange={e => setEmail(e.target.value)} />
           </div>
           <div>
-            <label className="fl" htmlFor="acPw">Password</label>
-            <input className="fi" id="acPw" type="password" placeholder="Your password"
+            <label className="fl" htmlFor="aiPw">Password</label>
+            <input className="fi" id="aiPw" type="password" placeholder="Your password"
               value={password} onChange={e => setPassword(e.target.value)} />
           </div>
-          <label className="fcheck">
-            <input type="checkbox" checked={biometric} onChange={e => setBiometric(e.target.checked)} />
-            <span><b>Unlock with Face ID next time</b><small>Your password lives in this phone&rsquo;s secure keychain — a glance opens the book.</small></span>
-          </label>
+          <BioCheck checked={biometric} onChange={setBiometric} what="password" />
           {error && <ErrBox>{error}</ErrBox>}
           <button className="m-btn" disabled={busy || !email || !password} onClick={() => void signIn()}>
             {busy ? 'Checking with Sprout Track…' : 'Sign me in'}
           </button>
-          <p className="fh" style={{ textAlign: 'center' }}>New here? Start your trial at sprout-track.com — then come back and sign in.</p>
+          <div className="auth-alt">
+            New here? <button className="m-link" onClick={() => navigate({ name: 'acct-signup' })}>Start your free trial</button><br />
+            Forgot your password? <button className="m-link" onClick={() => navigate({ name: 'acct-reset' })}>Reset it</button>
+          </div>
         </div>
       </div>
       {notice && <Toast message={notice} />}
