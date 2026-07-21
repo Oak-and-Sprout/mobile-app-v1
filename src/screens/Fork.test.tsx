@@ -8,7 +8,7 @@ test('renders headline, two choice cards, keychain footnote', () => {
   expect(screen.getByText('How do you sign in to your family?')).toBeTruthy()
   expect(screen.getByText('With my Sprout Track account')).toBeTruthy()
   expect(screen.getByText('Family link shared with you?')).toBeTruthy()
-  expect(screen.getByText(/Either way, your sign-in stays in this phone's secure keychain\./)).toBeTruthy()
+  expect(screen.getByText(/Either way, your sign-in stays in this phone’s secure keychain\./)).toBeTruthy()
 })
 test('cards navigate to acct-signin and add-family', () => {
   const navigate = vi.fn()

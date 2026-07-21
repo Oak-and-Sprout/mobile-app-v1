@@ -1,4 +1,3 @@
-import type { Screen } from '../App'
 import { Ic } from '../components/Icons'
 
 export default function Fork({ navigate }: { navigate: (s: { name: 'acct-signin' } | { name: 'add-family'; prefillInput?: string }) => void }) {
@@ -18,7 +17,7 @@ export default function Fork({ navigate }: { navigate: (s: { name: 'acct-signin'
           <span className="t"><b>Family link shared with you?</b><span>Sign in here with the family link and your family PIN or personal caretaker PIN.</span></span>
           <Ic id="i-chevr" s={18} />
         </button>
-        <p className="fork-foot">Either way, your sign-in stays in this phone's secure keychain.</p>
+        <p className="fork-foot">Either way, your sign-in stays in this phone&rsquo;s secure keychain.</p>
       </div>
     </div>
   )
