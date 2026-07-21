@@ -70,7 +70,7 @@ test('surfaces caretakerId from the login envelope', async () => {
   expect(result).toEqual({ ok: true, token: 't', familySlug: 'fs', caretakerId: '42' })
 })
 
-test('account login with the real nested envelope shape reads token/familySlug/id from data.user', async () => {
+test('account login with the real nested envelope shape reads token/familySlug from data.user, no caretakerId', async () => {
   // Real /api/accounts/login shape: { success, data: { success, message, token, user: { id, familySlug? } } }
   const post = async () => ({
     status: 200,
@@ -88,7 +88,8 @@ test('account login with the real nested envelope shape reads token/familySlug/i
     { id: 'https://x.com|account', baseUrl: 'https://x.com', familySlug: '' },
     { type: 'account', email: 'a@b.com', password: 'pw' }, post,
   )
-  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'jones-family', caretakerId: 'acct-1' })
+  // data.user.id is the ACCOUNT id, not a caretaker id — it must not surface as caretakerId.
+  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'jones-family' })
 })
 
 test('nested account envelope with no user.familySlug falls back to entry.familySlug', async () => {
@@ -108,7 +109,7 @@ test('nested account envelope with no user.familySlug falls back to entry.family
     { id: 'https://x.com|account', baseUrl: 'https://x.com', familySlug: 'fallback-slug' },
     { type: 'account', email: 'a@b.com', password: 'pw' }, post,
   )
-  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'fallback-slug', caretakerId: 'acct-1' })
+  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'fallback-slug' })
 })
 
 test('single-flight cleanup: after resolve, subsequent login hits network again', async () => {

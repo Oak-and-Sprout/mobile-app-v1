@@ -69,8 +69,10 @@ async function doLogin(entry: LoginTarget, creds: StoredCredentials, post: typeo
       : typeof data.user?.familySlug === 'string'
         ? data.user.familySlug
         : undefined
-  const rawId = data.id !== undefined ? data.id : data.user?.id
-  const caretakerId = typeof rawId === 'string' ? rawId : undefined
+  // caretakerId comes only from the flat PIN envelope. Account logins' data.user.id is the
+  // ACCOUNT id, not a caretaker id — the web app's own account login never sets caretakerId,
+  // and injecting it would make shell-opened sessions carry state the web flow never produces.
+  const caretakerId = typeof data.id === 'string' ? data.id : undefined
   return {
     ok: true,
     token,
