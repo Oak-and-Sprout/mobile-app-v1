@@ -8,13 +8,13 @@ export default function Welcome({ navigate }: { navigate: (s: Screen) => void })
       </h1>
       <button
         className="w-full max-w-sm rounded-xl bg-gradient-to-r from-brand to-brand-emerald px-6 py-3 font-semibold text-white"
-        onClick={() => navigate({ name: 'add-server', prefillBaseUrl: 'https://sprout-track.com' })}
+        onClick={() => navigate({ name: 'add-family', prefillInput: 'https://sprout-track.com' })}
       >
         Use Sprout Track
       </button>
       <button
         className="w-full max-w-sm rounded-xl border border-mint-border bg-mint px-6 py-3 font-semibold text-brand-deep"
-        onClick={() => navigate({ name: 'add-server' })}
+        onClick={() => navigate({ name: 'add-family' })}
       >
         Connect to my own server
       </button>

@@ -8,7 +8,7 @@ import {
 import { saveServer } from '../services/server-registry'
 import { loginWithCredentials } from '../services/session'
 
-export interface AddServerDeps {
+export interface AddFamilyDeps {
   probeDeployment: typeof probeDeployment
   fetchFamilyBySlug: typeof fetchFamilyBySlug
   fetchAuthType: typeof fetchAuthType
@@ -17,7 +17,7 @@ export interface AddServerDeps {
   vault: CredentialVault
 }
 
-const defaultDeps = (): AddServerDeps => ({
+const defaultDeps = (): AddFamilyDeps => ({
   probeDeployment, fetchFamilyBySlug, fetchAuthType, saveServer,
   login: loginWithCredentials, vault: createVault(),
 })
@@ -40,15 +40,15 @@ const ERROR_TEXT: Record<string, string> = {
   'save-failed': 'Login worked but saving the family failed — try again.',
 }
 
-export default function AddServer({
-  navigate, prefillBaseUrl, deps: depsOverride,
+export default function AddFamily({
+  navigate, prefillInput, deps: depsOverride,
 }: {
   navigate: (s: Screen) => void
-  prefillBaseUrl?: string
-  deps?: Partial<AddServerDeps>
+  prefillInput?: string
+  deps?: Partial<AddFamilyDeps>
 }) {
-  const [deps] = useState<AddServerDeps>(() => ({ ...defaultDeps(), ...depsOverride }))
-  const [input, setInput] = useState(prefillBaseUrl ?? '')
+  const [deps] = useState<AddFamilyDeps>(() => ({ ...defaultDeps(), ...depsOverride }))
+  const [input, setInput] = useState(prefillInput ?? '')
   const [located, setLocated] = useState<Located | null>(null)
   const [useAccount, setUseAccount] = useState(false)
   const [loginId, setLoginId] = useState('')
@@ -108,7 +108,7 @@ export default function AddServer({
           authType: useAccount ? 'ACCOUNT' : located.authType,
         })
         await deps.vault.store(saved.id, creds, { biometric })
-        navigate({ name: 'server-list' })
+        navigate({ name: 'families' })
       } catch {
         setError(ERROR_TEXT['save-failed'])
       }

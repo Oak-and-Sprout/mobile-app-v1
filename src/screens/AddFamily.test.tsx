@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { expect, test, vi } from 'vitest'
-import AddServer from './AddServer'
+import AddFamily from './AddFamily'
 import { CredentialVault, type VaultBackend } from '../services/credential-vault'
 import { ProbeError } from '../services/server-probe'
 
@@ -26,7 +26,7 @@ test('happy path: locate family, enter PIN, save, navigate to server list', asyn
   const user = userEvent.setup()
   const deps = makeDeps()
   const navigate = vi.fn()
-  render(<AddServer navigate={navigate} deps={deps} />)
+  render(<AddFamily navigate={navigate} deps={deps} />)
 
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
   await user.click(screen.getByRole('button', { name: /find family/i }))
@@ -35,14 +35,14 @@ test('happy path: locate family, enter PIN, save, navigate to server list', asyn
   await user.type(screen.getByLabelText(/pin/i), '123456')
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
 
-  await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'server-list' }))
+  await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'families' }))
   expect(deps.saveServer).toHaveBeenCalledWith(expect.objectContaining({ familySlug: 'smith-family' }))
 })
 
 test('shows an error when the server is not Sprout Track', async () => {
   const user = userEvent.setup()
   const deps = makeDeps({ probeDeployment: vi.fn().mockRejectedValue(new ProbeError('not-sprout-track')) })
-  render(<AddServer navigate={vi.fn()} deps={deps} />)
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://example.com/x')
   await user.click(screen.getByRole('button', { name: /find family/i }))
   expect(await screen.findByText(/doesn't look like a sprout track server/i)).toBeInTheDocument()
@@ -51,7 +51,7 @@ test('shows an error when the server is not Sprout Track', async () => {
 test('shows lockout message on 429', async () => {
   const user = userEvent.setup()
   const deps = makeDeps({ login: vi.fn().mockResolvedValue({ ok: false, error: 'locked' }) })
-  render(<AddServer navigate={vi.fn()} deps={deps} />)
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
   await user.click(screen.getByRole('button', { name: /find family/i }))
   await screen.findByText(/smith family/i)
@@ -62,7 +62,7 @@ test('shows lockout message on 429', async () => {
 
 test('warns about unencrypted http servers', async () => {
   const user = userEvent.setup()
-  render(<AddServer navigate={vi.fn()} deps={makeDeps()} />)
+  render(<AddFamily navigate={vi.fn()} deps={makeDeps()} />)
   await user.type(screen.getByLabelText(/server address/i), 'http://192.168.1.10:3000/smith-family')
   await user.click(screen.getByRole('button', { name: /find family/i }))
   expect(await screen.findByText(/not encrypted/i)).toBeInTheDocument()
@@ -72,7 +72,7 @@ test('shows an error and does not navigate when saving fails after a successful 
   const user = userEvent.setup()
   const deps = makeDeps({ saveServer: vi.fn().mockRejectedValue(new Error('disk full')) })
   const navigate = vi.fn()
-  render(<AddServer navigate={navigate} deps={deps} />)
+  render(<AddFamily navigate={navigate} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
   await user.click(screen.getByRole('button', { name: /find family/i }))
   await screen.findByText(/smith family/i)
@@ -90,7 +90,7 @@ test('clears the located family/credentials section when a subsequent locate att
     .mockResolvedValueOnce({ deploymentMode: 'selfhosted', enableAccounts: false, allowAccountRegistration: false })
     .mockRejectedValueOnce(new ProbeError('unreachable'))
   const deps = makeDeps({ probeDeployment })
-  render(<AddServer navigate={vi.fn()} deps={deps} />)
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
 
   const input = screen.getByLabelText(/server address/i)
   await user.type(input, 'https://myhost.com/smith-family')
@@ -108,7 +108,7 @@ test('clears the located family/credentials section when a subsequent locate att
 test('CARETAKER auth type shows the Login ID field and passes it through to login', async () => {
   const user = userEvent.setup()
   const deps = makeDeps({ fetchAuthType: vi.fn().mockResolvedValue('CARETAKER') })
-  render(<AddServer navigate={vi.fn()} deps={deps} />)
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
   await user.click(screen.getByRole('button', { name: /find family/i }))
   await screen.findByText(/smith family/i)
@@ -131,7 +131,7 @@ test('account login: checking "sign in with account" swaps in email/password and
   const deps = makeDeps({
     probeDeployment: vi.fn().mockResolvedValue({ deploymentMode: 'saas', enableAccounts: true, allowAccountRegistration: false }),
   })
-  render(<AddServer navigate={vi.fn()} deps={deps} />)
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
   await user.click(screen.getByRole('button', { name: /find family/i }))
   await screen.findByText(/smith family/i)
@@ -154,7 +154,7 @@ test('unchecking "Remember with Face ID / fingerprint" stores credentials withou
   const user = userEvent.setup()
   const deps = makeDeps()
   const storeSpy = vi.spyOn(deps.vault, 'store')
-  render(<AddServer navigate={vi.fn()} deps={deps} />)
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
   await user.click(screen.getByRole('button', { name: /find family/i }))
   await screen.findByText(/smith family/i)

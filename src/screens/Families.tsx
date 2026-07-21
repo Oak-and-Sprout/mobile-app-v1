@@ -1,34 +1,23 @@
 import { useEffect, useState } from 'react'
 import type { Screen } from '../App'
-import { connectToFamily, type ConnectOutcome } from '../services/connect'
+import Toast from '../components/Toast'
 import { createVault } from '../services/credential-vault'
 import { listServers, removeServer, setDefaultServer, type ServerEntry } from '../services/server-registry'
 
-export default function ServerList({
-  navigate,
-  connect = connectToFamily,
+export default function Families({
+  navigate, toast, notice,
 }: {
   navigate: (s: Screen) => void
-  connect?: (entry: ServerEntry) => Promise<ConnectOutcome>
+  toast?: string
+  notice?: string
 }) {
   const [servers, setServers] = useState<ServerEntry[]>([])
-  const [notice, setNotice] = useState<string | null>(null)
 
   const reload = () => { void listServers().then(setServers) }
   useEffect(reload, [])
 
-  // `retry` below is handed to the offline screen and invoked after ServerList itself may
-  // have unmounted (the app has since navigated to 'offline'). A 'locked'/'needs-login'
-  // outcome on that later call can't rely on this component's setNotice still doing anything,
-  // so it navigates back to server-list instead — mirrors App.tsx's openDefault pattern.
-  async function open(entry: ServerEntry, viaRetry = false) {
-    setNotice(null)
-    const outcome = await connect(entry)
-    if (outcome === 'offline') navigate({ name: 'offline', retry: () => void open(entry, true) })
-    else if (outcome === 'locked' || outcome === 'needs-login') {
-      if (viaRetry) navigate({ name: 'server-list' })
-      else if (outcome === 'locked') setNotice('Too many attempts — try again in a few minutes.')
-    }
+  function open(entry: ServerEntry) {
+    navigate({ name: 'connecting', entry })
   }
 
   async function remove(entry: ServerEntry) {
@@ -50,7 +39,7 @@ export default function ServerList({
         <div key={entry.id} className="flex items-center gap-2">
           <button
             className="flex-1 rounded-xl border border-gray-200 bg-cream p-4 text-left dark:border-gray-700 dark:bg-gray-800"
-            onClick={() => void open(entry)}
+            onClick={() => open(entry)}
           >
             <span className="block font-semibold">
               {entry.familyName} {entry.isDefault && <span aria-label="default">★</span>}
@@ -68,11 +57,12 @@ export default function ServerList({
         </div>
       ))}
 
-      {notice && <p role="alert" className="text-sm text-red-600">{notice}</p>}
+      {notice === 'locked' && <p role="alert" className="text-sm text-red-600">Too many attempts — try again in a few minutes.</p>}
+      {toast && <Toast message={toast} />}
 
       <button
         className="mt-2 rounded-xl bg-gradient-to-r from-brand to-brand-emerald px-6 py-3 font-semibold text-white"
-        onClick={() => navigate({ name: 'add-server' })}
+        onClick={() => navigate({ name: 'add-family' })}
       >
         Add a family
       </button>

@@ -55,7 +55,7 @@ export default function Settings({ navigate }: { navigate: (s: Screen) => void }
       )}
 
       <p className="mt-auto text-center text-xs text-gray-400">Sprout Track Mobile v0.1.0</p>
-      <button className="text-sm text-gray-500" onClick={() => navigate({ name: 'server-list' })}>Back</button>
+      <button className="text-sm text-gray-500" onClick={() => navigate({ name: 'families' })}>Back</button>
     </main>
   )
 }

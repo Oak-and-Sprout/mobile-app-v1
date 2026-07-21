@@ -1,73 +1,66 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Welcome from './screens/Welcome'
-import ServerList from './screens/ServerList'
-import AddServer from './screens/AddServer'
+import Families from './screens/Families'
+import AddFamily from './screens/AddFamily'
+import AccountSignIn from './screens/AccountSignIn'
 import Offline from './screens/Offline'
+import Connecting from './screens/Connecting'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
-import { connectToFamily } from './services/connect'
+import { IconDefs } from './components/Icons'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
 
 export type Screen =
   | { name: 'welcome' }
-  | { name: 'add-server'; prefillBaseUrl?: string }
-  | { name: 'server-list' }
+  | { name: 'account-signin' }
+  | { name: 'add-family'; prefillInput?: string }
+  | { name: 'families'; toast?: string; notice?: string }
   | { name: 'settings' }
-  | { name: 'offline'; retry: () => void }
+  | { name: 'offline'; entry: ServerEntry }
+  | { name: 'connecting'; entry: ServerEntry }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'welcome' })
-  const screenRef = useRef(screen)
-  useEffect(() => { screenRef.current = screen }, [screen])
 
   useEffect(() => {
-    // A `?bridge-event=` param means the web app handed control back to the shell (e.g. the
-    // user picked "switch family" from in-app settings). Read it before the async work below
-    // and strip it from the URL immediately so it isn't reprocessed on a later remount.
-    const bootAction = bootActionFromSearch(window.location.search)
+    // A `?bridge-event=` param means the web app handed control back to the shell.
+    // Read it before the async work below and strip it immediately so it isn't
+    // reprocessed on a later remount.
+    // Task 11 narrows this: bootActionFromSearch currently returns only
+    // 'auto-open' | 'show-server-list', so the 'reconnect' comparison below needs
+    // a local widening until that task adds the 'reconnect' member to the union.
+    const bootAction: string = bootActionFromSearch(window.location.search)
     stripBridgeEvent()
-
-    // Shared by the initial launch attempt and the offline screen's retry button, so a
-    // 'locked'/'needs-login' outcome on retry surfaces the same way it would at launch
-    // instead of being silently dropped. `guard` is the screen name this call was
-    // launched from — the resulting setScreen only applies if the user hasn't since
-    // navigated away from it (welcome for the initial attempt, offline for retries).
-    async function openDefault(def: ServerEntry, guard: 'welcome' | 'offline') {
-      const outcome = await connectToFamily(def)
-      if (outcome === 'offline') {
-        setScreen(s => s.name === guard ? { name: 'offline', retry: () => void openDefault(def, 'offline') } : s)
-      } else if (outcome !== 'navigated') {
-        setScreen(s => s.name === guard ? { name: 'server-list' } : s)
-      }
-    }
 
     void (async () => {
       const servers = await listServers()
-      if (servers.length === 0) return
-      const fallback = () => setScreen(s => (s.name === 'welcome') ? { name: 'server-list' } : s)
-      if (bootAction === 'show-server-list') {
-        fallback()
-        return
+      if (servers.length === 0) return // stay on welcome
+      // Every setScreen below only applies while still on welcome — a user click
+      // that navigated away during the awaits must not be clobbered.
+      const ifWelcome = (next: Screen) => setScreen(s => (s.name === 'welcome' ? next : s))
+      if (bootAction === 'show-server-list') return ifWelcome({ name: 'families' })
+      if (bootAction === 'reconnect') {
+        // listServers() sorts most-recently-used first; the entry we just left is at the top.
+        const recent = servers.find(e => e.lastUsedAt !== null)
+        return ifWelcome(recent ? { name: 'connecting', entry: recent } : { name: 'families' })
       }
       const def = await getDefaultServer()
       const autoOpen = def ? await isAutoOpenEnabled() : false
-      // Only auto-connect if the user is still on the welcome screen — a click that
-      // navigated away while these awaits were pending must not be clobbered.
-      if (def && autoOpen && screenRef.current.name === 'welcome') {
-        await openDefault(def, 'welcome')
-      } else {
-        fallback()
-      }
+      if (def && autoOpen) ifWelcome({ name: 'connecting', entry: def })
+      else ifWelcome({ name: 'families' })
     })()
   }, [])
 
   return (
-    <div data-testid="app-root">
+    <div className="m-root" data-testid="app-root">
+      <IconDefs />
       {screen.name === 'welcome' && <Welcome navigate={setScreen} />}
-      {screen.name === 'server-list' && <ServerList navigate={setScreen} />}
-      {screen.name === 'add-server' && <AddServer navigate={setScreen} prefillBaseUrl={screen.prefillBaseUrl} />}
+      {screen.name === 'account-signin' && <AccountSignIn navigate={setScreen} />}
+      {screen.name === 'families' && <Families navigate={setScreen} toast={screen.toast} notice={screen.notice} />}
+      {screen.name === 'add-family' && <AddFamily navigate={setScreen} prefillInput={screen.prefillInput} />}
       {screen.name === 'settings' && <Settings navigate={setScreen} />}
-      {screen.name === 'offline' && <Offline navigate={setScreen} retry={screen.retry} />}
+      {screen.name === 'offline' && <Offline navigate={setScreen} entry={screen.entry} />}
+      {screen.name === 'connecting' && <Connecting entry={screen.entry} navigate={setScreen} />}
     </div>
   )
 }

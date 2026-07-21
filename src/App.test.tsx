@@ -39,7 +39,18 @@ test('does not clobber in-progress navigation when servers exist at launch', asy
   expect(screen.getByText(/connect to a family/i)).toBeInTheDocument()
 })
 
-test('offline retry that resolves locked returns to server-list', async () => {
+test('auto-opens the default family into the Connecting screen', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  // Never resolves, so the app stays on the Connecting screen for the assertion below.
+  vi.spyOn(connectService, 'connectToFamily').mockReturnValue(new Promise(() => {}))
+  render(<App />)
+  await waitFor(() => expect(screen.getByText(/opening smith family/i)).toBeInTheDocument())
+})
+
+test('offline retry that resolves locked returns to families', async () => {
   await saveServer({
     baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
@@ -55,7 +66,7 @@ test('offline retry that resolves locked returns to server-list', async () => {
   expect(connectSpy).toHaveBeenCalledTimes(2)
 })
 
-test('a ?bridge-event= switch-family param shows the server list instead of auto-opening', async () => {
+test('a ?bridge-event= switch-family param shows the families list instead of auto-opening', async () => {
   await saveServer({
     baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
