@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Screen } from '../App'
 import { ErrBox, Header, WarnBox } from '../components/chrome'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
@@ -6,7 +6,7 @@ import {
   ProbeError, fetchAuthType, fetchFamilyBySlug, parseServerInput, probeDeployment,
   type AuthType, type DeploymentConfig, type PublicFamily,
 } from '../services/server-probe'
-import { saveServer } from '../services/server-registry'
+import { listServers, saveServer } from '../services/server-registry'
 import { loginWithCredentials } from '../services/session'
 
 export interface AddFamilyDeps {
@@ -14,12 +14,13 @@ export interface AddFamilyDeps {
   fetchFamilyBySlug: typeof fetchFamilyBySlug
   fetchAuthType: typeof fetchAuthType
   saveServer: typeof saveServer
+  listServers: typeof listServers
   login: typeof loginWithCredentials
   vault: CredentialVault
 }
 
 const defaultDeps = (): AddFamilyDeps => ({
-  probeDeployment, fetchFamilyBySlug, fetchAuthType, saveServer,
+  probeDeployment, fetchFamilyBySlug, fetchAuthType, saveServer, listServers,
   login: loginWithCredentials, vault: createVault(),
 })
 
@@ -59,6 +60,15 @@ export default function AddFamily({
   const [biometric, setBiometric] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [hasFamilies, setHasFamilies] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    deps.listServers().then(list => {
+      if (!cancelled) setHasFamilies(list.length > 0)
+    }).catch(() => { /* keep default true — don't strand the user on a listServers error */ })
+    return () => { cancelled = true }
+  }, [deps])
 
   async function locate() {
     setError(null)
@@ -117,14 +127,14 @@ export default function AddFamily({
   }
 
   const cleartext = located?.baseUrl.startsWith('http://') ?? false
-  const hosted = located ? new URL(located.baseUrl).host.endsWith('sprout-track.com') : false
   const host = located ? new URL(located.baseUrl).host : ''
+  const hosted = host === 'sprout-track.com' || host.endsWith('.sprout-track.com')
   const canVerify = useAccount ? email !== '' && password !== ''
     : located?.authType === 'CARETAKER' ? loginId !== '' && pin !== '' : pin !== ''
 
   return (
     <div className="m-scr">
-      <Header title="Connect to a family" onBack={() => navigate({ name: 'families' })} />
+      <Header title="Connect to a family" onBack={() => navigate(hasFamilies ? { name: 'families' } : { name: 'welcome' })} />
       <div className="m-bd">
         <div className="f-grid">
           <div>

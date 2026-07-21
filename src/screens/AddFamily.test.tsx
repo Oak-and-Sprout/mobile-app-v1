@@ -16,6 +16,7 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
     fetchFamilyBySlug: vi.fn().mockResolvedValue({ name: 'Smith Family', slug: 'smith-family', isActive: true }),
     fetchAuthType: vi.fn().mockResolvedValue('SYSTEM'),
     saveServer: vi.fn().mockResolvedValue({ id: 'srv1', isDefault: true }),
+    listServers: vi.fn().mockResolvedValue([{ id: 'srv0' }]),
     login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt', familySlug: 'smith-family' }),
     vault: new CredentialVault(backend),
     ...overrides,
@@ -210,4 +211,13 @@ test('Back button navigates to the families list', async () => {
   render(<AddFamily navigate={navigate} deps={makeDeps()} />)
   await userEvent.setup().click(screen.getByRole('button', { name: /back/i }))
   expect(navigate).toHaveBeenCalledWith({ name: 'families' })
+})
+
+test('Back button navigates to welcome when there are no saved families', async () => {
+  const navigate = vi.fn()
+  const deps = makeDeps({ listServers: vi.fn().mockResolvedValue([]) })
+  render(<AddFamily navigate={navigate} deps={deps} />)
+  await waitFor(() => expect(deps.listServers).toHaveBeenCalled())
+  await userEvent.setup().click(screen.getByRole('button', { name: /back/i }))
+  expect(navigate).toHaveBeenCalledWith({ name: 'welcome' })
 })

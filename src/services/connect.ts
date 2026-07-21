@@ -42,7 +42,7 @@ export async function connectToFamily(
       token: result.token,
       ...(result.caretakerId !== undefined ? { caretakerId: result.caretakerId } : {}),
     }
-    deps.openUrl(`${familyUrl}/log-entry#bridge-session=${encodeURIComponent(encodeMessage(msg))}`)
+    deps.openUrl(`${entry.baseUrl}/${result.familySlug}/log-entry#bridge-session=${encodeURIComponent(encodeMessage(msg))}`)
     return 'navigated'
   }
   if (result.error === 'unreachable') return 'offline'

@@ -70,6 +70,47 @@ test('surfaces caretakerId from the login envelope', async () => {
   expect(result).toEqual({ ok: true, token: 't', familySlug: 'fs', caretakerId: '42' })
 })
 
+test('account login with the real nested envelope shape reads token/familySlug/id from data.user', async () => {
+  // Real /api/accounts/login shape: { success, data: { success, message, token, user: { id, familySlug? } } }
+  const post = async () => ({
+    status: 200,
+    body: {
+      success: true,
+      data: {
+        success: true,
+        message: 'Login successful',
+        token: 'jwt-account',
+        user: { id: 'acct-1', email: 'a@b.com', familySlug: 'jones-family' },
+      },
+    },
+  })
+  const result = await loginWithCredentials(
+    { id: 'https://x.com|account', baseUrl: 'https://x.com', familySlug: '' },
+    { type: 'account', email: 'a@b.com', password: 'pw' }, post,
+  )
+  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'jones-family', caretakerId: 'acct-1' })
+})
+
+test('nested account envelope with no user.familySlug falls back to entry.familySlug', async () => {
+  const post = async () => ({
+    status: 200,
+    body: {
+      success: true,
+      data: {
+        success: true,
+        message: 'Login successful',
+        token: 'jwt-account',
+        user: { id: 'acct-1', email: 'a@b.com', hasFamily: false },
+      },
+    },
+  })
+  const result = await loginWithCredentials(
+    { id: 'https://x.com|account', baseUrl: 'https://x.com', familySlug: 'fallback-slug' },
+    { type: 'account', email: 'a@b.com', password: 'pw' }, post,
+  )
+  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'fallback-slug', caretakerId: 'acct-1' })
+})
+
 test('single-flight cleanup: after resolve, subsequent login hits network again', async () => {
   const post = vi.fn().mockResolvedValue(ok('jwt-1'))
   // First concurrent pair (not awaited until both are queued)

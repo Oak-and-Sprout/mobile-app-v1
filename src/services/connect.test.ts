@@ -46,6 +46,21 @@ test('hands the session to the web app via the bridge-session fragment', async (
   })
 })
 
+test('when the login result familySlug differs from the stored entry, navigates using the result slug', async () => {
+  const openUrl = vi.fn()
+  const outcome = await connectToFamily(entry, {
+    vault: vaultWith({ type: 'account', email: 'a@b.com', password: 'pw' }),
+    login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt-x', familySlug: 'jones-family' }),
+    touch: vi.fn(), clearCreds: vi.fn(), openUrl,
+  })
+  expect(outcome).toBe('navigated')
+  const url = openUrl.mock.calls[0][0] as string
+  const [base, fragment] = url.split('#bridge-session=')
+  expect(base).toBe(`${entry.baseUrl}/jones-family/log-entry`)
+  const decoded = decodeMessage(decodeURIComponent(fragment))
+  expect(decoded?.msg).toMatchObject({ slug: 'jones-family' })
+})
+
 test('without creds: opens the family page for web login', async () => {
   const openUrl = vi.fn()
   const outcome = await connectToFamily(entry, {

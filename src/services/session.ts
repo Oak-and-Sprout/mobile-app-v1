@@ -45,16 +45,36 @@ async function doLogin(entry: LoginTarget, creds: StoredCredentials, post: typeo
   }
 
   const envelope = res.body as
-    | { success?: boolean; data?: { token?: string; familySlug?: string; id?: unknown } }
+    | {
+        success?: boolean
+        data?: {
+          token?: string
+          familySlug?: string
+          id?: unknown
+          user?: { id?: unknown; familySlug?: string }
+        }
+      }
     | null
   if (res.status !== 200 || !envelope?.success || !envelope.data?.token) {
     return { ok: false, error: 'invalid' }
   }
-  const caretakerId = typeof envelope.data.id === 'string' ? envelope.data.id : undefined
+  const data = envelope.data
+  const token = envelope.data.token
+  // PIN logins return a flat envelope (familySlug/id at the top level). Account logins
+  // return a nested envelope (familySlug/id under data.user). Prefer the flat fields when
+  // present, then fall back to the nested user object.
+  const familySlug =
+    typeof data.familySlug === 'string'
+      ? data.familySlug
+      : typeof data.user?.familySlug === 'string'
+        ? data.user.familySlug
+        : undefined
+  const rawId = data.id !== undefined ? data.id : data.user?.id
+  const caretakerId = typeof rawId === 'string' ? rawId : undefined
   return {
     ok: true,
-    token: envelope.data.token,
-    familySlug: envelope.data.familySlug ?? entry.familySlug,
+    token,
+    familySlug: familySlug ?? entry.familySlug,
     ...(caretakerId !== undefined ? { caretakerId } : {}),
   }
 }

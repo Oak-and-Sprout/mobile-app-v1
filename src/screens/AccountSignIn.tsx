@@ -26,6 +26,8 @@ const ERROR_TEXT: Record<string, string> = {
   'save-failed': 'Login worked but saving the family failed — try again.',
 }
 
+const NO_FAMILY_TEXT = 'This account doesn’t have a family yet. Set one up at sprout-track.com, then come back.'
+
 function titleFromSlug(slug: string): string {
   return slug.split(/[-_]/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ')
 }
@@ -54,6 +56,10 @@ export default function AccountSignIn({
         return
       }
       const slug = result.familySlug
+      if (!slug) {
+        setError(NO_FAMILY_TEXT)
+        return
+      }
       let name = titleFromSlug(slug)
       try {
         name = (await deps.fetchFamilyBySlug(SAAS_BASE, slug)).name

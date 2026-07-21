@@ -54,6 +54,19 @@ describe('AccountSignIn', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/taking a breather/)
   })
 
+  it('shows a no-family error and does not save or navigate when the account has no family yet', async () => {
+    const deps = makeDeps({ login: vi.fn().mockResolvedValue({ ok: true, token: 't', familySlug: '' }) })
+    const navigate = vi.fn()
+    render(<AccountSignIn navigate={navigate} deps={deps} />)
+    await fillAndSubmit()
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This account doesn’t have a family yet. Set one up at sprout-track.com, then come back.',
+    )
+    expect(deps.saveServer).not.toHaveBeenCalled()
+    expect(deps.vault.store).not.toHaveBeenCalled()
+    expect(navigate).not.toHaveBeenCalled()
+  })
+
   it('disables submit until both fields are filled', () => {
     render(<AccountSignIn navigate={vi.fn()} deps={makeDeps()} />)
     expect(screen.getByRole('button', { name: 'Sign me in' })).toBeDisabled()
