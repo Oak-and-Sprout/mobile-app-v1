@@ -20,6 +20,9 @@ The Android build needs a Java runtime. If `java` isn't on your PATH, point
 
     export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
 
+The shell UI follows the v1-storybook theme (`docs/mockups/capacitor-app.html`); fonts are
+bundled via @fontsource (no network needed at runtime).
+
 To test against a Sprout Track server running on your Mac (`npm run dev` in the
 sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-slug>`
 — `10.0.2.2` is the emulator's alias for the host machine; cleartext http is enabled.
@@ -37,9 +40,12 @@ your Mac directly at `http://localhost:3000/<family-slug>` (no host alias needed
 
 ## Known v0 limitations
 
-- Silent session handoff requires a Sprout Track server running the native-aware
-  layer (sprout-track branch `feature/native-aware-layer`); older servers fall
-  back to showing the web login screen once.
+- Silent session handoff passes the shell's login to the web app via a
+  `#bridge-session=` fragment; it requires a server running the native-aware layer
+  (sprout-track branch `feature/native-aware-layer`). Older servers ignore the
+  fragment and show the web login once. The web session may also not auto-refresh
+  past ~30 min (the shell's refresh cookie may not reach the webview); expiry then
+  routes back through the shell, which re-logs-in with saved credentials.
 - Native push requires the server to set `FCM_SERVICE_ACCOUNT_JSON`; the app
   skips the permission prompt when `/api/deployment-config` reports
   `nativePushEnabled: false`.

@@ -18,6 +18,10 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
+    SplashScreen: {
+      backgroundColor: '#f7f1e2',
+      launchAutoHide: true,
+    },
   },
   ios: {
     appendUserAgent: 'SproutTrackApp/0.1.0 (ios)',
