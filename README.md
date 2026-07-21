@@ -27,6 +27,36 @@ To test against a Sprout Track server running on your Mac (`npm run dev` in the
 sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-slug>`
 — `10.0.2.2` is the emulator's alias for the host machine; cleartext http is enabled.
 
+## App flows
+
+- **Splash → fork**: on launch the splash screen shows for ~2.7s, then the app
+  forks to either the "no saved families" onboarding path or, when at least one
+  server/family is saved, the "My Families" list (with auto-open of the default
+  family if that preference is on).
+- **Account (email/password)**: sign-in and signup share a screen; signup shows
+  a live password-requirements checklist as the user types. After signup the
+  user lands on a verify-first screen that polls the server until the email is
+  confirmed before proceeding. A separate reset-password flow is reachable from
+  sign-in.
+- **Native setup wizard** (creating a new family from the app): the wizard
+  drives the server through, in order: `POST /api/setup/start`, a security step
+  (`PUT` the settings + `POST` a caretaker + `update-setup-stage` to 2), then
+  `POST` the baby and link the caretaker. It then **re-logs-in with the just-
+  vaulted credentials** (rather than relying on the refresh-token cookie) so
+  the shell doesn't depend on that cookie reaching the webview — see the
+  refresh-cookie caveat below. Once login succeeds the family is saved to the
+  server registry. If the wizard is interrupted, resuming reads
+  `GET /api/family/setup-status`, which carries the auth type so PIN-mode
+  families resume into the right step instead of defaulting to account auth.
+- **Subscription management**: shown in-app as display-only (plan/status), no
+  billing UI is rendered natively. Actually managing a subscription opens the
+  system browser: the web app calls the `@capacitor/browser` plugin
+  (`Browser.open`) when running inside the shell, falling back to
+  `window.open(url, '_blank')` otherwise. That invocation lives server-side
+  (sprout-track branch `feature/native-aware-layer`, PR #234); this repo's
+  role is just to ship the plugin so the native call succeeds — see the device
+  checklist for the manual verification steps (`docs/superpowers/device-test-2026-07-21.md`).
+
 ## iOS
 
 The ios/ platform is generated and committed (requires full Xcode; dependencies
