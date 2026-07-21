@@ -1,20 +1,19 @@
 import type { Screen } from '../App'
+import { Ic } from '../components/Icons'
 import type { ServerEntry } from '../services/server-registry'
 
 export default function Offline({ navigate, entry }: { navigate: (s: Screen) => void; entry: ServerEntry }) {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
-      <h1 className="text-2xl font-bold">Can't reach the server</h1>
-      <p className="text-gray-500">Check your connection and try again.</p>
-      <button
-        className="rounded-xl bg-gradient-to-r from-brand to-brand-emerald px-6 py-3 font-semibold text-white"
-        onClick={() => navigate({ name: 'connecting', entry })}
-      >
-        Retry
-      </button>
-      <button className="text-brand" onClick={() => navigate({ name: 'families' })}>
-        Switch family
-      </button>
-    </main>
+    <div className="m-scr">
+      <div className="center-scr">
+        <img src="/art/kitten.svg" alt="" width="104" />
+        <h2>Can't reach your server.</h2>
+        <p>{entry.familyName}'s server isn't answering right now. Everything already logged is safe — we just can't say hello.</p>
+        <div className="btns">
+          <button className="m-btn" onClick={() => navigate({ name: 'connecting', entry })}><Ic id="i-refresh" s={17} />Try again</button>
+          <button className="m-btn ghost" onClick={() => navigate({ name: 'families' })}>Switch family</button>
+        </div>
+      </div>
+    </div>
   )
 }
