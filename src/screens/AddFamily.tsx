@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Screen } from '../App'
+import { ErrBox, Header, WarnBox } from '../components/chrome'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
 import {
   ProbeError, fetchAuthType, fetchFamilyBySlug, parseServerInput, probeDeployment,
@@ -30,13 +31,13 @@ interface Located {
 }
 
 const ERROR_TEXT: Record<string, string> = {
-  'invalid-url': 'Please enter a valid server address.',
-  unreachable: "Can't reach this server. Check the address and your connection.",
-  'not-sprout-track': "That doesn't look like a Sprout Track server.",
-  'family-not-found': 'Family not found on this server.',
-  invalid: 'Login failed — check your PIN.',
-  locked: 'Too many attempts — try again in a few minutes.',
-  'missing-slug': 'Add your family name to the address (e.g. myhost.com/smith-family).',
+  'invalid-url': 'That doesn’t look like an address. Try something like myhost.com/smith-family.',
+  'missing-slug': 'Add your family’s name to the end — like myhost.com/smith-family.',
+  'family-not-found': 'No family by that name on this server. Check the spelling?',
+  'not-sprout-track': 'We reached it, but it isn’t a Sprout Track server.',
+  unreachable: 'Can’t reach that server. Check the address and your connection.',
+  invalid: 'That PIN didn’t work. Give it another look and try again.',
+  locked: 'Too many tries — the server is taking a breather. Try again in a few minutes.',
   'save-failed': 'Login worked but saving the family failed — try again.',
 }
 
@@ -58,8 +59,6 @@ export default function AddFamily({
   const [biometric, setBiometric] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-
-  const cleartext = located?.baseUrl.startsWith('http://') ?? false
 
   async function locate() {
     setError(null)
@@ -108,7 +107,7 @@ export default function AddFamily({
           authType: useAccount ? 'ACCOUNT' : located.authType,
         })
         await deps.vault.store(saved.id, creds, { biometric })
-        navigate({ name: 'families' })
+        navigate({ name: 'families', toast: `Saved — ${located.family.name} is on this phone now.` })
       } catch {
         setError(ERROR_TEXT['save-failed'])
       }
@@ -117,90 +116,79 @@ export default function AddFamily({
     }
   }
 
+  const cleartext = located?.baseUrl.startsWith('http://') ?? false
+  const hosted = located ? new URL(located.baseUrl).host.endsWith('sprout-track.com') : false
+  const host = located ? new URL(located.baseUrl).host : ''
+  const canVerify = useAccount ? email !== '' && password !== ''
+    : located?.authType === 'CARETAKER' ? loginId !== '' && pin !== '' : pin !== ''
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-4 p-6">
-      <h1 className="text-2xl font-bold">Connect to a family</h1>
-
-      <label className="flex flex-col gap-1 text-sm font-medium">
-        Server address
-        <input
-          className="rounded-lg border border-gray-300 p-3 dark:border-gray-600 dark:bg-gray-800"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="https://myhost.com/smith-family"
-          autoCapitalize="none"
-          autoCorrect="off"
-        />
-      </label>
-      <button
-        className="rounded-xl bg-gradient-to-r from-brand to-brand-emerald px-6 py-3 font-semibold text-white disabled:opacity-50"
-        disabled={busy || input.trim() === ''}
-        onClick={locate}
-      >
-        Find family
-      </button>
-
-      {located && (
-        <section className="flex flex-col gap-3 rounded-xl border border-mint-border bg-mint p-4 dark:border-gray-700 dark:bg-gray-800">
-          <p className="font-semibold text-brand-deep dark:text-dark-accent">{located.family.name}</p>
-          {cleartext && <p className="text-sm text-amber-700">This connection is not encrypted.</p>}
-
-          {located.config.enableAccounts && (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={useAccount} onChange={e => setUseAccount(e.target.checked)} />
-              Sign in with my Sprout Track account
-            </label>
+    <div className="m-scr">
+      <Header title="Connect to a family" onBack={() => navigate({ name: 'families' })} />
+      <div className="m-bd">
+        <div className="f-grid">
+          <div>
+            <label className="fl" htmlFor="addr">Server address</label>
+            <input className="fi" id="addr" value={input} autoCapitalize="none" spellCheck="false"
+              placeholder="myhost.com/smith-family"
+              onChange={e => { setInput(e.target.value); setLocated(null); setError(null) }} />
+            <p className="fh">Your family&rsquo;s link — the same one you&rsquo;d open in a browser.</p>
+          </div>
+          {!located && (
+            <button className="m-btn" disabled={busy || input.trim() === ''} onClick={() => void locate()}>
+              {busy ? 'Knocking on the door…' : 'Find my family'}
+            </button>
           )}
-
-          {useAccount ? (
-            <>
-              <label className="flex flex-col gap-1 text-sm font-medium">
-                Email
-                <input className="rounded-lg border border-gray-300 p-3" type="email"
-                  value={email} onChange={e => setEmail(e.target.value)} />
-              </label>
-              <label className="flex flex-col gap-1 text-sm font-medium">
-                Password
-                <input className="rounded-lg border border-gray-300 p-3" type="password"
-                  value={password} onChange={e => setPassword(e.target.value)} />
-              </label>
-            </>
-          ) : (
-            <>
-              {located.authType === 'CARETAKER' && (
-                <label className="flex flex-col gap-1 text-sm font-medium">
-                  Login ID
-                  <input className="rounded-lg border border-gray-300 p-3" inputMode="numeric" maxLength={2}
-                    value={loginId} onChange={e => setLoginId(e.target.value)} />
+          {error && !located && <ErrBox>{error}</ErrBox>}
+          {located && <>
+            <div className="fam-card" style={{ cursor: 'default' }}>
+              <div className={'fam-av' + (hosted ? '' : ' apr')}>{located.family.name[0]}</div>
+              <div className="t">
+                <div className="nm">{located.family.name}</div>
+                <div className="host">{host}</div>
+              </div>
+              <span className={'chip ' + (hosted ? 'c-teal' : 'c-apr')}>{hosted ? 'Hosted' : 'Self-hosted'}</span>
+            </div>
+            {cleartext && <WarnBox>Heads up — this connection isn&rsquo;t encrypted. Fine on your home network, risky on public Wi-Fi.</WarnBox>}
+            <div className="fgroup">
+              <b>How you sign in</b>
+              <p className="fh">{useAccount ? 'The account you use on sprout-track.com.' : 'Same PIN as the website — we check it with your server, then keep it safe here.'}</p>
+              {located.config.enableAccounts && (
+                <label className="fcheck" style={{ marginBottom: 13 }}>
+                  <input type="checkbox" checked={useAccount} onChange={e => setUseAccount(e.target.checked)} />
+                  <span><b>Sign in with my Sprout Track account</b></span>
                 </label>
               )}
-              <label className="flex flex-col gap-1 text-sm font-medium">
-                PIN
-                <input className="rounded-lg border border-gray-300 p-3" type="password" inputMode="numeric"
-                  value={pin} onChange={e => setPin(e.target.value)} />
-              </label>
-            </>
-          )}
-
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={biometric} onChange={e => setBiometric(e.target.checked)} />
-            Remember with Face ID / fingerprint
-          </label>
-
-          <button
-            className="rounded-xl bg-gradient-to-r from-brand to-brand-emerald px-6 py-3 font-semibold text-white disabled:opacity-50"
-            disabled={busy}
-            onClick={verifyAndSave}
-          >
-            Verify &amp; save
-          </button>
-        </section>
-      )}
-
-      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-      <button className="mt-auto text-sm text-gray-500" onClick={() => navigate({ name: 'welcome' })}>
-        Back
-      </button>
-    </main>
+              {useAccount ? (
+                <div className="f-grid">
+                  <div><label className="fl" htmlFor="em">Email</label>
+                    <input className="fi" id="em" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
+                  <div><label className="fl" htmlFor="pw">Password</label>
+                    <input className="fi" id="pw" type="password" placeholder="Your password" value={password} onChange={e => setPassword(e.target.value)} /></div>
+                </div>
+              ) : located.authType === 'CARETAKER' ? (
+                <div className="f-2">
+                  <div><label className="fl" htmlFor="lid">Login ID</label>
+                    <input className="fi" id="lid" inputMode="numeric" maxLength={2} placeholder="11" value={loginId} onChange={e => setLoginId(e.target.value)} /></div>
+                  <div><label className="fl" htmlFor="pin">PIN</label>
+                    <input className="fi" id="pin" type="password" inputMode="numeric" maxLength={10} placeholder="••••••" value={pin} onChange={e => setPin(e.target.value)} /></div>
+                </div>
+              ) : (
+                <div><label className="fl" htmlFor="pin">Family PIN</label>
+                  <input className="fi" id="pin" type="password" inputMode="numeric" maxLength={10} placeholder="••••••" value={pin} onChange={e => setPin(e.target.value)} /></div>
+              )}
+            </div>
+            <label className="fcheck">
+              <input type="checkbox" checked={biometric} onChange={e => setBiometric(e.target.checked)} />
+              <span><b>Unlock with Face ID next time</b><small>Your PIN lives in this phone&rsquo;s secure keychain — a glance opens the book.</small></span>
+            </label>
+            {error && <ErrBox>{error}</ErrBox>}
+            <button className="m-btn" disabled={busy || !canVerify} onClick={() => void verifyAndSave()}>
+              {busy ? 'Checking with your server…' : 'Verify & save'}
+            </button>
+          </>}
+        </div>
+      </div>
+    </div>
   )
 }

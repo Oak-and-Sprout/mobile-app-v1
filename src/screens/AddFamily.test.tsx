@@ -22,20 +22,35 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
   }
 }
 
-test('happy path: locate family, enter PIN, save, navigate to server list', async () => {
+test('shows the located family card with host and deployment chip', async () => {
+  const user = userEvent.setup()
+  const deps = makeDeps()
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
+
+  await user.type(screen.getByLabelText(/server address/i), 'track.example.com/smith-family')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+
+  expect(await screen.findByText('Smith Family')).toBeInTheDocument()
+  expect(screen.getByText('track.example.com')).toBeInTheDocument()
+  expect(screen.getByText('Self-hosted')).toBeInTheDocument()
+})
+
+test('navigates to families with a toast after verify & save', async () => {
   const user = userEvent.setup()
   const deps = makeDeps()
   const navigate = vi.fn()
   render(<AddFamily navigate={navigate} deps={deps} />)
 
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  expect(await screen.findByText(/smith family/i)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  expect(await screen.findByText('Smith Family')).toBeInTheDocument()
 
-  await user.type(screen.getByLabelText(/pin/i), '123456')
+  await user.type(screen.getByLabelText(/family pin/i), '123456')
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
 
-  await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'families' }))
+  await waitFor(() =>
+    expect(navigate).toHaveBeenCalledWith({ name: 'families', toast: 'Saved — Smith Family is on this phone now.' }),
+  )
   expect(deps.saveServer).toHaveBeenCalledWith(expect.objectContaining({ familySlug: 'smith-family' }))
 })
 
@@ -44,8 +59,17 @@ test('shows an error when the server is not Sprout Track', async () => {
   const deps = makeDeps({ probeDeployment: vi.fn().mockRejectedValue(new ProbeError('not-sprout-track')) })
   render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://example.com/x')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  expect(await screen.findByText(/doesn't look like a sprout track server/i)).toBeInTheDocument()
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  expect(await screen.findByText(/isn’t a Sprout Track server/)).toBeInTheDocument()
+})
+
+test('shows an error when the family is not found on the server', async () => {
+  const user = userEvent.setup()
+  const deps = makeDeps({ fetchFamilyBySlug: vi.fn().mockRejectedValue(new ProbeError('family-not-found')) })
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
+  await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  expect(await screen.findByText(/No family by that name on this server/)).toBeInTheDocument()
 })
 
 test('shows lockout message on 429', async () => {
@@ -53,19 +77,31 @@ test('shows lockout message on 429', async () => {
   const deps = makeDeps({ login: vi.fn().mockResolvedValue({ ok: false, error: 'locked' }) })
   render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  await screen.findByText(/smith family/i)
-  await user.type(screen.getByLabelText(/pin/i), '123456')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  await screen.findByText('Smith Family')
+  await user.type(screen.getByLabelText(/family pin/i), '123456')
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
-  expect(await screen.findByText(/too many attempts/i)).toBeInTheDocument()
+  expect(await screen.findByText(/taking a breather/)).toBeInTheDocument()
 })
 
-test('warns about unencrypted http servers', async () => {
+test('shows an invalid-PIN message on failed login', async () => {
+  const user = userEvent.setup()
+  const deps = makeDeps({ login: vi.fn().mockResolvedValue({ ok: false, error: 'invalid' }) })
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
+  await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  await screen.findByText('Smith Family')
+  await user.type(screen.getByLabelText(/family pin/i), '123456')
+  await user.click(screen.getByRole('button', { name: /verify & save/i }))
+  expect(await screen.findByText(/That PIN didn’t work/)).toBeInTheDocument()
+})
+
+test('warns about cleartext http addresses', async () => {
   const user = userEvent.setup()
   render(<AddFamily navigate={vi.fn()} deps={makeDeps()} />)
-  await user.type(screen.getByLabelText(/server address/i), 'http://192.168.1.10:3000/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  expect(await screen.findByText(/not encrypted/i)).toBeInTheDocument()
+  await user.type(screen.getByLabelText(/server address/i), 'http://10.0.2.2:3000/smith-family')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  expect(await screen.findByText(/isn’t encrypted/)).toBeInTheDocument()
 })
 
 test('shows an error and does not navigate when saving fails after a successful login', async () => {
@@ -74,9 +110,9 @@ test('shows an error and does not navigate when saving fails after a successful 
   const navigate = vi.fn()
   render(<AddFamily navigate={navigate} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  await screen.findByText(/smith family/i)
-  await user.type(screen.getByLabelText(/pin/i), '123456')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  await screen.findByText('Smith Family')
+  await user.type(screen.getByLabelText(/family pin/i), '123456')
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
 
   expect(await screen.findByText(/saving the family failed/i)).toBeInTheDocument()
@@ -94,15 +130,16 @@ test('clears the located family/credentials section when a subsequent locate att
 
   const input = screen.getByLabelText(/server address/i)
   await user.type(input, 'https://myhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  await screen.findByText(/smith family/i)
-  await user.type(screen.getByLabelText(/pin/i), '123456')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  await screen.findByText('Smith Family')
+  await user.type(screen.getByLabelText(/family pin/i), '123456')
 
   await user.clear(input)
   await user.type(input, 'https://otherhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
 
-  await waitFor(() => expect(screen.queryByText(/smith family/i)).not.toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText('Smith Family')).not.toBeInTheDocument())
+  expect(await screen.findByText(/Can’t reach that server/)).toBeInTheDocument()
 })
 
 test('CARETAKER auth type shows the Login ID field and passes it through to login', async () => {
@@ -110,12 +147,12 @@ test('CARETAKER auth type shows the Login ID field and passes it through to logi
   const deps = makeDeps({ fetchAuthType: vi.fn().mockResolvedValue('CARETAKER') })
   render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  await screen.findByText(/smith family/i)
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  await screen.findByText('Smith Family')
 
   expect(screen.getByLabelText(/login id/i)).toBeInTheDocument()
   await user.type(screen.getByLabelText(/login id/i), '01')
-  await user.type(screen.getByLabelText(/pin/i), '123456')
+  await user.type(screen.getByLabelText(/^pin$/i), '123456')
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
 
   await waitFor(() =>
@@ -126,16 +163,17 @@ test('CARETAKER auth type shows the Login ID field and passes it through to logi
   )
 })
 
-test('account login: checking "sign in with account" swaps in email/password and saves with ACCOUNT auth type', async () => {
+test('account toggle appears when the server allows accounts and swaps in email/password', async () => {
   const user = userEvent.setup()
   const deps = makeDeps({
     probeDeployment: vi.fn().mockResolvedValue({ deploymentMode: 'saas', enableAccounts: true, allowAccountRegistration: false }),
   })
   render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  await screen.findByText(/smith family/i)
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  await screen.findByText('Smith Family')
 
+  expect(screen.getByLabelText(/sign in with my sprout track account/i)).toBeInTheDocument()
   await user.click(screen.getByLabelText(/sign in with my sprout track account/i))
   await user.type(screen.getByLabelText(/email/i), 'a@b.com')
   await user.type(screen.getByLabelText(/password/i), 'hunter2')
@@ -150,19 +188,26 @@ test('account login: checking "sign in with account" swaps in email/password and
   expect(deps.saveServer).toHaveBeenCalledWith(expect.objectContaining({ authType: 'ACCOUNT' }))
 })
 
-test('unchecking "Remember with Face ID / fingerprint" stores credentials without biometric', async () => {
+test('unchecking "Unlock with Face ID next time" stores credentials without biometric', async () => {
   const user = userEvent.setup()
   const deps = makeDeps()
   const storeSpy = vi.spyOn(deps.vault, 'store')
   render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/server address/i), 'https://myhost.com/smith-family')
-  await user.click(screen.getByRole('button', { name: /find family/i }))
-  await screen.findByText(/smith family/i)
-  await user.type(screen.getByLabelText(/pin/i), '123456')
-  await user.click(screen.getByLabelText(/remember with face id/i))
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+  await screen.findByText('Smith Family')
+  await user.type(screen.getByLabelText(/family pin/i), '123456')
+  await user.click(screen.getByLabelText(/unlock with face id next time/i))
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
 
   await waitFor(() =>
     expect(storeSpy).toHaveBeenCalledWith(expect.any(String), expect.anything(), { biometric: false }),
   )
+})
+
+test('Back button navigates to the families list', async () => {
+  const navigate = vi.fn()
+  render(<AddFamily navigate={navigate} deps={makeDeps()} />)
+  await userEvent.setup().click(screen.getByRole('button', { name: /back/i }))
+  expect(navigate).toHaveBeenCalledWith({ name: 'families' })
 })
