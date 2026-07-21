@@ -19,7 +19,7 @@ test('renders the app root', () => {
 
 test('shows Welcome when no servers are saved', () => {
   render(<App />)
-  expect(screen.getByText(/welcome to sprout track/i)).toBeInTheDocument()
+  expect(screen.getByText(/The family page,/)).toBeInTheDocument()
 })
 
 test('does not clobber in-progress navigation when servers exist at launch', async () => {
@@ -29,7 +29,7 @@ test('does not clobber in-progress navigation when servers exist at launch', asy
   })
   render(<App />)
   // Click synchronously, before the launch-routing effect's listServers() promise has settled.
-  fireEvent.click(screen.getByText(/connect to my own server/i))
+  fireEvent.click(screen.getByText(/I run my own server/))
   expect(screen.getByText(/connect to a family/i)).toBeInTheDocument()
   // Force the launch-routing effect's listServers() promise to settle and its callback to run
   // (rather than racing it with waitFor, which can pass on its first, pre-settlement check).
