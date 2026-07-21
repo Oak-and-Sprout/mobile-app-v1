@@ -5,6 +5,8 @@ export type StoredCredentials =
   | { type: 'pin'; loginId: string | null; securityPin: string }
   | { type: 'account'; email: string; password: string }
 
+export type AccountCreds = Extract<StoredCredentials, { type: 'account' }>
+
 export interface VaultBackend {
   get(key: string): Promise<string | null>
   set(key: string, value: string): Promise<void>

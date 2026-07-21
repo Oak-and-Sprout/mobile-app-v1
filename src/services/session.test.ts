@@ -80,7 +80,7 @@ test('account login with the real nested envelope shape reads token/familySlug f
         success: true,
         message: 'Login successful',
         token: 'jwt-account',
-        user: { id: 'acct-1', email: 'a@b.com', familySlug: 'jones-family' },
+        user: { id: 'acct-1', email: 'a@b.com', familySlug: 'jones-family', verified: false },
       },
     },
   })
@@ -89,7 +89,7 @@ test('account login with the real nested envelope shape reads token/familySlug f
     { type: 'account', email: 'a@b.com', password: 'pw' }, post,
   )
   // data.user.id is the ACCOUNT id, not a caretaker id — it must not surface as caretakerId.
-  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'jones-family' })
+  expect(result).toEqual({ ok: true, token: 'jwt-account', familySlug: 'jones-family', verified: false })
 })
 
 test('nested account envelope with no user.familySlug falls back to entry.familySlug', async () => {
