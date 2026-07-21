@@ -2,7 +2,7 @@ import { postJson } from '../lib/api-client'
 import type { StoredCredentials } from './credential-vault'
 
 export type LoginResult =
-  | { ok: true; token: string; familySlug: string }
+  | { ok: true; token: string; familySlug: string; caretakerId?: string }
   | { ok: false; error: 'invalid' | 'locked' | 'unreachable'; retryAfterSeconds?: number }
 
 interface LoginTarget { id: string; baseUrl: string; familySlug: string }
@@ -44,9 +44,17 @@ async function doLogin(entry: LoginTarget, creds: StoredCredentials, post: typeo
     return { ok: false, error: 'locked', retryAfterSeconds: remaining }
   }
 
-  const envelope = res.body as { success?: boolean; data?: { token?: string; familySlug?: string } } | null
+  const envelope = res.body as
+    | { success?: boolean; data?: { token?: string; familySlug?: string; id?: unknown } }
+    | null
   if (res.status !== 200 || !envelope?.success || !envelope.data?.token) {
     return { ok: false, error: 'invalid' }
   }
-  return { ok: true, token: envelope.data.token, familySlug: envelope.data.familySlug ?? entry.familySlug }
+  const caretakerId = typeof envelope.data.id === 'string' ? envelope.data.id : undefined
+  return {
+    ok: true,
+    token: envelope.data.token,
+    familySlug: envelope.data.familySlug ?? entry.familySlug,
+    ...(caretakerId !== undefined ? { caretakerId } : {}),
+  }
 }

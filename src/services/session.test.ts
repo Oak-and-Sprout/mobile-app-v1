@@ -61,6 +61,15 @@ test('single-flights concurrent logins for the same server', async () => {
   expect(r1).toEqual(r2)
 })
 
+test('surfaces caretakerId from the login envelope', async () => {
+  const post = async () => ({ status: 200, body: { success: true, data: { token: 't', familySlug: 'fs', id: '42' } } })
+  const result = await loginWithCredentials(
+    { id: 'x1', baseUrl: 'https://h', familySlug: 'fs' },
+    { type: 'pin', loginId: null, securityPin: '1' }, post,
+  )
+  expect(result).toEqual({ ok: true, token: 't', familySlug: 'fs', caretakerId: '42' })
+})
+
 test('single-flight cleanup: after resolve, subsequent login hits network again', async () => {
   const post = vi.fn().mockResolvedValue(ok('jwt-1'))
   // First concurrent pair (not awaited until both are queued)

@@ -1,4 +1,5 @@
 import { expect, test, vi } from 'vitest'
+import { decodeMessage } from '../../shared/bridge-contract'
 import { connectToFamily } from './connect'
 import { CredentialVault, type VaultBackend } from './credential-vault'
 import type { ServerEntry } from './server-registry'
@@ -24,7 +25,25 @@ test('with stored creds and a live server: logs in and opens log-entry', async (
     touch: vi.fn(), clearCreds: vi.fn(), openUrl,
   })
   expect(outcome).toBe('navigated')
-  expect(openUrl).toHaveBeenCalledWith('https://x.com/smith-family/log-entry')
+  const url = openUrl.mock.calls[0][0] as string
+  expect(url.startsWith('https://x.com/smith-family/log-entry#bridge-session=')).toBe(true)
+})
+
+test('hands the session to the web app via the bridge-session fragment', async () => {
+  const openUrl = vi.fn()
+  const outcome = await connectToFamily(entry, {
+    vault: vaultWith({ type: 'pin', loginId: null, securityPin: '123456' }),
+    login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt123', familySlug: entry.familySlug, caretakerId: '42' }),
+    touch: vi.fn(), clearCreds: vi.fn(), openUrl,
+  })
+  expect(outcome).toBe('navigated')
+  const url = openUrl.mock.calls[0][0] as string
+  const [base, fragment] = url.split('#bridge-session=')
+  expect(base).toBe(`${entry.baseUrl}/${entry.familySlug}/log-entry`)
+  const decoded = decodeMessage(decodeURIComponent(fragment))
+  expect(decoded?.msg).toEqual({
+    type: 'sessionInjected', slug: entry.familySlug, token: 'jwt123', caretakerId: '42',
+  })
 })
 
 test('without creds: opens the family page for web login', async () => {

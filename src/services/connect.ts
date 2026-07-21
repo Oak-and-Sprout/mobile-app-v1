@@ -1,3 +1,4 @@
+import { encodeMessage } from '../../shared/bridge-contract'
 import { CredentialVault, createVault } from './credential-vault'
 import { loginWithCredentials } from './session'
 import { touchServer, type ServerEntry } from './server-registry'
@@ -35,7 +36,13 @@ export async function connectToFamily(
   }
   const result = await deps.login(entry, creds)
   if (result.ok) {
-    deps.openUrl(`${familyUrl}/log-entry`)
+    const msg = {
+      type: 'sessionInjected' as const,
+      slug: result.familySlug,
+      token: result.token,
+      ...(result.caretakerId !== undefined ? { caretakerId: result.caretakerId } : {}),
+    }
+    deps.openUrl(`${familyUrl}/log-entry#bridge-session=${encodeURIComponent(encodeMessage(msg))}`)
     return 'navigated'
   }
   if (result.error === 'unreachable') return 'offline'

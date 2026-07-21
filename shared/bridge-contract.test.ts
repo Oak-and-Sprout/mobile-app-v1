@@ -30,3 +30,20 @@ test('round-trips a loggedOut message', () => {
   const decoded = decodeMessage(encodeMessage({ type: 'loggedOut', reason: 'user request' }))
   expect(decoded).toEqual({ v: BRIDGE_CONTRACT_VERSION, msg: { type: 'loggedOut', reason: 'user request' } })
 })
+
+it('round-trips sessionInjected with token and optional caretakerId', () => {
+  const msg = { type: 'sessionInjected', slug: 'smith-family', token: 'jwt123' } as const
+  expect(decodeMessage(encodeMessage(msg))?.msg).toEqual(msg)
+  const withId = { ...msg, caretakerId: '42' }
+  expect(decodeMessage(encodeMessage(withId))?.msg).toEqual(withId)
+})
+
+it('rejects sessionInjected without a token', () => {
+  expect(decodeMessage(JSON.stringify({ v: 1, msg: { type: 'sessionInjected', slug: 's' } }))).toBeNull()
+})
+
+it('rejects sessionInjected with a non-string caretakerId', () => {
+  expect(decodeMessage(JSON.stringify({
+    v: 1, msg: { type: 'sessionInjected', slug: 's', token: 't', caretakerId: 7 },
+  }))).toBeNull()
+})
