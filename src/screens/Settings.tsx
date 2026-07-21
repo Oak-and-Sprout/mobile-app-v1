@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Preferences } from '@capacitor/preferences'
 import type { Screen } from '../App'
+import { Header } from '../components/chrome'
+import { Ic } from '../components/Icons'
 import { createVault } from '../services/credential-vault'
 import { listServers } from '../services/server-registry'
 
@@ -14,8 +16,10 @@ export async function isAutoOpenEnabled(): Promise<boolean> {
 export default function Settings({ navigate }: { navigate: (s: Screen) => void }) {
   const [autoOpen, setAutoOpen] = useState(true)
   const [confirming, setConfirming] = useState(false)
+  const [defName, setDefName] = useState<string | null>(null)
 
   useEffect(() => { void isAutoOpenEnabled().then(setAutoOpen) }, [])
+  useEffect(() => { void listServers().then(entries => setDefName(entries.find(e => e.isDefault)?.familyName ?? null)) }, [])
 
   async function toggleAutoOpen(next: boolean) {
     setAutoOpen(next)
@@ -31,31 +35,42 @@ export default function Settings({ navigate }: { navigate: (s: Screen) => void }
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col gap-6 p-6">
-      <h1 className="text-2xl font-bold">Settings</h1>
-
-      <label className="flex items-center justify-between gap-4">
-        <span>Open my family automatically</span>
-        <input type="checkbox" checked={autoOpen} onChange={e => void toggleAutoOpen(e.target.checked)} />
-      </label>
-
-      {confirming ? (
-        <div className="flex flex-col gap-2 rounded-xl border border-red-200 bg-red-50 p-4 dark:bg-red-950">
-          <p className="text-sm">This removes every saved family and credential from this device.</p>
-          <button className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white" onClick={() => void clearAll()}>
-            Yes, clear everything
-          </button>
-          <button className="text-sm text-gray-500" onClick={() => setConfirming(false)}>Cancel</button>
+    <div className="m-scr">
+      <Header title="Settings" onBack={() => navigate({ name: 'families' })} />
+      <div className="m-bd">
+        <div className="sect">
+          <div className="swrow">
+            <div className="t">
+              <b>Open my family automatically</b>
+              <p>Skip the list — jump straight into {defName ? <b style={{ fontWeight: 700 }}>{defName}</b> : 'your default family'} when the app opens. Your unlock is still the gate.</p>
+            </div>
+            <button className={'sw' + (autoOpen ? ' on' : '')} role="switch" aria-checked={autoOpen}
+              aria-label="Open my family automatically" onClick={() => void toggleAutoOpen(!autoOpen)}><i></i></button>
+          </div>
         </div>
-      ) : (
-        <button className="rounded-xl border border-red-300 px-6 py-3 font-semibold text-red-600"
-          onClick={() => setConfirming(true)}>
-          Clear all data
-        </button>
-      )}
-
-      <p className="mt-auto text-center text-xs text-gray-400">Sprout Track Mobile v0.1.0</p>
-      <button className="text-sm text-gray-500" onClick={() => navigate({ name: 'families' })}>Back</button>
-    </main>
+        <div className="sect">
+          <div className="sect-hd"><Ic id="i-shield" s={19} /><h3>Your PINs stay put</h3></div>
+          <p>Saved sign-ins live in this phone&rsquo;s secure keychain and never leave it. Remove a family and its PIN goes with it.</p>
+        </div>
+        <div className="sect">
+          <div className="sect-hd"><Ic id="i-alert" s={19} style={{ color: 'var(--color-rust)' }} /><h3 style={{ color: 'var(--color-rust)' }}>Clear this phone</h3></div>
+          <p style={{ marginBottom: 12 }}>Removes every saved family and PIN from this phone. Your family&rsquo;s data stays safe on the server.</p>
+          {confirming ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+              <p style={{ fontWeight: 700, color: 'var(--color-rust)' }}>This clears the book from this phone — the server keeps everything. Sure?</p>
+              <div style={{ display: 'flex', gap: 9 }}>
+                <button className="m-btn danger solid sm" onClick={() => void clearAll()}>Yes, clear it</button>
+                <button className="m-btn ghost sm" onClick={() => setConfirming(false)}>Keep it</button>
+              </div>
+            </div>
+          ) : (
+            <button className="m-btn danger sm" onClick={() => setConfirming(true)}>Clear all data</button>
+          )}
+        </div>
+        <p style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--color-sub)', marginTop: 22 }}>
+          Sprout Track Mobile v0.1.0<br />The tracker itself lives on your server.
+        </p>
+      </div>
+    </div>
   )
 }
