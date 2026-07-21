@@ -60,7 +60,7 @@ test('offline retry that resolves locked returns to families', async () => {
     .mockResolvedValueOnce('locked')
   const user = userEvent.setup()
   render(<App />)
-  await screen.findByText(/can't reach your server/i)
+  await screen.findByText(/can’t reach your server/i)
   await user.click(screen.getByRole('button', { name: /try again/i }))
   await waitFor(() => expect(screen.getByText(/my families/i)).toBeInTheDocument())
   expect(connectSpy).toHaveBeenCalledTimes(2)

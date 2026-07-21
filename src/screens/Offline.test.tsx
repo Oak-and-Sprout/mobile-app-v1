@@ -13,7 +13,7 @@ describe('Offline', () => {
   it('names the family and retries via connecting', async () => {
     const navigate = vi.fn()
     render(<Offline navigate={navigate} entry={entry} />)
-    expect(screen.getByText(/Can't reach your server\./)).toBeInTheDocument()
+    expect(screen.getByText(/Can’t reach your server\./)).toBeInTheDocument()
     expect(screen.getByText(/Smith Family/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: /Try again/ }))
     expect(navigate).toHaveBeenCalledWith({ name: 'connecting', entry })
