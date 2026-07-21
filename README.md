@@ -39,15 +39,27 @@ sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-s
   confirmed before proceeding. A separate reset-password flow is reachable from
   sign-in.
 - **Native setup wizard** (creating a new family from the app): the wizard
-  drives the server through, in order: `POST /api/setup/start`, a security step
-  (`PUT` the settings + `POST` a caretaker + `update-setup-stage` to 2), then
-  `POST` the baby and link the caretaker. It then **re-logs-in with the just-
-  vaulted credentials** (rather than relying on the refresh-token cookie) so
-  the shell doesn't depend on that cookie reaching the webview — see the
-  refresh-cookie caveat below. Once login succeeds the family is saved to the
-  server registry. If the wizard is interrupted, resuming reads
-  `GET /api/family/setup-status`, which carries the auth type so PIN-mode
-  families resume into the right step instead of defaulting to account auth.
+  drives the server through `POST /api/setup/start`, then a security step
+  whose call order depends on the chosen security mode, then `POST` the baby
+  and link the caretaker:
+  - Caretakers mode: `POST /api/caretaker` once per caretaker, then
+    `PUT /api/settings` with `authType: 'CARETAKER'`, then
+    `PUT update-setup-stage` to 2.
+  - PIN mode: `PUT /api/settings` with `securityPin` and
+    `authType: 'SYSTEM'`, then `PUT update-setup-stage` to 2 (no caretaker
+    POSTs at all).
+
+  It then **re-logs-in with the just-vaulted credentials** (rather than
+  relying on the refresh-token cookie) so the shell doesn't depend on that
+  cookie reaching the webview — see the refresh-cookie caveat below. Once
+  login succeeds the family is saved to the server registry. If the wizard is
+  interrupted, resuming reads `GET /api/family/setup-status`, which carries
+  the auth type so the wizard resumes into the right security mode; if an
+  older server doesn't report it, the resume falls back to assuming
+  caretakers mode, which is safe because the caretaker-link step also falls
+  back to the system caretaker when the family has none but the reserved
+  `'00'` entry, so a pin-mode family guessed as caretakers still links
+  correctly instead of failing.
 - **Subscription management**: shown in-app as display-only (plan/status), no
   billing UI is rendered natively. Actually managing a subscription opens the
   system browser: the web app calls the `@capacitor/browser` plugin

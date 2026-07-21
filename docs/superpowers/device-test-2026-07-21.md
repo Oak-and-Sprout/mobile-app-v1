@@ -72,9 +72,15 @@ real devices with remote devtools attached.
 - [ ] Start "Create a new family" from the fork/account flow.
 - [ ] Step 1 (family): submit, confirm `POST /api/setup/start` fires (watch
       the network tab) and the wizard advances.
-- [ ] Step 2 (security, "Who can open the book?"): submit a caretaker PIN or
-      ID+PIN; confirm the sequence `PUT settings` → `POST caretakers` →
-      `update-setup-stage` (stage 2) all fire before advancing.
+- [ ] Step 2 (security, "Who can open the book?"): submit the security step
+      and confirm the network sequence matches the mode you tested:
+      - Caretakers mode (a caretaker with ID+PIN): `POST caretaker` once per
+        caretaker, then `PUT settings` (`authType: 'CARETAKER'`), then
+        `PUT update-setup-stage` (stage 2).
+      - PIN mode (a single family PIN, no caretaker ID): `PUT settings`
+        (`securityPin` + `authType: 'SYSTEM'`), then `PUT update-setup-stage`
+        (stage 2), with no `POST caretaker` call at all.
+      Test both modes at least once; the order is not the same for each.
 - [ ] Step 3 (baby): submit; confirm `POST baby` then `link-caretaker` fire.
 - [ ] Confirm the wizard then **re-logs-in with the just-vaulted credentials**
       (a fresh `POST /api/auth` or `/api/accounts/login`, not a silent
@@ -83,8 +89,12 @@ real devices with remote devtools attached.
 - [ ] Confirm the family is now saved and appears in "My Families."
 - [ ] Kill the app mid-wizard (after step 1, before step 3) and relaunch;
       confirm resume reads `GET /api/family/setup-status` and drops the user
-      back into the correct step for the auth type used (PIN-mode families
-      must resume into PIN-mode, not default to account auth).
+      back into the correct step for the security mode used (a PIN-mode
+      family must resume into PIN mode, not caretakers mode). If you can
+      simulate an older server that omits `authType`, confirm the wizard
+      falls back to assuming caretakers mode rather than failing, since the
+      caretaker-link step’s system-caretaker fallback makes that guess safe
+      even for a pin-mode family.
 
 ## 3. Anti-slop 5-second check (per screen)
 
@@ -104,10 +114,10 @@ and headings/body use Literata/Alegreya Sans (not a system-font fallback).
 - [ ] Wizard step 1 (family)
 - [ ] Wizard step 2 (security)
 - [ ] Wizard step 3 (baby)
-- [ ] My Families
+- [ ] My Families (including the biometric unlock prompt when opening a
+      locked family)
 - [ ] Settings
 - [ ] Offline state
-- [ ] Locked-out / biometric unlock prompt
 
 Note any screen that reads as generic AI-app output (unmodified component
 defaults, invented colors, filler copy like "Supercharge" or "Seamlessly,"
