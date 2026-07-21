@@ -47,6 +47,16 @@ export class CredentialVault {
   async clear(serverId: string): Promise<void> {
     await this.backend.delete(keyFor(serverId))
   }
+
+  async isBiometric(serverId: string): Promise<boolean> {
+    const raw = await this.backend.get(keyFor(serverId))
+    if (!raw) return false
+    try {
+      return Boolean((JSON.parse(raw) as VaultRecord).biometric)
+    } catch {
+      return false
+    }
+  }
 }
 
 /** Keychain/Keystore via NativeBiometric credential storage; server field namespaces the entry. */

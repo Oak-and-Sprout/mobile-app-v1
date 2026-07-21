@@ -54,3 +54,14 @@ test('clear removes the entry', async () => {
   await vault.clear('srv1')
   await expect(vault.retrieve('srv1')).resolves.toBeNull()
 })
+
+test('isBiometric reports the stored flag without verifying identity', async () => {
+  const backend = memoryBackend()
+  const vault = new CredentialVault(backend)
+  await vault.store('s1', { type: 'pin', loginId: null, securityPin: '111111' }, { biometric: true })
+  await vault.store('s2', { type: 'pin', loginId: null, securityPin: '222222' }, { biometric: false })
+  expect(await vault.isBiometric('s1')).toBe(true)
+  expect(await vault.isBiometric('s2')).toBe(false)
+  expect(await vault.isBiometric('missing')).toBe(false)
+  expect(backend.verify).not.toHaveBeenCalled()
+})
