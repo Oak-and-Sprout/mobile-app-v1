@@ -26,6 +26,7 @@ export function IconDefs() {
         <symbol {...STROKE} id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 13v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h5" /></symbol>
         <symbol {...STROKE} id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="3.5" /><path d="M10.5 13L20 4M16.5 5.5L19 8" /></symbol>
         <symbol {...STROKE} id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></symbol>
+        <symbol {...STROKE} id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></symbol>
       </defs>
     </svg>
   )

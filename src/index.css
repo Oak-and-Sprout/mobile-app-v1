@@ -80,19 +80,26 @@ body {
 .fam-card:hover { border-color: #c9bd9e; }
 .fam-av { width: 44px; height: 44px; border-radius: 50%; background: #cfe5df; color: var(--color-teal-deep); font-family: "Literata", Georgia, serif; font-weight: 700; font-size: 19px; display: grid; place-items: center; flex-shrink: 0; }
 .fam-av.apr { background: #f5dcc4; color: #8a4a12; }
-.fam-card .t { flex: 1; min-width: 0; }
-.fam-card .nm { font-family: "Literata", Georgia, serif; font-weight: 600; font-size: 17px; color: var(--color-ink); display: flex; gap: 7px; align-items: center; }
-.fam-card .host { font-size: 13.5px; color: var(--color-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fam-card .t, .fam-open .t { flex: 1; min-width: 0; }
+.fam-card .nm, .fam-open .nm { font-family: "Literata", Georgia, serif; font-weight: 600; font-size: 17px; color: var(--color-ink); display: flex; gap: 7px; align-items: center; }
+.fam-card .host, .fam-open .host { font-size: 13.5px; color: var(--color-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chip { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 99px; padding: 2px 9px; letter-spacing: .02em; white-space: nowrap; }
 .c-teal { background: #cfe5df; color: #0a544d; }
 .c-apr { background: #f5dcc4; color: #8a4a12; }
 .c-blue { background: #dbe7f5; color: #274f82; }
-.fam-row { display: flex; gap: 6px; align-items: center; margin-bottom: 11px; }
-.fam-row .fam-card { flex: 1; min-width: 0; width: auto; }
-.rowbtn { width: 34px; height: 34px; border: none; background: transparent; border-radius: 9px; display: grid; place-items: center; color: #c9bd9e; cursor: pointer; flex-shrink: 0; }
-.rowbtn:hover { background: var(--color-hover); color: var(--color-sub); }
-.rowbtn.star.on { color: var(--color-apricot); }
-.rowbtn.x:hover { color: var(--color-rust); }
+.fam-item { display: flex; flex-direction: column; background: var(--color-card); border: 1px solid var(--color-line); border-radius: 16px; box-shadow: 0 12px 26px -20px rgba(58,48,24,.5); margin-bottom: 11px; overflow: hidden; transition: border-color .12s; }
+.fam-item.confirming { border-color: var(--color-rust-line); }
+.fam-open { display: flex; gap: 13px; align-items: center; width: 100%; text-align: left; background: transparent; border: none; padding: 14px 15px; font-family: inherit; color: inherit; cursor: pointer; transition: background .12s; }
+.fam-open:hover { background: var(--color-hover); }
+.fam-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; padding: 8px 12px; border-top: 1px dashed var(--color-line); }
+.rowbtn { width: 44px; height: 44px; border: 1px solid var(--color-line); background: var(--color-card); border-radius: 12px; display: grid; place-items: center; color: #b8ab88; cursor: pointer; flex-shrink: 0; transition: border-color .12s, color .12s, background .12s; }
+.rowbtn:hover { background: var(--color-hover); border-color: #c9bd9e; color: var(--color-sub); }
+.rowbtn.star.on { color: var(--color-apricot); border-color: var(--color-apricot); }
+.rowbtn.x:hover { color: var(--color-rust); border-color: var(--color-rust-line); }
+.fam-confirm { padding: 13px 15px; display: flex; flex-direction: column; gap: 10px; }
+.fam-confirm .t { font-size: 13.5px; line-height: 1.4; color: var(--color-body); }
+.fam-confirm .t b { color: var(--color-ink); font-weight: 700; }
+.fam-confirm .btns { display: flex; gap: 9px; }
 
 /* ---- settings ---- */
 .sect { padding: 19px 0; border-bottom: 1px dashed var(--color-line); }
@@ -153,6 +160,9 @@ body {
 .choice:hover{border-color:#c9bd9e}
 .choice .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;flex-shrink:0}
 .ic-teal{background:#cfe5df;color:var(--color-teal-deep)}.ic-apr{background:#f5dcc4;color:#8a4a12}
+.choice .ic.ic-badge{background:none;border-radius:0;overflow:visible;position:relative}
+.ic-badge img{width:46px;height:46px;border-radius:50%;display:block}
+.ic-badge .badge-user{position:absolute;left:-3px;bottom:-3px;width:23px;height:23px;border-radius:50%;background:#cfe5df;color:var(--color-teal-deep);display:grid;place-items:center;box-shadow:0 0 0 2px var(--color-card)}
 .choice .t{flex:1;min-width:0}
 .choice .t b{font-family:'Literata',Georgia,serif;font-size:16.5px;font-weight:600;color:var(--color-ink);display:block}
 .choice .t span{font-size:13.5px;color:var(--color-sub);line-height:1.35;display:block;margin-top:1px;text-wrap:pretty}

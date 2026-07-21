@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Screen } from '../App'
 import { ErrBox, Header, WarnBox } from '../components/chrome'
 import { BioCheck } from '../components/BioCheck'
+import { CredentialFields } from '../components/CredentialFields'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
 import {
   ProbeError, fetchAuthType, fetchFamilyBySlug, parseServerInput, probeDeployment,
@@ -53,12 +54,12 @@ export default function AddFamily({
   const [deps] = useState<AddFamilyDeps>(() => ({ ...defaultDeps(), ...depsOverride }))
   const [input, setInput] = useState(prefillInput ?? '')
   const [located, setLocated] = useState<Located | null>(null)
-  const [loginId, setLoginId] = useState('')
-  const [pin, setPin] = useState('')
+  const [creds, setCreds] = useState<StoredCredentials | null>(null)
   const [biometric, setBiometric] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [hasFamilies, setHasFamilies] = useState(true)
+  const onCredsChange = useCallback((c: StoredCredentials | null) => setCreds(c), [])
 
   useEffect(() => {
     let cancelled = false
@@ -78,9 +79,8 @@ export default function AddFamily({
       const config = await deps.probeDeployment(baseUrl)
       const family = await deps.fetchFamilyBySlug(baseUrl, familySlug)
       const authType = await deps.fetchAuthType(baseUrl, familySlug)
+      setCreds(null)
       setLocated({ baseUrl, config, family, authType })
-      setLoginId('')
-      setPin('')
     } catch (e) {
       const kind = e instanceof ProbeError ? e.kind : (e as Error).message
       setError(ERROR_TEXT[kind] ?? ERROR_TEXT.unreachable)
@@ -90,11 +90,10 @@ export default function AddFamily({
   }
 
   async function verifyAndSave() {
-    if (!located) return
+    if (!located || !creds) return
     setError(null)
     setBusy(true)
     try {
-      const creds: StoredCredentials = { type: 'pin', loginId: located.authType === 'CARETAKER' ? loginId : null, securityPin: pin }
       const target = { id: `${located.baseUrl}|${located.family.slug}`, baseUrl: located.baseUrl, familySlug: located.family.slug }
       const result = await deps.login(target, creds)
       if (!result.ok) {
@@ -122,7 +121,7 @@ export default function AddFamily({
   const cleartext = located?.baseUrl.startsWith('http://') ?? false
   const host = located ? new URL(located.baseUrl).host : ''
   const hosted = host === 'sprout-track.com' || host.endsWith('.sprout-track.com')
-  const canVerify = located?.authType === 'CARETAKER' ? loginId !== '' && pin !== '' : pin !== ''
+  const canVerify = creds !== null
 
   return (
     <div className="m-scr">
@@ -155,17 +154,7 @@ export default function AddFamily({
             <div className="fgroup">
               <b>How you sign in</b>
               <p className="fh">Same {located.authType === 'CARETAKER' ? 'ID and PIN' : 'PIN'} as the website - we check it with your server, then keep it safe here.</p>
-              {located.authType === 'CARETAKER' ? (
-                <div className="f-2">
-                  <div><label className="fl" htmlFor="lid">Login ID</label>
-                    <input className="fi" id="lid" inputMode="numeric" maxLength={2} placeholder="11" value={loginId} onChange={e => setLoginId(e.target.value)} /></div>
-                  <div><label className="fl" htmlFor="pin">PIN</label>
-                    <input className="fi" id="pin" type="password" inputMode="numeric" maxLength={10} placeholder="••••••" value={pin} onChange={e => setPin(e.target.value)} /></div>
-                </div>
-              ) : (
-                <div><label className="fl" htmlFor="pin">Family PIN</label>
-                  <input className="fi" id="pin" type="password" inputMode="numeric" maxLength={10} placeholder="••••••" value={pin} onChange={e => setPin(e.target.value)} /></div>
-              )}
+              <CredentialFields authType={located.authType} onChange={onCredsChange} />
             </div>
             <BioCheck checked={biometric} onChange={setBiometric} />
             {error && <ErrBox>{error}</ErrBox>}

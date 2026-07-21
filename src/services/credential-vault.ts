@@ -59,6 +59,22 @@ export class CredentialVault {
       return false
     }
   }
+
+  /**
+   * Read the non-secret identifier (caretaker login ID or account email) from a
+   * stored record without unlocking the secret — used to prefill the re-auth
+   * screen. Never returns the PIN/password; falls back to empty on any error.
+   */
+  async peekIdentifier(serverId: string): Promise<{ loginId?: string | null; email?: string }> {
+    const raw = await this.backend.get(keyFor(serverId))
+    if (!raw) return {}
+    try {
+      const { creds } = JSON.parse(raw) as VaultRecord
+      return creds.type === 'account' ? { email: creds.email } : { loginId: creds.loginId }
+    } catch {
+      return {}
+    }
+  }
 }
 
 /** Keychain/Keystore via NativeBiometric credential storage; server field namespaces the entry. */

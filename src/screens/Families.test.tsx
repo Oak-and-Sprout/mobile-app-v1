@@ -26,8 +26,8 @@ function entry(overrides: Partial<ServerEntry> = {}): ServerEntry {
 }
 
 function famCard(name: string): HTMLElement {
-  const card = screen.getAllByRole('button').find(b => b.className === 'fam-card' && b.textContent?.includes(name))
-  if (!card) throw new Error(`no fam-card button found for "${name}"`)
+  const card = screen.getAllByRole('button').find(b => b.className === 'fam-open' && b.textContent?.includes(name))
+  if (!card) throw new Error(`no fam-open button found for "${name}"`)
   return card
 }
 
@@ -95,6 +95,15 @@ test('the dashed "Add a family" button navigates to fork', async () => {
   expect(navigate).toHaveBeenCalledWith({ name: 'fork' })
 })
 
+test('the update-sign-in button navigates to the re-auth screen for that family', async () => {
+  vi.mocked(listServers).mockResolvedValue([entry({ id: 'e1', familyName: 'Smith Family' })])
+  const navigate = vi.fn()
+  const user = userEvent.setup()
+  render(<Families navigate={navigate} />)
+  await user.click(await screen.findByRole('button', { name: 'Update sign-in for Smith Family' }))
+  expect(navigate).toHaveBeenCalledWith({ name: 'reauth', entry: expect.objectContaining({ id: 'e1' }) })
+})
+
 test('star button is labeled by family name and sets the entry as default', async () => {
   vi.mocked(listServers).mockResolvedValue([entry({ id: 'e1', familyName: 'Smith Family', isDefault: false })])
   const user = userEvent.setup()
@@ -104,16 +113,30 @@ test('star button is labeled by family name and sets the entry as default', asyn
   await waitFor(() => expect(setDefaultServer).toHaveBeenCalledWith('e1'))
 })
 
-test('remove button is labeled by family name and removes the entry from registry and vault', async () => {
+test('remove asks for confirmation first, then removes from registry and vault on confirm', async () => {
   const vault = fakeVault()
   vi.mocked(createVault).mockReturnValue(vault)
   vi.mocked(listServers).mockResolvedValue([entry({ id: 'e1', familyName: 'Smith Family' })])
   const user = userEvent.setup()
   render(<Families navigate={vi.fn()} />)
-  const remove = await screen.findByRole('button', { name: 'Remove Smith Family' })
-  await user.click(remove)
+  await user.click(await screen.findByRole('button', { name: 'Remove Smith Family' }))
+  // Confirmation prompt is shown and nothing is removed yet.
+  expect(screen.getByText(/from this phone\?/)).toBeInTheDocument()
+  expect(removeServer).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: 'Remove' }))
   await waitFor(() => expect(removeServer).toHaveBeenCalledWith('e1'))
   expect(vault.clear).toHaveBeenCalledWith('e1')
+})
+
+test('remove confirmation can be dismissed with Keep, leaving the family in place', async () => {
+  vi.mocked(listServers).mockResolvedValue([entry({ id: 'e1', familyName: 'Smith Family' })])
+  const user = userEvent.setup()
+  render(<Families navigate={vi.fn()} />)
+  await user.click(await screen.findByRole('button', { name: 'Remove Smith Family' }))
+  await user.click(screen.getByRole('button', { name: 'Keep' }))
+  expect(removeServer).not.toHaveBeenCalled()
+  // Row returns to its normal state.
+  expect(screen.getByRole('button', { name: 'Remove Smith Family' })).toBeInTheDocument()
 })
 
 test('two families have distinct, name-based star/remove aria-labels', async () => {

@@ -9,6 +9,7 @@ import AccountVerify from './screens/AccountVerify'
 import AccountReset from './screens/AccountReset'
 import Offline from './screens/Offline'
 import Connecting from './screens/Connecting'
+import ReAuth from './screens/ReAuth'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
 import Wizard from './screens/wizard/Wizard'
 import { IconDefs } from './components/Icons'
@@ -30,6 +31,7 @@ export type Screen =
   | { name: 'settings' }
   | { name: 'offline'; entry: ServerEntry }
   | { name: 'connecting'; entry: ServerEntry }
+  | { name: 'reauth'; entry: ServerEntry }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'splash' })
@@ -95,6 +97,7 @@ export default function App() {
       {screen.name === 'settings' && <Settings navigate={setScreen} />}
       {screen.name === 'offline' && <Offline navigate={setScreen} entry={screen.entry} />}
       {screen.name === 'connecting' && <Connecting entry={screen.entry} navigate={setScreen} />}
+      {screen.name === 'reauth' && <ReAuth entry={screen.entry} navigate={setScreen} />}
     </div>
   )
 }

@@ -19,6 +19,7 @@ export default function Families({
   const [servers, setServers] = useState<ServerEntry[]>([])
   const [bio, setBio] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<string | null>(bootToast ?? null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   const reload = () => {
     void listServers().then(async entries => {
@@ -39,6 +40,7 @@ export default function Families({
   async function remove(entry: ServerEntry) {
     await removeServer(entry.id)
     await createVault().clear(entry.id)
+    setConfirmingId(null)
     setToast(`${entry.familyName} was removed from this phone.`)
     reload()
   }
@@ -57,27 +59,43 @@ export default function Families({
           </div>
         )}
         {servers.map(entry => (
-          <div className="fam-row" key={entry.id}>
-            <button className="fam-card" onClick={() => navigate({ name: 'connecting', entry })}>
-              <div className={'fam-av' + (entry.deploymentMode === 'saas' ? '' : ' apr')}>{entry.familyName[0]}</div>
-              <div className="t">
-                <div className="nm">{entry.familyName}{entry.isDefault && <span className="chip c-apr">Opens first</span>}</div>
-                <div className="host">
-                  {new URL(entry.baseUrl).host} · {entry.lastUsedAt ? `opened ${formatLastOpened(entry.lastUsedAt)}` : 'not opened yet'}
+          <div className={'fam-item' + (confirmingId === entry.id ? ' confirming' : '')} key={entry.id}>
+            {confirmingId === entry.id ? (
+              <div className="fam-confirm">
+                <div className="t">Remove <b>{entry.familyName}</b> from this phone? Its saved sign-in leaves with it - your family&rsquo;s data stays on the server.</div>
+                <div className="btns">
+                  <button className="m-btn danger solid sm" onClick={() => void remove(entry)}>Remove</button>
+                  <button className="m-btn ghost sm" onClick={() => setConfirmingId(null)}>Keep</button>
                 </div>
               </div>
-              {bio[entry.id] && <Ic id="i-face" s={18} style={{ color: 'var(--color-sub)', flexShrink: 0 }} />}
-            </button>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <button className={'rowbtn star' + (entry.isDefault ? ' on' : '')}
-                aria-label={`Make ${entry.familyName} the default`}
-                onClick={() => void setDefaultServer(entry.id).then(reload)}>
-                <Ic id={entry.isDefault ? 'i-starf' : 'i-star'} s={17} />
-              </button>
-              <button className="rowbtn x" aria-label={`Remove ${entry.familyName}`} onClick={() => void remove(entry)}>
-                <Ic id="i-x" s={15} />
-              </button>
-            </div>
+            ) : (
+              <>
+                <button className="fam-open" onClick={() => navigate({ name: 'connecting', entry })}>
+                  <div className={'fam-av' + (entry.deploymentMode === 'saas' ? '' : ' apr')}>{entry.familyName[0]}</div>
+                  <div className="t">
+                    <div className="nm">{entry.familyName}{entry.isDefault && <span className="chip c-apr">Opens first</span>}</div>
+                    <div className="host">
+                      {new URL(entry.baseUrl).host} · {entry.lastUsedAt ? `opened ${formatLastOpened(entry.lastUsedAt)}` : 'not opened yet'}
+                    </div>
+                  </div>
+                  {bio[entry.id] && <Ic id="i-face" s={18} style={{ color: 'var(--color-sub)', flexShrink: 0 }} />}
+                </button>
+                <div className="fam-actions">
+                  <button className={'rowbtn star' + (entry.isDefault ? ' on' : '')}
+                    aria-label={`Make ${entry.familyName} the default`}
+                    onClick={() => void setDefaultServer(entry.id).then(reload)}>
+                    <Ic id={entry.isDefault ? 'i-starf' : 'i-star'} s={20} />
+                  </button>
+                  <button className="rowbtn" aria-label={`Update sign-in for ${entry.familyName}`}
+                    onClick={() => navigate({ name: 'reauth', entry })}>
+                    <Ic id="i-key" s={19} />
+                  </button>
+                  <button className="rowbtn x" aria-label={`Remove ${entry.familyName}`} onClick={() => setConfirmingId(entry.id)}>
+                    <Ic id="i-x" s={18} />
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ))}
         <button className="m-btn ghost" style={{ borderStyle: 'dashed', marginTop: 6 }} onClick={() => navigate({ name: 'fork' })}>
