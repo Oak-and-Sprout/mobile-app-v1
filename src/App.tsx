@@ -10,6 +10,7 @@ import AccountReset from './screens/AccountReset'
 import Offline from './screens/Offline'
 import Connecting from './screens/Connecting'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
+import Wizard from './screens/wizard/Wizard'
 import { IconDefs } from './components/Icons'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
@@ -79,6 +80,16 @@ export default function App() {
         <AccountVerify navigate={setScreen} token={screen.token} creds={screen.creds} biometric={screen.biometric} />
       )}
       {screen.name === 'acct-reset' && <AccountReset navigate={setScreen} />}
+      {screen.name === 'wizard' && (
+        <Wizard
+          navigate={setScreen}
+          token={screen.token}
+          creds={screen.creds}
+          biometric={screen.biometric}
+          resume={screen.resume}
+          firstName={screen.firstName}
+        />
+      )}
       {screen.name === 'families' && <Families navigate={setScreen} toast={screen.toast} notice={screen.notice} />}
       {screen.name === 'add-family' && <AddFamily navigate={setScreen} prefillInput={screen.prefillInput} />}
       {screen.name === 'settings' && <Settings navigate={setScreen} />}

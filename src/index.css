@@ -86,6 +86,7 @@ body {
 .chip { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 99px; padding: 2px 9px; letter-spacing: .02em; white-space: nowrap; }
 .c-teal { background: #cfe5df; color: #0a544d; }
 .c-apr { background: #f5dcc4; color: #8a4a12; }
+.c-blue { background: #dbe7f5; color: #274f82; }
 .fam-row { display: flex; gap: 6px; align-items: center; margin-bottom: 11px; }
 .fam-row .fam-card { flex: 1; min-width: 0; width: auto; }
 .rowbtn { width: 34px; height: 34px; border: none; background: transparent; border-radius: 9px; display: grid; place-items: center; color: #c9bd9e; cursor: pointer; flex-shrink: 0; }

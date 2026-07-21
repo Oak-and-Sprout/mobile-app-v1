@@ -5,6 +5,8 @@ import App from './App'
 import { saveServer, touchServer } from './services/server-registry'
 import { AUTO_OPEN_KEY } from './screens/Settings'
 import * as connectService from './services/connect'
+import * as accountService from './services/account'
+import * as sessionService from './services/session'
 import { encodeMessage } from '../shared/bridge-contract'
 
 beforeEach(() => {
@@ -149,4 +151,23 @@ test('navigating fork -> acct-signin -> acct-reset renders the reset-password sc
   fireEvent.click(screen.getByText('With my Sprout Track account'))
   fireEvent.click(screen.getByRole('button', { name: 'Reset it' }))
   expect(screen.getByRole('heading', { name: 'Reset your password.' })).toBeInTheDocument()
+})
+
+test('a fresh account with no family routes straight from signup into the wizard', async () => {
+  // Spies must be in place before AccountSignUp mounts - its deps are captured once at mount.
+  vi.spyOn(accountService, 'registerAccount').mockResolvedValue({ ok: true })
+  vi.spyOn(sessionService, 'loginWithCredentials').mockResolvedValue({ ok: true, token: 'tok', familySlug: '' })
+  render(<App />)
+  await finishSplash()
+  fireEvent.click(screen.getByText('With my Sprout Track account'))
+  fireEvent.click(screen.getByRole('button', { name: 'Start your free trial' }))
+
+  fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: 'Betty' } })
+  fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: 'Sprout' } })
+  fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'betty@example.com' } })
+  fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'Abcdef1!' } })
+  fireEvent.click(screen.getByRole('button', { name: /start my free trial/i }))
+  await flushBootEffect()
+
+  expect(screen.getByRole('heading', { name: 'Create your family.' })).toBeInTheDocument()
 })
