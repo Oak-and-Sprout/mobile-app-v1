@@ -73,6 +73,34 @@ test('shows the taken message (matching the create-family slug-taken copy) when 
   expect(screen.getByText(/try a different one/i)).toBeInTheDocument()
 })
 
+test('a stale slug-availability response for an earlier slug does not clobber the UI after the slug changed again', async () => {
+  let resolveA: (v: string) => void = () => {}
+  const pendingA = new Promise<string>(res => { resolveA = res })
+  const checkSlugAvailability = vi.fn()
+    .mockImplementationOnce(() => pendingA)
+    .mockResolvedValueOnce('taken')
+  setup({ deps: { checkSlugAvailability, suggestSlug: vi.fn() } })
+
+  // Type slug A and let its debounced check start (but not resolve yet).
+  fireEvent.change(screen.getByLabelText(/family link/i), { target: { value: 'slug-a' } })
+  await advance(500)
+  expect(checkSlugAvailability).toHaveBeenCalledTimes(1)
+
+  // Type slug B before A resolves - its own debounced check fires and resolves as 'taken'.
+  fireEvent.change(screen.getByLabelText(/family link/i), { target: { value: 'slug-b' } })
+  await advance(500)
+  expect(checkSlugAvailability).toHaveBeenCalledTimes(2)
+  expect(screen.getByText(/already lives at/i)).toBeInTheDocument()
+
+  // A's stale response finally resolves - it must not overwrite B's already-settled UI.
+  await act(async () => {
+    resolveA('free')
+    await Promise.resolve()
+  })
+  expect(screen.getByText(/already lives at/i)).toBeInTheDocument()
+  expect(screen.queryByText(/is free - it.s yours/i)).toBeNull()
+})
+
 test('shows the unreachable message when the availability check throws', async () => {
   const checkSlugAvailability = vi.fn().mockRejectedValue(new WizardError('unreachable'))
   setup({ deps: { checkSlugAvailability, suggestSlug: vi.fn() } })

@@ -39,6 +39,18 @@ describe('AccountSignUp', () => {
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
   })
 
+  it('the symbol rule matches the server-accepted charset, not any non-alphanumeric character', () => {
+    const symbolReq = PW_REQS.find(([label]) => label === 'A symbol')!
+    const [, fn] = symbolReq
+    expect(fn('~')).toBe(false)
+    expect(fn(' ')).toBe(false)
+    expect(fn('!')).toBe(true)
+    expect(fn('@#$%^&*()_+-=[]{}|;:,.<>?'.charAt(0))).toBe(true)
+    for (const ch of '!@#$%^&*()_+-=[]{}|;:,.<>?') {
+      expect(fn(ch)).toBe(true)
+    }
+  })
+
   it('flips checklist pills to "ok" as the password grows to satisfy each requirement', async () => {
     render(<AccountSignUp navigate={vi.fn()} deps={makeDeps()} />)
     const pw = screen.getByLabelText('Password')
@@ -145,13 +157,13 @@ describe('AccountSignUp', () => {
     )
   })
 
-  it('shows an error when signup succeeds but the follow-up login fails', async () => {
+  it('shows a neutral sign-in-failed message when signup succeeds but the follow-up login fails (may just mean the email is already registered)', async () => {
     const deps = makeDeps({ login: vi.fn().mockResolvedValue({ ok: false, error: 'invalid' }) })
     render(<AccountSignUp navigate={vi.fn()} deps={deps} />)
     await fillValidForm()
     await userEvent.click(screen.getByRole('button', { name: 'Start my free trial' }))
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Account created - but signing in failed. Try signing in.',
+      'Couldn’t sign you in - if you already have an account, use Sign in below or reset your password.',
     )
   })
 

@@ -81,7 +81,13 @@ real devices with remote devtools attached.
         (`securityPin` + `authType: 'SYSTEM'`), then `PUT update-setup-stage`
         (stage 2), with no `POST caretaker` call at all.
       Test both modes at least once; the order is not the same for each.
-- [ ] Step 3 (baby): submit; confirm `POST baby` then `link-caretaker` fire.
+- [ ] Step 3 (baby): submit; confirm `POST baby` fires, then the caretaker
+      lookup — `GET /api/caretaker?familyId=` (not
+      `GET /api/family/{id}/caretakers`, which is sysadmin-gated and 403s for
+      account JWTs) — then `link-caretaker`. In caretakers mode with more
+      than one caretaker, confirm the account links to the one with the
+      lowest login ID, not whichever one the list happens to return first
+      (the endpoint orders by name).
 - [ ] Confirm the wizard then **re-logs-in with the just-vaulted credentials**
       (a fresh `POST /api/auth` or `/api/accounts/login`, not a silent
       refresh) rather than depending on the refresh-token cookie, and that
@@ -94,7 +100,11 @@ real devices with remote devtools attached.
       simulate an older server that omits `authType`, confirm the wizard
       falls back to assuming caretakers mode rather than failing, since the
       caretaker-link step’s system-caretaker fallback makes that guess safe
-      even for a pin-mode family.
+      even for a pin-mode family. This fallback is genuinely exercisable now
+      that the lookup uses the account-accessible endpoint above — with the
+      old sysadmin-gated endpoint it 403'd before the fallback logic could
+      ever run, so this checklist item could not previously pass for an
+      account-JWT user.
 
 ## 3. Anti-slop 5-second check (per screen)
 

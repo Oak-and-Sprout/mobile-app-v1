@@ -49,10 +49,12 @@ export default function Step1Family({
       return
     }
     setSlugStatus('checking')
+    let cancelled = false
     const id = setTimeout(() => {
       deps
         .checkSlugAvailability(base, slug)
         .then(result => {
+          if (cancelled) return
           if (result === 'free') {
             setSlugStatus('free')
             setSlugMsg(null)
@@ -65,11 +67,15 @@ export default function Step1Family({
           }
         })
         .catch(() => {
+          if (cancelled) return
           setSlugStatus('blocked')
           setSlugMsg(UNREACHABLE_MSG)
         })
     }, 500)
-    return () => clearTimeout(id)
+    return () => {
+      cancelled = true
+      clearTimeout(id)
+    }
   }, [slug, base, deps])
 
   function nameChange(v: string) {

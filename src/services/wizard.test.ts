@@ -146,6 +146,32 @@ test('saveSecurity caretakers mode with 2 caretakers: exact URL/body/order', asy
   expect(put).toHaveBeenNthCalledWith(2, 'https://x.com/api/family/update-setup-stage', { setupStage: 2, familyId: 'fam-1' }, { token: 'jwt-1' })
 })
 
+test('saveSecurity caretakers mode: a mid-loop failure after some caretakers were created throws', async () => {
+  const post = vi.fn().mockResolvedValue(ok())
+  const put = vi.fn().mockResolvedValue(fail(400, 'settings blew up'))
+  const caretakers = [
+    { loginId: '01', name: 'Alice', type: 'Parent', role: 'ADMIN' as const, securityPin: '1111' },
+    { loginId: '02', name: 'Bob', type: 'Parent', role: 'USER' as const, securityPin: '2222' },
+  ]
+  await expect(saveSecurity(BASE, 'jwt-1', 'fam-1', { mode: 'caretakers', caretakers }, { post, put }))
+    .rejects.toMatchObject({ kind: 'rejected', message: 'settings blew up' })
+  expect(post).toHaveBeenCalledTimes(2)
+  expect(put).toHaveBeenCalledTimes(1) // never reached update-setup-stage
+})
+
+test('saveSecurity caretakers mode: retrying after a partial failure treats "already in use" 400s as already-created and proceeds', async () => {
+  const post = vi.fn().mockResolvedValue(fail(400, 'Login ID is already in use in this family'))
+  const put = vi.fn().mockResolvedValue(ok())
+  const caretakers = [
+    { loginId: '01', name: 'Alice', type: 'Parent', role: 'ADMIN' as const, securityPin: '1111' },
+    { loginId: '02', name: 'Bob', type: 'Parent', role: 'USER' as const, securityPin: '2222' },
+  ]
+  await saveSecurity(BASE, 'jwt-1', 'fam-1', { mode: 'caretakers', caretakers }, { post, put })
+  expect(post).toHaveBeenCalledTimes(2)
+  expect(put).toHaveBeenNthCalledWith(1, 'https://x.com/api/settings?familyId=fam-1', { authType: 'CARETAKER' }, { token: 'jwt-1' })
+  expect(put).toHaveBeenNthCalledWith(2, 'https://x.com/api/family/update-setup-stage', { setupStage: 2, familyId: 'fam-1' }, { token: 'jwt-1' })
+})
+
 test('saveSecurity surfaces envelope rejection and network unreachable', async () => {
   const put = vi.fn().mockResolvedValue(fail(400, 'nope'))
   await expect(saveSecurity(BASE, 'jwt-1', 'fam-1', { mode: 'pin', securityPin: '1' }, { post: vi.fn(), put })).rejects.toMatchObject({ kind: 'rejected', message: 'nope' })
@@ -210,7 +236,7 @@ test('linkAccountToCaretaker pin mode: fetches the system caretaker, links accou
   expect(post).toHaveBeenCalledWith('https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-system' }, { token: 'jwt-1' })
 })
 
-test('linkAccountToCaretaker caretakers mode: skips loginId 00 and links the first real caretaker', async () => {
+test('linkAccountToCaretaker caretakers mode: skips loginId 00 and links the lowest-loginId caretaker', async () => {
   const post = vi.fn().mockResolvedValue(ok())
   const get = vi.fn().mockResolvedValue(ok([
     { id: 'ct-system', loginId: '00' },
@@ -220,9 +246,22 @@ test('linkAccountToCaretaker caretakers mode: skips loginId 00 and links the fir
 
   await linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'caretakers', { post, get })
 
-  expect(get).toHaveBeenCalledWith('https://x.com/api/family/fam-1/caretakers', { token: 'jwt-1' })
+  expect(get).toHaveBeenCalledWith('https://x.com/api/caretaker?familyId=fam-1', { token: 'jwt-1' })
   expect(get).toHaveBeenCalledTimes(1) // a real caretaker was found - no system-caretaker fallback needed
   expect(post).toHaveBeenCalledWith('https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-01' }, { token: 'jwt-1' })
+})
+
+test('linkAccountToCaretaker caretakers mode: the endpoint orders by name, so it picks the lowest loginId, not the first entry', async () => {
+  const post = vi.fn().mockResolvedValue(ok())
+  const get = vi.fn().mockResolvedValue(ok([
+    { loginId: '02', name: 'Betty', id: 'c2' },
+    { loginId: '01', name: 'Rachael', id: 'c1' },
+  ]))
+
+  await linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'caretakers', { post, get })
+
+  expect(get).toHaveBeenCalledWith('https://x.com/api/caretaker?familyId=fam-1', { token: 'jwt-1' })
+  expect(post).toHaveBeenCalledWith('https://x.com/api/accounts/link-caretaker', { caretakerId: 'c1' }, { token: 'jwt-1' })
 })
 
 test('linkAccountToCaretaker caretakers mode with only the "00" caretaker falls back to the system caretaker', async () => {
@@ -236,7 +275,7 @@ test('linkAccountToCaretaker caretakers mode with only the "00" caretaker falls 
 
   await linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'caretakers', { post, get })
 
-  expect(get).toHaveBeenNthCalledWith(1, 'https://x.com/api/family/fam-1/caretakers', { token: 'jwt-1' })
+  expect(get).toHaveBeenNthCalledWith(1, 'https://x.com/api/caretaker?familyId=fam-1', { token: 'jwt-1' })
   expect(get).toHaveBeenNthCalledWith(2, 'https://x.com/api/caretaker/system?familyId=fam-1', { token: 'jwt-1' })
   expect(post).toHaveBeenCalledWith('https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-system' }, { token: 'jwt-1' })
 })

@@ -150,7 +150,16 @@ export async function saveSecurity(
           { token },
         ),
       )
-      assertSuccess(res)
+      // A retry of this step (after a later sub-call failed) re-POSTs every caretaker,
+      // including ones the server already created on the prior attempt - it replies 400
+      // "already in use" for those. Treating that specific 400 as success rather than
+      // throwing makes step-2 retries idempotent for a fresh family, where this client is
+      // the only writer (so a duplicate loginId can only mean "we already created this one").
+      const envelope = envelopeOf(res.body)
+      const alreadyCreated = res.status === 400 && typeof envelope?.error === 'string' && envelope.error.includes('already in use')
+      if (!alreadyCreated) {
+        assertSuccess(res)
+      }
     }
     const res = await callOrThrowUnreachable(() =>
       put(`${base}/api/settings?familyId=${familyId}`, { authType: 'CARETAKER' }, { token }),
@@ -232,11 +241,20 @@ export async function linkAccountToCaretaker(
   if (mode === 'pin') {
     caretakerId = await systemCaretakerId()
   } else {
-    const res = await callOrThrowUnreachable(() => get(`${base}/api/family/${familyId}/caretakers`, { token }))
+    // GET /api/caretaker (not /api/family/{id}/caretakers, which is sysadmin-gated and 403s
+    // for account JWTs) - it's ordered by NAME and already excludes the reserved '00' entry, so
+    // pick the lowest loginId rather than trusting list order.
+    const res = await callOrThrowUnreachable(() => get(`${base}/api/caretaker?familyId=${familyId}`, { token }))
     assertSuccess(res)
     const data = envelopeOf(res.body)?.data as Array<{ id?: unknown; loginId?: unknown }> | undefined
-    const found = data?.find(c => c.loginId !== '00')
-    caretakerId = typeof found?.id === 'string' ? found.id : undefined
+    const candidates = (data ?? []).filter(
+      (c): c is { id: string; loginId: string } => typeof c.id === 'string' && typeof c.loginId === 'string' && c.loginId !== '00',
+    )
+    const lowest = candidates.reduce<{ id: string; loginId: string } | undefined>(
+      (min, c) => (!min || c.loginId < min.loginId ? c : min),
+      undefined,
+    )
+    caretakerId = lowest?.id
     if (!caretakerId) {
       caretakerId = await systemCaretakerId()
     }

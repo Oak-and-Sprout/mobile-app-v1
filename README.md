@@ -49,6 +49,12 @@ sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-s
     `authType: 'SYSTEM'`, then `PUT update-setup-stage` to 2 (no caretaker
     POSTs at all).
 
+  Linking the account to a caretaker looks up the family's caretakers via
+  `GET /api/caretaker?familyId=` (account-JWT accessible; ordered by name, so
+  the wizard picks the lowest `loginId` rather than trusting list order) —
+  not `GET /api/family/{id}/caretakers`, which is sysadmin-gated and 403s for
+  account JWTs.
+
   It then **re-logs-in with the just-vaulted credentials** (rather than
   relying on the refresh-token cookie) so the shell doesn't depend on that
   cookie reaching the webview — see the refresh-cookie caveat below. Once
@@ -59,7 +65,10 @@ sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-s
   caretakers mode, which is safe because the caretaker-link step also falls
   back to the system caretaker when the family has none but the reserved
   `'00'` entry, so a pin-mode family guessed as caretakers still links
-  correctly instead of failing.
+  correctly instead of failing. This fallback is genuinely reachable now
+  that the caretaker lookup uses an account-accessible endpoint — before the
+  endpoint fix above, the lookup 403'd before the fallback could ever run, so
+  the claim was aspirational for every account-JWT caller.
 - **Subscription management**: shown in-app as display-only (plan/status), no
   billing UI is rendered natively. Actually managing a subscription opens the
   system browser: the web app calls the `@capacitor/browser` plugin

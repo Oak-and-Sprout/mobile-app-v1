@@ -13,7 +13,7 @@ export const PW_REQS = [
   ['8+ characters', (p: string) => p.length >= 8],
   ['A number', (p: string) => /\d/.test(p)],
   ['A lowercase letter', (p: string) => /[a-z]/.test(p)],
-  ['A symbol', (p: string) => /[^A-Za-z0-9\s]/.test(p)],
+  ['A symbol', (p: string) => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p)],
   ['An uppercase letter', (p: string) => /[A-Z]/.test(p)],
 ] as const
 
@@ -64,7 +64,11 @@ export default function AccountSignUp({
       const creds: StoredCredentials = { type: 'account', email, password: pw }
       const loginResult = await deps.login({ id: `${SAAS_BASE}|account`, baseUrl: SAAS_BASE, familySlug: '' }, creds)
       if (!loginResult.ok) {
-        setError('Account created - but signing in failed. Try signing in.')
+        // The server anti-enumerates registration: it returns success even for an email that
+        // already has an account, so a follow-up login failure here doesn't mean account
+        // creation failed - it may just mean this email is already registered. Keep the copy
+        // neutral rather than claiming "Account created."
+        setError('Couldn’t sign you in - if you already have an account, use Sign in below or reset your password.')
         return
       }
 
