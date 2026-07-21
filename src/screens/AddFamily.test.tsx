@@ -188,11 +188,11 @@ test('Back button navigates to the families list', async () => {
   expect(navigate).toHaveBeenCalledWith({ name: 'families' })
 })
 
-test('Back button navigates to welcome when there are no saved families', async () => {
+test('Back button navigates to fork when there are no saved families', async () => {
   const navigate = vi.fn()
   const deps = makeDeps({ listServers: vi.fn().mockResolvedValue([]) })
   render(<AddFamily navigate={navigate} deps={deps} />)
   await waitFor(() => expect(deps.listServers).toHaveBeenCalled())
   await userEvent.setup().click(screen.getByRole('button', { name: /back/i }))
-  expect(navigate).toHaveBeenCalledWith({ name: 'welcome' })
+  expect(navigate).toHaveBeenCalledWith({ name: 'fork' })
 })

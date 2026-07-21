@@ -3,6 +3,7 @@ import { fetchFamilyBySlug } from './server-probe'
 import { saveServer } from './server-registry'
 import type { CredentialVault, AccountCreds } from './credential-vault'
 import { titleFromSlug } from '../lib/slug'
+import type { Screen } from '../App'
 
 export interface WizardResume { familyId: string; stage: 2 | 3; familyName: string; slug: string }
 
@@ -75,18 +76,11 @@ export async function routeAfterAccountLogin(
   }
 }
 
-/**
- * Maps a non-error PostLoginRoute to a Screen. Return type is a structural union
- * matching App.tsx's forthcoming `families` | `wizard` | `acct-verify` Screen members;
- * Task 6 adds those members and switches this annotation to `Screen`.
- */
+/** Maps a non-error PostLoginRoute to a Screen. */
 export function screenForRoute(
   route: Exclude<PostLoginRoute, { kind: 'error' }>,
   ctx: { token: string; creds: AccountCreds; biometric: boolean; firstName?: string },
-):
-  | { name: 'families'; toast?: string }
-  | { name: 'wizard'; token: string; creds: AccountCreds; biometric: boolean; resume?: WizardResume; firstName?: string }
-  | { name: 'acct-verify'; token: string; creds: AccountCreds; biometric: boolean } {
+): Screen {
   switch (route.kind) {
     case 'saved':
       return { name: 'families', toast: route.toast }

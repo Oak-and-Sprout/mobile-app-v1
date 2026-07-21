@@ -80,7 +80,7 @@ export default function Families({
             </div>
           </div>
         ))}
-        <button className="m-btn ghost" style={{ borderStyle: 'dashed', marginTop: 6 }} onClick={() => navigate({ name: 'add-family' })}>
+        <button className="m-btn ghost" style={{ borderStyle: 'dashed', marginTop: 6 }} onClick={() => navigate({ name: 'fork' })}>
           <Ic id="i-plus" s={16} />Add a family
         </button>
       </div>

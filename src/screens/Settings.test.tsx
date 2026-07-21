@@ -35,7 +35,7 @@ test('clear all data also clears vault credentials', async () => {
   await waitFor(() => expect(localStorage.getItem(vaultKey)).toBeNull())
 })
 
-test('clear all data navigates to welcome after clearing', async () => {
+test('clear all data navigates to fork after clearing', async () => {
   await saveServer({
     baseUrl: 'https://x.com', familySlug: 's', familyName: 'S',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
@@ -45,7 +45,7 @@ test('clear all data navigates to welcome after clearing', async () => {
   render(<Settings navigate={navigate} />)
   await user.click(screen.getByRole('button', { name: /clear all data/i }))
   await user.click(screen.getByRole('button', { name: /yes, clear it/i }))
-  await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'welcome' }))
+  await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'fork' }))
 })
 
 test('clear confirm shows the "keep it" fallback which backs out without clearing', async () => {

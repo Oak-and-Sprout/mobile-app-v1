@@ -1,6 +1,7 @@
+import type { Screen } from '../App'
 import { Ic } from '../components/Icons'
 
-export default function Fork({ navigate }: { navigate: (s: { name: 'acct-signin' } | { name: 'add-family'; prefillInput?: string }) => void }) {
+export default function Fork({ navigate }: { navigate: (s: Screen) => void }) {
   return (
     <div className="m-scr bleed">
       <div className="fork-top"><img className="fork-logo" src="/logo.png" alt="" /></div>

@@ -126,7 +126,7 @@ export default function AddFamily({
 
   return (
     <div className="m-scr">
-      <Header title="Connect to a family" onBack={() => navigate(hasFamilies ? { name: 'families' } : { name: 'welcome' })} />
+      <Header title="Connect to a family" onBack={() => navigate(hasFamilies ? { name: 'families' } : { name: 'fork' })} />
       <div className="m-bd">
         <div className="f-grid">
           <div>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Screen } from '../App'
 import { Header, ErrBox } from '../components/chrome'
+import Toast from '../components/Toast'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
 import { fetchFamilyBySlug } from '../services/server-probe'
 import { saveServer } from '../services/server-registry'
@@ -30,9 +31,10 @@ const ERROR_TEXT: Record<string, string> = {
 const NO_FAMILY_TEXT = 'This account doesn’t have a family yet. Set one up at sprout-track.com, then come back.'
 
 export default function AccountSignIn({
-  navigate, deps: depsOverride,
+  navigate, notice, deps: depsOverride,
 }: {
   navigate: (s: Screen) => void
+  notice?: string
   deps?: Partial<AccountSignInDeps>
 }) {
   const [deps] = useState<AccountSignInDeps>(() => ({ ...defaultDeps(), ...depsOverride }))
@@ -78,7 +80,7 @@ export default function AccountSignIn({
 
   return (
     <div className="m-scr">
-      <Header title="Sign in to Sprout Track" onBack={() => navigate({ name: 'welcome' })} />
+      <Header title="Sign in to Sprout Track" onBack={() => navigate({ name: 'fork' })} />
       <div className="m-bd">
         <div className="f-grid">
           <p className="fh" style={{ marginTop: 0 }}>The same account you use on sprout-track.com — your family comes with it, no address to type.</p>
@@ -103,6 +105,7 @@ export default function AccountSignIn({
           <p className="fh" style={{ textAlign: 'center' }}>New here? Start your trial at sprout-track.com — then come back and sign in.</p>
         </div>
       </div>
+      {notice && <Toast message={notice} />}
     </div>
   )
 }

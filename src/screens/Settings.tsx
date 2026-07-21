@@ -31,7 +31,7 @@ export default function Settings({ navigate }: { navigate: (s: Screen) => void }
     for (const entry of await listServers()) await vault.clear(entry.id)
     await Preferences.clear()
     setConfirming(false)
-    navigate({ name: 'welcome' })
+    navigate({ name: 'fork' })
   }
 
   return (

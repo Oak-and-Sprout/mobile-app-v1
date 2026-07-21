@@ -1,45 +1,82 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
+import { Preferences } from '@capacitor/preferences'
 import App from './App'
 import { saveServer, touchServer } from './services/server-registry'
+import { AUTO_OPEN_KEY } from './screens/Settings'
 import * as connectService from './services/connect'
 import { encodeMessage } from '../shared/bridge-contract'
 
-beforeEach(() => localStorage.clear())
+beforeEach(() => {
+  localStorage.clear()
+  vi.useFakeTimers()
+})
 afterEach(() => {
   vi.restoreAllMocks()
   window.history.replaceState(null, '', '/')
+  vi.useRealTimers()
 })
+
+// Flushes the boot effect's promise chain (listServers/getDefaultServer/isAutoOpenEnabled)
+// without moving the splash's own HOLD_MS/FADE_MS timers forward.
+async function flushBootEffect() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0)
+  })
+}
+
+// Runs the splash to completion (HOLD_MS 2150 + FADE_MS 550 = 2700ms) so the resolved
+// boot target is applied.
+async function finishSplash() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2700)
+  })
+}
 
 test('renders the app root', () => {
   render(<App />)
   expect(screen.getByTestId('app-root')).toBeInTheDocument()
 })
 
-test('shows Welcome when no servers are saved', () => {
-  render(<App />)
-  expect(screen.getByText(/The family page,/)).toBeInTheDocument()
+test('shows the splash immediately on launch', () => {
+  const { container } = render(<App />)
+  expect(container.querySelector('.splash')).toBeTruthy()
 })
 
-test('does not clobber in-progress navigation when servers exist at launch', async () => {
+test('boot resolving before the splash finishes does not swap the screen early', async () => {
+  // No saved servers, so the boot effect resolves its target (fork) almost immediately -
+  // well before the splash's own 2700ms timers fire.
+  const { container } = render(<App />)
+  await flushBootEffect()
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(2000)
+  })
+  expect(container.querySelector('.splash')).toBeTruthy()
+  expect(screen.queryByText(/Everyone you love,/)).toBeNull()
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(700)
+  })
+  expect(screen.getByText(/Everyone you love,/)).toBeInTheDocument()
+})
+
+test('with no saved servers, the splash resolves to Fork', async () => {
+  render(<App />)
+  await finishSplash()
+  expect(screen.getByText(/Everyone you love,/)).toBeInTheDocument()
+})
+
+test('with saved servers and auto-open disabled, the splash resolves to the families list', async () => {
   await saveServer({
     baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
   })
+  await Preferences.set({ key: AUTO_OPEN_KEY, value: 'false' })
   render(<App />)
-  // Click synchronously, before the launch-routing effect's listServers() promise has settled.
-  fireEvent.click(screen.getByText(/I run my own server/))
-  expect(screen.getByText(/connect to a family/i)).toBeInTheDocument()
-  // Force the launch-routing effect's listServers() promise to settle and its callback to run
-  // (rather than racing it with waitFor, which can pass on its first, pre-settlement check).
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0))
-  })
-  expect(screen.getByText(/connect to a family/i)).toBeInTheDocument()
+  await finishSplash()
+  expect(screen.getByText(/my families/i)).toBeInTheDocument()
 })
 
-test('auto-opens the default family into the Connecting screen', async () => {
+test('with a default server and auto-open enabled, the splash resolves to Connecting', async () => {
   await saveServer({
     baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
@@ -47,26 +84,11 @@ test('auto-opens the default family into the Connecting screen', async () => {
   // Never resolves, so the app stays on the Connecting screen for the assertion below.
   vi.spyOn(connectService, 'connectToFamily').mockReturnValue(new Promise(() => {}))
   render(<App />)
-  await waitFor(() => expect(screen.getByText(/opening smith family/i)).toBeInTheDocument())
+  await finishSplash()
+  expect(screen.getByText(/opening smith family/i)).toBeInTheDocument()
 })
 
-test('offline retry that resolves locked returns to families', async () => {
-  await saveServer({
-    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
-    deploymentMode: 'selfhosted', authType: 'SYSTEM',
-  })
-  const connectSpy = vi.spyOn(connectService, 'connectToFamily')
-    .mockResolvedValueOnce('offline')
-    .mockResolvedValueOnce('locked')
-  const user = userEvent.setup()
-  render(<App />)
-  await screen.findByText(/can’t reach your server/i)
-  await user.click(screen.getByRole('button', { name: /try again/i }))
-  await waitFor(() => expect(screen.getByText(/my families/i)).toBeInTheDocument())
-  expect(connectSpy).toHaveBeenCalledTimes(2)
-})
-
-test('a ?bridge-event= switch-family param shows the families list instead of auto-opening', async () => {
+test('a ?bridge-event= switch-family param resolves to the families list instead of auto-opening', async () => {
   await saveServer({
     baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
@@ -75,11 +97,12 @@ test('a ?bridge-event= switch-family param shows the families list instead of au
   const bridgeEvent = encodeURIComponent(encodeMessage({ type: 'loggedOut', reason: 'switch-family' }))
   window.history.replaceState(null, '', `/?bridge-event=${bridgeEvent}`)
   render(<App />)
-  await waitFor(() => expect(screen.getByText(/my families/i)).toBeInTheDocument())
+  await finishSplash()
+  expect(screen.getByText(/my families/i)).toBeInTheDocument()
   expect(connectSpy).not.toHaveBeenCalled()
 })
 
-test('reconnects to the most recent family after a session-expiry logout', async () => {
+test('a session-expiry ?bridge-event= reconnects to the most recent family via Connecting', async () => {
   const entry = await saveServer({
     baseUrl: 'https://x.com', familySlug: 'recent-family', familyName: 'Recent Family',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
@@ -90,5 +113,24 @@ test('reconnects to the most recent family after a session-expiry logout', async
   const bridgeEvent = encodeURIComponent(encodeMessage({ type: 'loggedOut', reason: 'logout-idle' }))
   window.history.replaceState(null, '', `/?bridge-event=${bridgeEvent}`)
   render(<App />)
-  await waitFor(() => expect(screen.getByText(/opening recent family/i)).toBeInTheDocument())
+  await finishSplash()
+  expect(screen.getByText(/opening recent family/i)).toBeInTheDocument()
+})
+
+test('offline retry that resolves locked returns to families', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const connectSpy = vi.spyOn(connectService, 'connectToFamily')
+    .mockResolvedValueOnce('offline')
+    .mockResolvedValueOnce('locked')
+  render(<App />)
+  await finishSplash()
+  await flushBootEffect()
+  expect(screen.getByText(/can’t reach your server/i)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /try again/i }))
+  await flushBootEffect()
+  expect(screen.getByText(/my families/i)).toBeInTheDocument()
+  expect(connectSpy).toHaveBeenCalledTimes(2)
 })

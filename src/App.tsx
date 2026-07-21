@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
-import Welcome from './screens/Welcome'
+import { useEffect, useRef, useState } from 'react'
+import Splash from './screens/Splash'
+import Fork from './screens/Fork'
 import Families from './screens/Families'
 import AddFamily from './screens/AddFamily'
 import AccountSignIn from './screens/AccountSignIn'
@@ -9,10 +10,17 @@ import Settings, { isAutoOpenEnabled } from './screens/Settings'
 import { IconDefs } from './components/Icons'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
+import type { AccountCreds } from './services/credential-vault'
+import type { WizardResume } from './services/account-routing'
 
 export type Screen =
-  | { name: 'welcome' }
-  | { name: 'account-signin' }
+  | { name: 'splash' }
+  | { name: 'fork' }
+  | { name: 'acct-signin'; notice?: string }
+  | { name: 'acct-signup' }
+  | { name: 'acct-verify'; token: string; creds: AccountCreds; biometric: boolean }
+  | { name: 'acct-reset' }
+  | { name: 'wizard'; token: string; creds: AccountCreds; biometric: boolean; resume?: WizardResume; firstName?: string }
   | { name: 'add-family'; prefillInput?: string }
   | { name: 'families'; toast?: string; notice?: string }
   | { name: 'settings' }
@@ -20,7 +28,9 @@ export type Screen =
   | { name: 'connecting'; entry: ServerEntry }
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>({ name: 'welcome' })
+  const [screen, setScreen] = useState<Screen>({ name: 'splash' })
+  const bootTarget = useRef<Screen | null>(null)
+  const splashDone = useRef(false)
 
   useEffect(() => {
     // A `?bridge-event=` param means the web app handed control back to the shell.
@@ -29,30 +39,38 @@ export default function App() {
     const bootAction = bootActionFromSearch(window.location.search)
     stripBridgeEvent()
 
+    const applyBootTarget = (target: Screen) => {
+      bootTarget.current = target
+      if (splashDone.current) setScreen(s => (s.name === 'splash' ? target : s))
+    }
+
     void (async () => {
       const servers = await listServers()
-      if (servers.length === 0) return // stay on welcome
-      // Every setScreen below only applies while still on welcome — a user click
-      // that navigated away during the awaits must not be clobbered.
-      const ifWelcome = (next: Screen) => setScreen(s => (s.name === 'welcome' ? next : s))
-      if (bootAction === 'show-server-list') return ifWelcome({ name: 'families' })
+      if (servers.length === 0) return applyBootTarget({ name: 'fork' })
+      if (bootAction === 'show-server-list') return applyBootTarget({ name: 'families' })
       if (bootAction === 'reconnect') {
         // listServers() sorts most-recently-used first; the entry we just left is at the top.
         const recent = servers.find(e => e.lastUsedAt !== null)
-        return ifWelcome(recent ? { name: 'connecting', entry: recent } : { name: 'families' })
+        return applyBootTarget(recent ? { name: 'connecting', entry: recent } : { name: 'families' })
       }
       const def = await getDefaultServer()
       const autoOpen = def ? await isAutoOpenEnabled() : false
-      if (def && autoOpen) ifWelcome({ name: 'connecting', entry: def })
-      else ifWelcome({ name: 'families' })
+      applyBootTarget(def && autoOpen ? { name: 'connecting', entry: def } : { name: 'families' })
     })()
   }, [])
+
+  const handleSplashDone = () => {
+    splashDone.current = true
+    const target = bootTarget.current
+    if (target) setScreen(s => (s.name === 'splash' ? target : s))
+  }
 
   return (
     <div className="m-root" data-testid="app-root">
       <IconDefs />
-      {screen.name === 'welcome' && <Welcome navigate={setScreen} />}
-      {screen.name === 'account-signin' && <AccountSignIn navigate={setScreen} />}
+      {screen.name === 'splash' && <Splash onDone={handleSplashDone} />}
+      {screen.name === 'fork' && <Fork navigate={setScreen} />}
+      {screen.name === 'acct-signin' && <AccountSignIn navigate={setScreen} notice={screen.notice} />}
       {screen.name === 'families' && <Families navigate={setScreen} toast={screen.toast} notice={screen.notice} />}
       {screen.name === 'add-family' && <AddFamily navigate={setScreen} prefillInput={screen.prefillInput} />}
       {screen.name === 'settings' && <Settings navigate={setScreen} />}

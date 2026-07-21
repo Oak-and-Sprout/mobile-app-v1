@@ -87,12 +87,12 @@ test('tapping a family card navigates to connecting', async () => {
   expect(navigate).toHaveBeenCalledWith({ name: 'connecting', entry: expect.objectContaining({ id: 'e1' }) })
 })
 
-test('the dashed "Add a family" button navigates to add-family', async () => {
+test('the dashed "Add a family" button navigates to fork', async () => {
   const navigate = vi.fn()
   const user = userEvent.setup()
   render(<Families navigate={navigate} />)
   await user.click(await screen.findByRole('button', { name: /add a family/i }))
-  expect(navigate).toHaveBeenCalledWith({ name: 'add-family' })
+  expect(navigate).toHaveBeenCalledWith({ name: 'fork' })
 })
 
 test('star button is labeled by family name and sets the entry as default', async () => {
