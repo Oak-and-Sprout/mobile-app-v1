@@ -134,3 +134,11 @@ test('offline retry that resolves locked returns to families', async () => {
   expect(screen.getByText(/my families/i)).toBeInTheDocument()
   expect(connectSpy).toHaveBeenCalledTimes(2)
 })
+
+test('navigating fork -> acct-signin -> acct-signup renders the create-account screen', async () => {
+  render(<App />)
+  await finishSplash()
+  fireEvent.click(screen.getByText('With my Sprout Track account'))
+  fireEvent.click(screen.getByRole('button', { name: 'Start your free trial' }))
+  expect(screen.getByRole('heading', { name: 'Create your account.' })).toBeInTheDocument()
+})

@@ -4,6 +4,7 @@ import Fork from './screens/Fork'
 import Families from './screens/Families'
 import AddFamily from './screens/AddFamily'
 import AccountSignIn from './screens/AccountSignIn'
+import AccountSignUp from './screens/AccountSignUp'
 import Offline from './screens/Offline'
 import Connecting from './screens/Connecting'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
@@ -71,6 +72,7 @@ export default function App() {
       {screen.name === 'splash' && <Splash onDone={handleSplashDone} />}
       {screen.name === 'fork' && <Fork navigate={setScreen} />}
       {screen.name === 'acct-signin' && <AccountSignIn navigate={setScreen} notice={screen.notice} />}
+      {screen.name === 'acct-signup' && <AccountSignUp navigate={setScreen} />}
       {screen.name === 'families' && <Families navigate={setScreen} toast={screen.toast} notice={screen.notice} />}
       {screen.name === 'add-family' && <AddFamily navigate={setScreen} prefillInput={screen.prefillInput} />}
       {screen.name === 'settings' && <Settings navigate={setScreen} />}
