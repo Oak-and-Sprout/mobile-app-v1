@@ -71,6 +71,10 @@ export async function checkSlugAvailability(
 ): Promise<'free' | 'taken' | 'invalid'> {
   const res = await callOrThrowUnreachable(() => get(`${base}/api/family/by-slug/${slug}`))
   if (res.status === 400) return 'invalid'
+  // A server that can't answer this question at all (5xx, etc.) is indistinguishable
+  // from unreachable for this caller — don't let it silently fall through to 'free'
+  // and let the user proceed only to fail later at createFamily.
+  if (!isSuccessStatus(res.status)) throw new WizardError('unreachable')
   return envelopeOf(res.body)?.success ? 'taken' : 'free'
 }
 

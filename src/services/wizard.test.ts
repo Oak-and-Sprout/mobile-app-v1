@@ -47,6 +47,11 @@ test('checkSlugAvailability: thrown network error becomes WizardError(unreachabl
   await expect(checkSlugAvailability(BASE, 'smith', get)).rejects.toMatchObject({ kind: 'unreachable' })
 })
 
+test('checkSlugAvailability: an unexpected status (e.g. 503) is unreachable, not free', async () => {
+  const get = vi.fn().mockResolvedValue(fail(503))
+  await expect(checkSlugAvailability(BASE, 'smith', get)).rejects.toMatchObject({ kind: 'unreachable' })
+})
+
 // --- suggestSlug ---------------------------------------------------------
 
 test('suggestSlug returns data.slug on success', async () => {
@@ -131,6 +136,13 @@ test('saveSecurity caretakers mode with 2 caretakers: exact URL/body/order', asy
     { method: 'PUT', url: 'https://x.com/api/settings?familyId=fam-1', body: { authType: 'CARETAKER' } },
     { method: 'PUT', url: 'https://x.com/api/family/update-setup-stage', body: { setupStage: 2, familyId: 'fam-1' } },
   ])
+  // token propagated to every call
+  expect(post).toHaveBeenNthCalledWith(1, 'https://x.com/api/caretaker?familyId=fam-1',
+    { loginId: '01', name: 'Alice', type: 'Parent', role: 'ADMIN', securityPin: '1111', familyId: 'fam-1' }, { token: 'jwt-1' })
+  expect(post).toHaveBeenNthCalledWith(2, 'https://x.com/api/caretaker?familyId=fam-1',
+    { loginId: '02', name: 'Bob', type: 'Parent', role: 'USER', securityPin: '2222', familyId: 'fam-1' }, { token: 'jwt-1' })
+  expect(put).toHaveBeenNthCalledWith(1, 'https://x.com/api/settings?familyId=fam-1', { authType: 'CARETAKER' }, { token: 'jwt-1' })
+  expect(put).toHaveBeenNthCalledWith(2, 'https://x.com/api/family/update-setup-stage', { setupStage: 2, familyId: 'fam-1' }, { token: 'jwt-1' })
 })
 
 test('saveSecurity surfaces envelope rejection and network unreachable', async () => {
