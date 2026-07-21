@@ -142,3 +142,11 @@ test('navigating fork -> acct-signin -> acct-signup renders the create-account s
   fireEvent.click(screen.getByRole('button', { name: 'Start your free trial' }))
   expect(screen.getByRole('heading', { name: 'Create your account.' })).toBeInTheDocument()
 })
+
+test('navigating fork -> acct-signin -> acct-reset renders the reset-password screen', async () => {
+  render(<App />)
+  await finishSplash()
+  fireEvent.click(screen.getByText('With my Sprout Track account'))
+  fireEvent.click(screen.getByRole('button', { name: 'Reset it' }))
+  expect(screen.getByRole('heading', { name: 'Reset your password.' })).toBeInTheDocument()
+})
