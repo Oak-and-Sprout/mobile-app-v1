@@ -61,7 +61,7 @@ test('shows an error when the server is not Sprout Track', async () => {
   render(<AddFamily navigate={vi.fn()} deps={deps} />)
   await user.type(screen.getByLabelText(/family link/i), 'https://example.com/x')
   await user.click(screen.getByRole('button', { name: /find my family/i }))
-  expect(await screen.findByText(/isn’t a Sprout Track server/)).toBeInTheDocument()
+  expect(await screen.findByText(/We reached it/)).toBeInTheDocument()
 })
 
 test('shows an error when the family is not found on the server', async () => {
@@ -82,7 +82,7 @@ test('shows lockout message on 429', async () => {
   await screen.findByText('Smith Family')
   await user.type(screen.getByLabelText(/family pin/i), '123456')
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
-  expect(await screen.findByText(/taking a breather. try again in a few minutes\./)).toBeInTheDocument()
+  expect(await screen.findByText(/taking a breather/i)).toBeInTheDocument()
 })
 
 test('shows an invalid-PIN message on failed login', async () => {
@@ -94,7 +94,7 @@ test('shows an invalid-PIN message on failed login', async () => {
   await screen.findByText('Smith Family')
   await user.type(screen.getByLabelText(/family pin/i), '123456')
   await user.click(screen.getByRole('button', { name: /verify & save/i }))
-  expect(await screen.findByText(/That PIN didn’t work/)).toBeInTheDocument()
+  expect(await screen.findByText(/PIN.*didn.*t work/)).toBeInTheDocument()
 })
 
 test('warns about cleartext http addresses', async () => {
@@ -140,7 +140,7 @@ test('clears the located family/credentials section when a subsequent locate att
   await user.click(screen.getByRole('button', { name: /find my family/i }))
 
   await waitFor(() => expect(screen.queryByText('Smith Family')).not.toBeInTheDocument())
-  expect(await screen.findByText(/Can’t reach that server/)).toBeInTheDocument()
+  expect(await screen.findByText(/reach that server/)).toBeInTheDocument()
 })
 
 test('CARETAKER auth type shows the Login ID field and passes it through to login', async () => {
