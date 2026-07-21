@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sprout Track — Photos UI PRD</title>
+<style>
+doc-page:not(:defined){visibility:hidden}
+doc-page{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;font-size:14.5px;line-height:1.62}
+a{color:#0d9488}a:hover{color:#0f766e}
+h1{font-size:27px;line-height:1.2;color:#0f766e;margin:0 0 4px}
+.meta{font-size:12.5px;color:#64748b;margin:0 0 6px}
+.meta b{color:#334155}
+h2{font-size:18px;color:#0f766e;margin:28px 0 8px;padding-bottom:5px;border-bottom:2px solid #ccfbf1}
+h3{font-size:14.5px;color:#134e4a;margin:18px 0 6px}
+p{margin:0 0 10px}
+ul,ol{margin:0 0 12px;padding-left:22px}
+li{margin-bottom:4px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}
+th{text-align:left;background:#f0fdfa;color:#0f766e;font-weight:600;padding:7px 10px;border:1px solid #e2e8f0}
+td{padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top}
+tr{break-inside:avoid}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;margin-right:4px}
+.p0{background:#ffe4e6;color:#be123c}.p1{background:#fef3c7;color:#b45309}.p2{background:#e2e8f0;color:#475569}
+.callout{background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid;orphans:3;widows:3}
+.callout b{color:#0f766e}
+.note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid;orphans:3;widows:3}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#f1f5f9;padding:1px 5px;border-radius:5px}
+.foot{font-size:11px;color:#94a3b8;display:flex;justify-content:space-between;width:100%}
+</style>
+</head>
+<body>
+<doc-page size="letter" orientation="portrait" margin="0.8in">
+<div slot="footer" class="foot"><span>Sprout Track — Photos UI PRD v1.1</span><span>Confidential · Draft</span></div>
+<h1>Photos — UI PRD</h1>
+<p class="meta"><b>Product:</b> Sprout Track (PWA) &nbsp;·&nbsp; <b>Feature:</b> Photo capture, attachment &amp; gallery &nbsp;·&nbsp; <b>Version:</b> 1.1 Draft &nbsp;·&nbsp; <b>Date:</b> Jul 13, 2026 &nbsp;·&nbsp; <b>Owner:</b> John Overton</p>
+<p class="meta"><b>Prototype:</b> <a href="sprout-track-photos.html">sprout-track-photos.html</a> (clickable, mobile-first)</p>
+
+<h2>1. Overview</h2>
+<p>Caregivers capture hundreds of baby photos but Sprout Track has no way to keep them alongside the care record. This feature adds photos as a first-class citizen: a dedicated <b>Photo</b> activity on the Log Entry page, the ability to <b>attach photos to existing activities</b> (Feed and Milestone in v1), <b>thumbnails on the timeline</b>, and a <b>Photos gallery page</b> in the main navigation for browsing by month, milestone, or all.</p>
+<div class="callout"><b>Design principle:</b> photos always live in context. Every photo is anchored to a moment on the timeline — either its own Photo entry or an activity it is attached to — and the gallery is a second lens over the same data, never a separate silo.</div>
+
+<h2>2. Goals &amp; Non-Goals</h2>
+<h3>Goals</h3>
+<ul>
+<li>Log a photo in under 10 seconds from the Log Entry screen.</li>
+<li>Attach up to 4 photos to Feed and Milestone activities at log time or later from the record view.</li>
+<li>Surface photos on the timeline as thumbnails without crowding activity rows.</li>
+<li>Browse, search, favorite, and bulk-manage all photos from a dedicated gallery page.</li>
+<li>Mobile-first: every surface works one-handed on a phone (PWA), and scales up to desktop.</li>
+</ul>
+<h3>Non-Goals (v1)</h3>
+<ul>
+<li>Photo editing (crop, rotate, filters).</li>
+<li>Attachments beyond Feed and Milestone ship after v1 — agreed rollout adds Bath, Activity, and Measurements next (Sleep, Diaper, Pump, Medicine, Vaccines not planned).</li>
+<li>Sharing/exporting albums outside the family account.</li>
+<li>Video.</li>
+</ul>
+
+<h2>3. User Stories</h2>
+<ul>
+<li>As a parent, I snap a cute moment and log it as a Photo with a caption and optional milestone tag, so it appears in today's timeline.</li>
+<li>As a parent logging a feeding, I attach the "first avocado" photos to the feed entry so the memory stays with the data.</li>
+<li>As a caregiver reviewing the day, I see photo thumbnails inline on the timeline and tap one to view it.</li>
+<li>As a parent, I open the Photos page and browse by month or by milestone, search captions, and favorite the best shots.</li>
+<li>As a parent, I select several photos and delete or download them in one action.</li>
+</ul>
+
+<h2>4. Feature Specification</h2>
+
+<h3>4.1 Photos page (main navigation)</h3>
+<table>
+<thead><tr><th style="width:24%">Element</th><th>Behavior</th></tr></thead>
+<tr><td>Nav entry</td><td>"Photos" appears in the left sidebar (desktop) and bottom tab bar (mobile), with a NEW badge for the first release cycle.</td></tr>
+<tr><td>Grouping toggle</td><td>Segmented control: <b>Month</b> (default, newest first) / <b>Milestone</b> (tagged groups, then "No milestone") / <b>All</b> (flat grid).</td></tr>
+<tr><td>Search</td><td>Live filter across captions and milestone names.</td></tr>
+<tr><td>Type filters</td><td>Chips: All, Photos, Feeds, Bath, Milestones, plus a Favorites toggle. Filters compose with search and grouping.</td></tr>
+<tr><td>Grid</td><td>Responsive square tiles (~150&nbsp;px min). Hover/press reveals a favorite heart; favorited tiles show it persistently. Caption + date beneath each tile (user-toggleable).</td></tr>
+<tr><td>Lightbox</td><td>Tap tile → full-size viewer with caption, taken date/time, type chip, milestone chip, linked activity, favorite / download / delete. Prev–next arrows + keyboard (←/→/Esc). Image caps at ~42vh on small screens so metadata stays visible.</td></tr>
+<tr><td>Add Photos</td><td>Primary button opens the same Photo Tracker drawer used on Log Entry (Add tab).</td></tr>
+<tr><td>Storage meter</td><td>Compact quota bar in the page header ("2.4 GB of 5 GB used · 48%"), turning amber above 80%. The quota itself is configured per family in the Family Manager settings page (settings UI out of scope here).</td></tr>
+<tr><td>Trash</td><td>Toolbar entry with count; opens the Trash view (§4.6).</td></tr>
+<tr><td>Select mode</td><td>"Select" toggles checkboxes on tiles; a floating bar shows count with <b>Download</b>, <b>Delete</b> (confirm), <b>Cancel</b>.</td></tr>
+</table>
+
+<h3>4.2 Photo activity (Log Entry)</h3>
+<ul>
+<li>A <b>Photo</b> button joins the activity icon row (picture icon; final illustration TBD — <span class="tag p1">ASSET NEEDED</span>).</li>
+<li>Opens the <b>Photo Tracker</b> drawer (right-side sheet on desktop, full-screen on mobile) with two tabs, mirroring the Vaccine Tracker pattern:
+<ul>
+<li><b>Add Photo:</b> upload dropzone (camera/library/drag-drop), taken date &amp; time (defaults to now, editable — EXIF date pre-fills when available), caption, milestone tag (select or create).</li>
+<li><b>Photo Library:</b> search bar + list grouped by taken date; each row shows thumbnail, caption, time · type · milestone, favorite toggle, and opens the photo detail. Link out to the full gallery.</li>
+</ul></li>
+<li>Saving creates a Photo entry in today's timeline and adds the photo to the gallery.</li>
+<li>A storage-quota meter sits under the drawer tabs so caregivers see usage at the point of upload.</li>
+</ul>
+
+<h3>4.3 Timeline thumbnails</h3>
+<ul>
+<li>Any activity with photos shows thumbnails right-aligned before the timestamp (44&nbsp;px, rounded).</li>
+<li>Thumbnail count adapts to available width — 3 on desktop, 2 on mobile — with a <code>+N</code> overflow badge when more exist.</li>
+<li>Tap a thumbnail → photo detail. Tap the row → the activity's record (Feed Record / Photo Record).</li>
+<li>Daily Summary gains a "Photos Today" stat that deep-links to the gallery.</li>
+</ul>
+
+<h3>4.4 Attaching photos to activities (Feed + Milestone, v1)</h3>
+<ul>
+<li>The Log Feeding drawer gains a <b>Photos</b> section: attached thumbnails with remove (×), and an add tile. Limit 4 per activity <span class="tag p2">TUNABLE</span>.</li>
+<li>The <b>Feed Record</b> detail shows a "Photos (N)" section; photos can be viewed or added after the fact. Empty state: "No photos attached to this feeding yet."</li>
+<li>Milestone entries use the same attachment model; a photo tagged with a milestone at upload links automatically.</li>
+<li>Roadmap: the same attach pattern extends to Bath, Activity, and Measurement entries next.</li>
+</ul>
+
+<h3>4.5 Photo records &amp; detail</h3>
+<ul>
+<li><b>Photo Record</b> (timeline entry with 1–4 photos): time, caption, caretaker, milestone, photo grid; Delete / Edit / Close footer, consistent with other record drawers.</li>
+<li><b>Photo detail</b> (single photo): large preview with favorite overlay, inline-editable caption, taken date/time, type chip, milestone chip, linked activity, and favorite / download / delete actions.</li>
+<li>Deleting a photo moves it to <b>Trash</b> (§4.6) and hides it everywhere it appears; deleting a record removes the timeline entry but leaves its photos in the library.</li>
+</ul>
+
+<h3>4.6 Trash (30-day recovery)</h3>
+<ul>
+<li>Deleting a photo anywhere (detail drawer, lightbox, bulk select) soft-deletes it to Trash; timeline thumbnails, records, library, and gallery hide it immediately.</li>
+<li>Trash is reached from the gallery toolbar (with item count). Each item shows a days-remaining badge on its tile; items can be selected singly or in bulk for <b>Restore</b> or <b>Delete Forever</b>.</li>
+<li>Auto-purge runs server-side 30 days after deletion; purging also removes activity links.</li>
+</ul>
+
+<h2>5. Mobile / PWA Requirements</h2>
+<ul>
+<li>Bottom tab bar replaces the sidebar under 940&nbsp;px; drawers become full-screen sheets; lightbox stacks vertically.</li>
+<li>All tap targets ≥ 44&nbsp;px; icon row scrolls horizontally with no scrollbar chrome.</li>
+<li>Capture path uses <code>&lt;input type="file" accept="image/*" capture&gt;</code> so "Add photo" offers camera or library natively.</li>
+<li>Uploads queue offline and sync when connectivity returns (service-worker background sync) <span class="tag p0">ENG</span>.</li>
+<li>Client-side downscale/compress before upload (target ≤ ~1&nbsp;MB per photo); originals optionally retained per family setting <span class="tag p1">OPEN</span>.</li>
+<li>Storage quota is per family and configurable in the <b>Family Manager settings</b> page (mention only — not mocked); usage % surfaces in the gallery header and the Photo Tracker drawer.</li>
+</ul>
+
+<h2>6. Data Model (proposed)</h2>
+<table>
+<thead><tr><th style="width:26%">Field</th><th style="width:22%">Type</th><th>Notes</th></tr></thead>
+<tr><td><code>Photo.id</code></td><td>uuid</td><td></td></tr>
+<tr><td><code>Photo.familyId / babyId</code></td><td>fk</td><td>Scoped like all log entries.</td></tr>
+<tr><td><code>Photo.url / thumbUrl</code></td><td>string</td><td>Stored asset + generated thumbnail.</td></tr>
+<tr><td><code>Photo.takenAt</code></td><td>datetime</td><td>EXIF-derived, user-editable; drives Month grouping.</td></tr>
+<tr><td><code>Photo.caption</code></td><td>string?</td><td>Searchable.</td></tr>
+<tr><td><code>Photo.milestoneId</code></td><td>fk?</td><td>Drives Milestone grouping.</td></tr>
+<tr><td><code>PhotoFavorite.photoId / caregiverId</code></td><td>join</td><td>Favorites are per caregiver, not per family.</td></tr>
+<tr><td><code>Photo.deletedAt</code></td><td>datetime?</td><td>Set on trash; server auto-purges at deletedAt + 30 days.</td></tr>
+<tr><td><code>PhotoLink.photoId / activityType / activityId</code></td><td>join</td><td>Many-to-many: one photo may attach to multiple activities; an activity holds ≤ 4.</td></tr>
+</table>
+
+<h2>7. States &amp; Edge Cases</h2>
+<ul>
+<li><b>Empty gallery:</b> friendly zero-state with an Add Photos CTA.</li>
+<li><b>No search/filter results:</b> "No photos match" with hint to clear filters.</li>
+<li><b>Upload failure:</b> tile shows retry state; entry saves without the photo rather than blocking the log.</li>
+<li><b>Permission denied (camera/library):</b> inline explainer with a link to settings.</li>
+<li><b>Large libraries:</b> month groups virtualize/lazy-load images; thumbnails only in grid, full asset on lightbox open.</li>
+<li><b>Nursery Mode:</b> photo capture available; gallery management hidden <span class="tag p1">OPEN</span>.</li>
+</ul>
+
+<h2>8. Success Metrics</h2>
+<ul>
+<li>≥ 40% of weekly-active families log at least one photo in week 1 post-launch.</li>
+<li>Median time from Photo button tap to saved entry &lt; 10 s.</li>
+<li>≥ 15% of Feed entries carry an attached photo by week 4.</li>
+<li>Gallery page ranks in top-4 visited nav destinations within a month.</li>
+</ul>
+
+<h2>9. Decisions (Jul 13, 2026 review)</h2>
+<ol>
+<li><b>Storage quota:</b> per family, configurable in the Family Manager settings page. Usage % shown in the gallery header and Photo Tracker drawer.</li>
+<li><b>Favorites:</b> per caregiver.</li>
+<li><b>Delete semantics:</b> soft-delete to Trash with 30-day auto-purge, plus Restore and Delete Forever.</li>
+<li><b>Milestone auto-suggest:</b> not in scope.</li>
+<li><b>Attachment surfaces:</b> Feeds, Bath, Activity, Milestones, Measurements.</li>
+</ol>
+
+<div class="note"><b>Handoff note:</b> all flows above are demonstrated in the clickable prototype (<a href="sprout-track-photos.html">sprout-track-photos.html</a>): Photo Tracker drawer (both tabs), feed attach, Feed/Photo Records, photo detail, gallery grouping/search/filters, lightbox, and bulk select. Placeholder gradient tiles stand in for real images.</div>
+</doc-page>
+<script src="doc-page.js"></script>
+</body>
+</html>

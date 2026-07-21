@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sprout Track — Baby tracking that takes two taps</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head><body data-screen-label="V3 Landing">
+<svg style="display:none" aria-hidden="true"><defs>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-sprout" viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7-6.5-.3 4-3 6.5-7 6.5z"/><path d="M12 13c0-4-3-6.5-7-6.5.3 4 3 6.5 7 6.5z"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 7 7 0 0 0 20 14.5z"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-bottle" viewBox="0 0 24 24"><path d="M10 2.5h4V6l2 2.5V21a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1V8.5L10 6z"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-diaper" viewBox="0 0 24 24"><path d="M4 7h16v4a8 8 0 0 1-8 8 8 8 0 0 1-8-8z"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-pump" viewBox="0 0 24 24"><circle cx="12" cy="14" r="5"/><path d="M12 9V4M9 4h6"/></symbol>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-check" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></symbol>
+</defs></svg>
+<header class="nav"><div class="wrap">
+<a class="logo" href="index.html"><img src="logo.png" alt="" width="24" height="24" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav class="nav-links">
+<a href="features.html">Features</a>
+<a href="pricing.html">Pricing</a>
+<a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a>
+<a class="btn" href="pricing.html">Start my free trial</a>
+</nav>
+</div></header>
+
+<section class="hero"><div class="wrap">
+<div>
+<span class="kick">Baby tracking, simplified</span>
+<h1>Log a feed in two taps. <span class="soft">Even at 3&nbsp;am.</span></h1>
+<p class="lede">Sleep, feeds, diapers, medicine, milestones. Sprout Track is built for one hand, no sleep, and every caretaker in your baby&rsquo;s life, from any phone or tablet.</p>
+<div class="cta-row">
+<a class="btn big" href="pricing.html">Start my free trial</a>
+<a class="btn big ghost" href="https://sprout-track.com/demo" rel="noopener">Try the live demo</a>
+</div>
+<p class="assure">14 days free, no card required. Then $2.99 a month, cancel anytime.</p>
+</div>
+<div class="phone"><div class="scr">
+<div class="notch"><i></i></div>
+<div class="ph-head"><div class="hi">Good morning, Betty</div><b>Joshua · 20 weeks</b></div>
+<div class="ph-stats"><span><b>5h 48m</b> sleep</span><span><b>2</b> bottles</span><span><b>2</b> diapers</span></div>
+<div class="ph-grid" id="taps">
+<button class="tap" style="background:#fdf3d8" data-k="Bottle" data-s="5.5 oz"><svg viewBox="0 0 24 24" fill="none" stroke="#ca8a04" stroke-width="1.8" stroke-linecap="round"><use href="#i-bottle"/></svg>Feed</button>
+<button class="tap" style="background:#e7ebfd" data-k="Nap started" data-s="timer running"><svg viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="1.8" stroke-linecap="round"><use href="#i-moon"/></svg>Sleep</button>
+<button class="tap" style="background:#dcf5f0" data-k="Wet diaper" data-s="changed"><svg viewBox="0 0 24 24" fill="none" stroke="#0f766e" stroke-width="1.8" stroke-linecap="round"><use href="#i-diaper"/></svg>Diaper</button>
+<button class="tap" style="background:#f0e9fc" data-k="Pumping" data-s="3.5 oz"><svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round"><use href="#i-pump"/></svg>Pump</button>
+</div>
+<div class="ph-log" id="phlog">
+<div class="row"><span><b>Bottle</b> · 5.5 oz</span><span>6:05 am</span></div>
+<div class="row"><span><b>Vitamin D</b> · 1 ml</span><span>6:21 am</span></div>
+</div>
+</div></div>
+</div></section>
+
+<div class="trust"><div class="wrap">
+<div class="t"><b>70+ families</b>track with Sprout every day</div>
+<div class="t"><b>Open source</b>322 stars on GitHub</div>
+<div class="t"><b>No ads, ever</b>your data is never sold</div>
+<div class="t"><b>Export anytime</b>your records leave with you</div>
+</div></div>
+
+<section><div class="wrap">
+<div class="sect-head center"><span class="kick">Try it right here</span>
+<h2>The whole pitch is that phone above.</h2>
+<p>Tap Feed, Sleep, Diaper, or Pump on the mockup — that&rsquo;s the entire logging flow. Amounts pre-fill from last time; a second tap saves. That&rsquo;s why parents actually keep it up.</p></div>
+</div></section>
+
+<section class="tinted" style="padding-top:64px"><div class="wrap">
+<div class="wide" style="padding-top:0">
+<div><span class="kick">For the night shift</span><h3>Big targets, sensible defaults</h3>
+<p>Every entry form leads with the common case: the usual bottle size, the last food, both-sides diaper. You confirm more than you type.</p>
+<ul>
+<li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-check"/></svg>Timers for naps, nursing, and pumping</li>
+<li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-check"/></svg>Sixteen entry types when you need them</li>
+</ul></div>
+<div class="fig"><img class="shot" src="../shots/feed-form.png" alt="Log Feeding form with large type buttons and stepper"></div>
+</div>
+<div class="wide flip">
+<div><span class="kick">For the handoff</span><h3>Everyone sees the same day</h3>
+<p>Grandma logs the noon diaper; you see it from work. Every entry shows who logged it, so nobody double-doses the vitamin D or re-asks about the last nap.</p>
+<ul>
+<li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-check"/></svg>Unlimited caretakers, PIN login for grandparents</li>
+<li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-check"/></svg>Daily summary of awake time, sleep, oz, diapers</li>
+</ul></div>
+<div class="fig"><img class="shot" src="../shots/log-entry.png" alt="Shared daily log with summary and caretaker entries"></div>
+</div>
+<div class="wide">
+<div><span class="kick">For the pediatrician</span><h3>Walk in with the answers</h3>
+<p>&ldquo;How many wet diapers? How long is she sleeping?&rdquo; The daily summary and reports answer the checkup questions from real data, not a bleary guess.</p>
+<ul>
+<li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-check"/></svg>Vaccine records with documents attached</li>
+<li><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-check"/></svg>Growth measurements charted over time</li>
+</ul></div>
+<div class="fig"><img class="shot" src="../shots/vaccine.png" alt="Vaccine tracker with dose history and documents"></div>
+</div>
+</div></section>
+
+<section><div class="wrap duo">
+<div>
+<span class="kick">Nursery mode</span>
+<h2 style="font-size:clamp(26px,3vw,36px);margin:10px 0 14px">A night-light that takes notes.</h2>
+<p style="max-width:46ch">Mount a tablet by the crib and Sprout Track becomes a dimmed, always-on display. One tap logs the 2 am feed without waking the room, or your brain.</p>
+<div class="cta-row"><a class="btn ghost" href="features.html">See all features</a></div>
+</div>
+<img class="shot" src="../shots/nursery.png" alt="Nursery mode: dimmed clock with one-tap tiles" style="border-radius:20px">
+</div></section>
+
+<section class="tinted"><div class="wrap" style="text-align:center">
+<span class="kick">Pricing</span>
+<h2 style="font-size:clamp(26px,3.2vw,38px);margin:10px 0 12px">$2.99 a month. Or $19.99, once.</h2>
+<p style="max-width:46ch;margin:0 auto">Every feature, unlimited caretakers, unlimited babies. Free for 14 days, and free forever if you self-host.</p>
+<div class="cta-row" style="justify-content:center"><a class="btn" href="pricing.html">See pricing</a></div>
+</div></section>
+
+<section class="close-cta"><div class="wrap">
+<h2>Be ready for the next feed.</h2>
+<p>Set up in about two minutes. Invite the rest of the care team whenever you&rsquo;re ready.</p>
+<div class="cta-row"><a class="btn big" href="pricing.html">Start my free trial</a></div>
+<p class="assure">14 days free · no card required · cancel anytime</p>
+</div></section>
+
+<footer><div class="wrap">
+<a class="logo" href="index.html" style="font-size:16px"><img src="logo.png" alt="" width="19" height="19" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="https://sprout-track.com/demo" rel="noopener">Demo</a><a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></nav>
+<span>© 2025–2026 <a href="https://www.openglades.com" rel="noopener">Open Glades LLC</a> · Kansas City</span>
+</div></footer>
+
+<script>
+(function(){
+var log=document.getElementById('phlog');
+document.getElementById('taps').addEventListener('click',function(e){
+var b=e.target.closest('.tap');if(!b)return;
+var now=new Date(),h=now.getHours(),m=now.getMinutes(),ap=h>=12?'pm':'am';h=h%12||12;
+var row=document.createElement('div');row.className='row new';
+row.innerHTML='<span><b>'+b.dataset.k+'</b> · '+b.dataset.s+'</span><span>'+h+':'+String(m).padStart(2,'0')+' '+ap+'</span>';
+log.insertBefore(row,log.firstChild);
+while(log.children.length>4)log.removeChild(log.lastChild);
+});
+})();
+</script>
+</body></html>

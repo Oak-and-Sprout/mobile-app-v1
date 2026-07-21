@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sprout Track — Account &amp; Login Reskin UI Spec</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400..800&family=Alegreya+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+doc-page:not(:defined){visibility:hidden}
+doc-page{font-family:"Alegreya Sans",Helvetica,Arial,sans-serif;color:#3d5044;font-size:14.5px;line-height:1.6;background:#fffdf6}
+a{color:#0c6b62}a:hover{color:#0a544d}
+h1{font-family:"Literata",Georgia,serif;font-size:27px;line-height:1.2;color:#26382f;margin:0 0 4px}
+.meta{font-size:12.5px;color:#6b7a6c;margin:0 0 6px}
+.meta b{color:#26382f}
+h2{font-family:"Literata",Georgia,serif;font-size:18px;color:#0a544d;margin:28px 0 8px;padding-bottom:5px;border-bottom:2px solid #ddd2b8}
+h3{font-family:"Literata",Georgia,serif;font-size:14.5px;color:#26382f;margin:18px 0 6px}
+p{margin:0 0 10px}
+ul,ol{margin:0 0 12px;padding-left:22px}
+li{margin-bottom:4px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}
+th{text-align:left;background:#efe6d0;color:#26382f;font-weight:700;padding:7px 10px;border:1px solid #ddd2b8}
+td{padding:7px 10px;border:1px solid #ddd2b8;vertical-align:top}
+tr{break-inside:avoid}
+.sw{display:inline-block;width:13px;height:13px;border-radius:4px;border:1px solid rgba(0,0,0,.15);vertical-align:-2px;margin-right:6px}
+.callout{background:#efe6d0;border:1px solid #ddd2b8;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid;orphans:3;widows:3}
+.callout b{color:#0a544d}
+.note{background:#f7e5dc;border:1px solid #e3bcab;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid}
+.note b{color:#9e2b25}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#efe6d0;padding:1px 5px;border-radius:5px;color:#26382f}
+.foot{font-size:11px;color:#6b7a6c;display:flex;justify-content:space-between;width:100%}
+.chipx{display:inline-block;font-size:11px;font-weight:700;border-radius:99px;padding:1px 9px;margin-right:4px}
+</style>
+</head>
+<body>
+<doc-page size="letter" orientation="portrait" margin="0.8in">
+<div slot="footer" class="foot"><span>Sprout Track — Account &amp; Login Reskin UI Spec v1.0</span><span>Confidential · Draft</span></div>
+<h1>Account &amp; Login — Reskin UI Spec</h1>
+<p class="meta"><b>Product:</b> Sprout Track (PWA + marketing site) &nbsp;·&nbsp; <b>Scope:</b> Login flow, account dropdown, account manager &amp; sub-forms &nbsp;·&nbsp; <b>Version:</b> 1.0 Draft &nbsp;·&nbsp; <b>Date:</b> Jul 17, 2026 &nbsp;·&nbsp; <b>Owner:</b> John Overton</p>
+<p class="meta"><b>Prototype:</b> <a href="v1-storybook/account.html">v1-storybook/account.html</a> &nbsp;·&nbsp; <b>Theme reference:</b> <a href="v1-storybook/index.html">V1 Storybook landing</a> (<code>v1-storybook/style.css</code>, <code>v1-storybook/account.css</code>)</p>
+
+<h2>1. Overview &amp; scope</h2>
+<p>This is a <b>reskin-only</b> specification. All functionality of the current account system stays exactly as it is — same fields, same validation rules, same endpoints, same states, same flows. What changes is the presentation layer: the bright-white modal system is replaced with the V1 "storybook" theme used across the marketing overhaul — paper-cream surfaces, Literata/Alegreya Sans type, teal + apricot accents, hand-drawn duotone sprites, and a consistent 1.8px-stroke icon set.</p>
+<div class="callout"><b>Non-goals:</b> no new fields, no renamed API contracts, no changes to auth logic, session handling, subscription/billing behavior, or role permissions. Copy changes are cosmetic (voice only) and must not alter the meaning of any label a support doc references.</div>
+
+<h2>2. Locked presentation decisions</h2>
+<p>Explored via the prototype's tweaks panel; the following are the chosen values.</p>
+<table>
+<tr><th>Decision</th><th>Value</th><th>Notes</th></tr>
+<tr><td>Account manager surface</td><td><b>Drawer</b> (right slide-over)</td><td>Full-height, 520px wide, slides in from the right.</td></tr>
+<tr><td>Sign-in / sign-up / reset forms</td><td><b>Drawer</b></td><td>Same surface as the account manager for one consistent pattern.</td></tr>
+<tr><td>Backdrop</td><td><b>Dim</b></td><td><code>rgba(28,42,34,.44)</code> ink-tinted scrim. No blur.</td></tr>
+<tr><td>Surface tone</td><td><b>Warm</b></td><td>Panes sit on paper cream <code>#f7f1e2</code>, not white. Inputs stay lighter cream for contrast.</td></tr>
+<tr><td>Storybook art</td><td><b>On</b></td><td>Small sprites on select panes (§9). Hidden ≤640px.</td></tr>
+</table>
+
+<h2>3. Design tokens</h2>
+<h3>3.1 Color</h3>
+<table>
+<tr><th>Token</th><th>Value</th><th>Use</th></tr>
+<tr><td><span class="sw" style="background:#f7f1e2"></span><code>--paper</code></td><td>#f7f1e2</td><td>Drawer/pane background, dropdown background</td></tr>
+<tr><td><span class="sw" style="background:#efe6d0"></span><code>--paper2</code></td><td>#efe6d0</td><td>Form footers (sticky action bar)</td></tr>
+<tr><td><span class="sw" style="background:#fffdf6"></span><code>--card</code></td><td>#fffdf6</td><td>Input field background</td></tr>
+<tr><td><span class="sw" style="background:#26382f"></span><code>--ink</code></td><td>#26382f</td><td>Headings, input text, toast background</td></tr>
+<tr><td><span class="sw" style="background:#3d5044"></span><code>--body</code></td><td>#3d5044</td><td>Body copy, menu items</td></tr>
+<tr><td><span class="sw" style="background:#6b7a6c"></span><code>--sub</code></td><td>#6b7a6c</td><td>Secondary text, helper text, placeholder-adjacent</td></tr>
+<tr><td><span class="sw" style="background:#ddd2b8"></span><code>--line</code></td><td>#ddd2b8</td><td>Borders, dividers, input borders</td></tr>
+<tr><td><span class="sw" style="background:#0c6b62"></span><code>--teal</code></td><td>#0c6b62</td><td>Primary buttons, links, focus ring, active tab, icons</td></tr>
+<tr><td><span class="sw" style="background:#0a544d"></span><code>--teal-deep</code></td><td>#0a544d</td><td>Button hover</td></tr>
+<tr><td><span class="sw" style="background:#c2691e"></span><code>--apricot</code></td><td>#c2691e</td><td>Kickers, "Owner" chip family</td></tr>
+<tr><td><span class="sw" style="background:#9e2b25"></span><code>--rust</code></td><td>#9e2b25</td><td>Destructive actions, expired state. Replaces the current bright red.</td></tr>
+<tr><td><span class="sw" style="background:#f7e5dc"></span><code>--rust-bg</code> / <span class="sw" style="background:#e3bcab"></span><code>--rust-line</code></td><td>#f7e5dc / #e3bcab</td><td>Warning box fill / border</td></tr>
+<tr><td><span class="sw" style="background:#f4edda"></span><code>--hover</code></td><td>#f4edda</td><td>Menu-item &amp; icon-button hover fill</td></tr>
+</table>
+<h3>3.2 Type</h3>
+<table>
+<tr><th>Role</th><th>Spec</th></tr>
+<tr><td>Pane titles (h2)</td><td>Literata 600–700, 24px, <code>--ink</code>, letter-spacing −.01em</td></tr>
+<tr><td>Section headings (h3)</td><td>Literata 600, 19px, <code>--ink</code></td></tr>
+<tr><td>Person/row names</td><td>Literata 600, 17px</td></tr>
+<tr><td>UI text, labels, buttons</td><td>Alegreya Sans; labels 700 @14.5px, body 15–16px, helpers 13px</td></tr>
+<tr><td>Family link / IDs</td><td><code>ui-monospace</code> 14px</td></tr>
+</table>
+<h3>3.3 Shape, depth, spacing</h3>
+<ul>
+<li>Radii: pane corners (modal fallback) 16px · dropdown 14px · buttons 12px (small 9px) · inputs 10px · chips pill.</li>
+<li>Shadows are warm, never gray: drawer <code>-30px 0 70px -30px rgba(30,25,10,.4)</code>; dropdown <code>0 22px 48px -20px rgba(58,48,24,.45)</code>. No colored glows.</li>
+<li>Pane padding: 24–28px horizontal; footer bar 15px vertical; sections 22px vertical.</li>
+<li><b>No nested cards.</b> Sections separate with 1px <i>dashed</i> <code>--line</code> rules; rows within a section use solid hairlines <code>#e8ddc2</code>.</li>
+</ul>
+
+<h2>4. Surfaces &amp; motion</h2>
+<ul>
+<li><b>Drawer:</b> fixed right, full height, <code>width: min(520px, 100vw)</code>, 1px <code>--line</code> left border. Enter: slide from +48px with fade, 250ms ease. Auth drawers use the same surface.</li>
+<li><b>Backdrop:</b> ink scrim <code>rgba(28,42,34,.44)</code>. Click outside closes the top pane; <kbd>Esc</kbd> does the same.</li>
+<li><b>Sub-forms</b> (baby, caretaker, contact, reset-from-settings) open <i>stacked</i> in the same drawer with a back arrow at the header's left; Back/Cancel returns to the account manager without losing tab state.</li>
+<li><b>Toast:</b> confirmation pill bottom-center, <code>--ink</code> background, cream text, pill radius, ~3.4s, 250ms rise-in. Used for saves, sends, sign-out.</li>
+<li>Respect <code>prefers-reduced-motion</code>: disable slide/drop animations, keep instant show/hide.</li>
+</ul>
+
+<h2>5. Navigation states (marketing header)</h2>
+<table>
+<tr><th>State</th><th>Spec</th></tr>
+<tr><td>Signed out</td><td>Text link <b>Log in</b> + primary pill button <b>Start my free trial</b> (existing <code>.btn</code> style). Both open their drawer.</td></tr>
+<tr><td>Signed in</td><td>Trial/nav buttons replaced by one teal pill: <b>Hi, {first name}</b> + chevron (rotates 180° when open).</td></tr>
+<tr><td>Dropdown</td><td>274px, paper background, 14px radius. Identity block (Literata name + email, bottom rule), then: Account settings (gear), Send feedback (chat) · rule · Go to family dashboard (house) · rule · Log out (out-arrow, rust). Item hover fills <code>--hover</code>. Icons 18px teal, rust for Log out.</td></tr>
+</table>
+
+<h2>6. Account manager (drawer)</h2>
+<ul>
+<li><b>Header:</b> title "Your account" only — no subtitle sentence. Close (×) icon button top-right. The footer "Close" button from the current design is <b>removed</b> (redundant with ×).</li>
+<li><b>Tabs:</b> "Account" / "Family &amp; people" — text tabs with a 2.5px teal underline on the active tab; no mint pill fill, no tab icons.</li>
+</ul>
+<h3>6.1 Account tab sections</h3>
+<table>
+<tr><th>Section</th><th>Contents (unchanged data)</th><th>Reskin notes</th></tr>
+<tr><td>Account</td><td>Name, email · Edit · Reset password</td><td>Edit toggles <b>inline</b> editing within the section (fields replace rows); Reset password opens the reset drawer stacked.</td></tr>
+<tr><td>Subscription</td><td>Status + renewal date + action</td><td>Three states, §6.2.</td></tr>
+<tr><td>Family</td><td>Family name, family link</td><td>Link rendered monospace; inline edit like Account.</td></tr>
+<tr><td>Your data</td><td>Download export</td><td>One sentence + ghost button "Download my data".</td></tr>
+<tr><td>Close account</td><td>Warning + destructive action</td><td>Rust heading + ghost-rust button. Confirmation is <b>inline</b> (button swaps to "Yes, close it / Keep my account") — no browser confirm, no second modal.</td></tr>
+</table>
+<h3>6.2 Subscription states</h3>
+<table>
+<tr><th>State</th><th>Presentation</th></tr>
+<tr><td>Trial</td><td>Teal status dot + "Free trial — N days left"; sub-line with end date and price; ghost button "Start my subscription".</td></tr>
+<tr><td>Active</td><td>Teal dot + "Active"; renewal date · price; ghost "Manage billing".</td></tr>
+<tr><td>Expired</td><td>Rust dot + "Expired"; warning box (<code>--rust-bg</code>/<code>--rust-line</code>, 12px radius): bold Literata line "Logging is paused — your data is safe.", reassurance sentence, solid teal button "Renew for $2.99/month". No crown icon, no all-caps.</td></tr>
+</table>
+<h3>6.3 Family &amp; people tab</h3>
+<ul>
+<li>Rows, not cards: name (Literata) + chips + one metadata line, "Edit" as a teal text link right-aligned. Hairline between rows.</li>
+<li>Section headers carry a 20px teal icon + "Add …" ghost button with a plus icon.</li>
+<li><b>Chips</b> (12px, 700, pill): <span class="chipx" style="background:#cfe5df;color:#0a544d">Admin</span><span class="chipx" style="background:#dbe7f5;color:#274f82">User</span><span class="chipx" style="background:#f5dcc4;color:#8a4a12">Owner</span><span class="chipx" style="background:#dbe7f5;color:#274f82">Boy</span><span class="chipx" style="background:#f2d7cd;color:#8c2f1d">Inactive</span> — sentence case, never ALL-CAPS ("MALE" → "Boy"). Active state is implied; only <i>Inactive</i> gets a chip.</li>
+<li>Baby metadata line folds in the warning times: "1 year 8 months · feed nudge 3h · diaper nudge 2h".</li>
+<li>Contacts empty state: 30px muted phone icon, Literata "No contacts yet", one warm sentence. No dashed placeholder box.</li>
+</ul>
+
+<h2>7. Forms (all sub-forms + auth)</h2>
+<ul>
+<li><b>Inputs:</b> <code>--card</code> fill, 1.5px <code>--line</code> border, 10px radius, 10×13px padding, 16px ink text. Placeholder <code>#a89d82</code>.</li>
+<li><b>Focus:</b> teal border + 3px soft ring <code>rgba(12,107,98,.14)</code>. Replaces the current blue/green glow.</li>
+<li><b>Labels:</b> above the field, Alegreya Sans 700 @14.5px ink. Optionality is written in the label — "Phone <span style="color:#6b7a6c;font-weight:500">(optional)</span>" — <b>no red asterisks</b>.</li>
+<li><b>Helper text:</b> 13px <code>--sub</code> below the field (e.g. "Admins can edit family settings and people.").</li>
+<li><b>Field groups:</b> related fields (sign-in credentials, reminder times) sit under a dashed top rule with a Literata group title + one-line explainer (e.g. "How they sign in — a 2-digit ID and a PIN").</li>
+<li><b>Password checklist</b> (sign-up): the 5 existing rules in a compact two-column 13px list; circles fill teal with a check as each rule passes. Same rules, same enforcement.</li>
+<li><b>Footer bar:</b> sub-forms end in a sticky footer (<code>--paper2</code>, top rule): ghost Cancel + primary teal submit, right-aligned. Auth drawers use a full-width primary button inside the body instead.</li>
+<li>Two-column rows for paired fields (first/last name, feed/diaper time, phone/email); collapse to one column ≤640px.</li>
+</ul>
+
+<h2>8. Auth drawers (copy + structure)</h2>
+<table>
+<tr><th>Drawer</th><th>Title / sub</th><th>Primary action · links</th></tr>
+<tr><td>Sign in</td><td>"Welcome back." / "Sign in to your family's page."</td><td><b>Sign me in</b> · "New here? Start your free trial" · "Forgot your password? Reset it"</td></tr>
+<tr><td>Create account</td><td>"Create your account." / "14 days free, no card needed."</td><td><b>Start my free trial</b> · terms/privacy line · "Already have an account? Sign in"</td></tr>
+<tr><td>Reset password</td><td>"Reset your password." / "We'll email you a link. It works for one hour."</td><td><b>Email me the link</b> · "Remembered it? Back to sign in"</td></tr>
+<tr><td>Send feedback</td><td>"Send feedback." / "It lands straight in the developer's inbox."</td><td><b>Send it</b></td></tr>
+</table>
+<p>Field order on Create account: name pair first, then email, then password — warmer opener, same data collected. Headers are <b>left-aligned</b> (nothing centered).</p>
+
+<h2>9. Iconography &amp; sprites</h2>
+<ul>
+<li><b>Icons:</b> single hand-set SVG sprite, 24px grid, 1.8px stroke, round caps/joins, <code>currentColor</code>. Set: user, mail, key, gear, chat, house, log-out, plus, phone, download, baby face, people, shield, check, chevron, back arrow, ×, alert triangle. This replaces Lucide defaults so weights match the marketing site.</li>
+<li><b>Sprites</b> (duotone art from <code>v1-storybook/art/</code>): butterfly (~42px, rotated ~9°) beside the account-drawer close button; star (~38px) on Create account. Decorative only (<code>aria-hidden</code>, <code>pointer-events:none</code>), hidden ≤640px, and removable via a single body attribute.</li>
+</ul>
+
+<h2>10. Copy voice</h2>
+<ul>
+<li>Short, warm, specific; sentence case everywhere (headings, buttons, chips).</li>
+<li>Buttons are first-person where it fits: "Sign me in", "Start my free trial", "Download my data".</li>
+<li>Reassure at moments of anxiety: expired ("your data is safe"), close account ("Download your data first"), reset ("works for one hour").</li>
+<li>No exclamation marks, no "Oops!", no emoji.</li>
+</ul>
+
+<h2>11. Responsive &amp; accessibility</h2>
+<ul>
+<li>≤640px: drawers go full-width; paired fields stack; sprites hide; pane padding tightens to 18px.</li>
+<li>Touch targets ≥44px (buttons, menu items, tabs, ×).</li>
+<li>Focus states visible on every interactive element (teal ring); drawer traps focus; <kbd>Esc</kbd> closes; × carries an <code>aria-label</code>.</li>
+<li>Contrast: body text and labels on paper meet WCAG AA; <code>--sub</code> is reserved for non-essential helper text.</li>
+</ul>
+
+<div class="note"><b>Out of scope reminder:</b> if any current behavior conflicts with a visual described here (e.g. a validation message's trigger), the behavior wins — flag it rather than changing logic.</div>
+</doc-page>
+<script src="doc-page.js"></script>
+</body></html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sprout Track — Capacitor Shell Punch List</title>
+<script src="doc-page.js"></script>
+<style>
+doc-page:not(:defined){visibility:hidden}
+doc-page{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;font-size:14.5px;line-height:1.62}
+a{color:#0d9488}a:hover{color:#0f766e}
+h1{font-size:27px;line-height:1.2;color:#0f766e;margin:0 0 4px}
+.meta{font-size:12.5px;color:#64748b;margin:0 0 6px}
+.meta b{color:#334155}
+h2{font-size:18px;color:#0f766e;margin:28px 0 8px;padding-bottom:5px;border-bottom:2px solid #ccfbf1}
+h3{font-size:14.5px;color:#134e4a;margin:18px 0 6px}
+p{margin:0 0 10px}
+ul,ol{margin:0 0 12px;padding-left:22px}
+li{margin-bottom:4px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}
+th{text-align:left;background:#f0fdfa;color:#0f766e;font-weight:600;padding:7px 10px;border:1px solid #e2e8f0}
+td{padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top}
+tr{break-inside:avoid}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;margin-right:4px;white-space:nowrap}
+.p0{background:#ffe4e6;color:#be123c}.p1{background:#fef3c7;color:#b45309}.p2{background:#e2e8f0;color:#475569}
+.callout{background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid;orphans:3;widows:3}
+.callout b{color:#0f766e}
+.note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid;orphans:3;widows:3}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#f1f5f9;padding:1px 5px;border-radius:5px}
+.foot{font-size:11px;color:#94a3b8;display:flex;justify-content:space-between;width:100%}
+</style>
+</head>
+<body>
+<doc-page size="letter" orientation="portrait" margin="0.8in">
+<div slot="footer" class="foot"><span>Sprout Track — Capacitor Shell Punch List v1.1</span><span>Open source · sprout-track</span></div>
+<h1>Capacitor Mobile Shell — Punch List</h1>
+<p class="meta"><b>Product:</b> Sprout Track (Capacitor iOS/Android shell) &nbsp;·&nbsp; <b>Scope:</b> everything designed in the interactive mockup, for implementation against the real codebase &nbsp;·&nbsp; <b>Version:</b> 1.0 &nbsp;·&nbsp; <b>Date:</b> Jul 21, 2026 &nbsp;·&nbsp; <b>Owner:</b> John Overton</p>
+<p class="meta"><b>Mockup:</b> <a href="capacitor-app.html">capacitor-app.html</a> (interactive; tweaks panel drives scenarios) &nbsp;·&nbsp; <b>Base plan:</b> <code>uploads/2026-07-20-capacitor-shell-first-pass.md</code></p>
+
+<h2>1. Context</h2>
+<p>The shell is a native Capacitor wrapper around the existing Sprout Track web app. The native layer owns: launch/splash, sign-in fork, credential storage (secure keychain), the saved-families list, the setup wizard for new account users, settings, offline states, and biometric unlock. Once a family is opened, the shell hands off to the web app in a webview; the web app owns everything inside except a handful of app-adapted behaviors listed in §8.</p>
+<p>All visual styling follows the v1 storybook theme (paper cream <code>#f7f1e2</code>, ink <code>#26382f</code>, teal <code>#0c6b62</code>, apricot <code>#c2691e</code>, Literata display + Alegreya Sans body, dashed dividers, plush art sprites). Copy voice is warm and non-technical throughout ("Knocking on the door…", "Planting your sprout…").</p>
+
+<h2>2. Launch &amp; splash <span class="tag p0">P0</span></h2>
+<ul>
+<li>Full-screen splash: lifestyle hero photo (same asset as v1 landing hero) with the cream radial + linear gradient overlaid, slow Ken Burns zoom-out (~6.5s ease-out, scale 1.09 → 1).</li>
+<li>Centered circle badge logo (no drop shadow, no ring — image as-is), pop-in animation (scale .6 → 1, slight overshoot), then "Sprout Track" wordmark (Literata 33px) and kicker "THE SHAREABLE BABY TRACKER" (apricot, letterspaced caps) rising in staggered (~280ms / ~500ms delays).</li>
+<li>Exit: after ~2.1s the whole splash fades out (~550ms) while content drifts up 16px, revealing the next screen.</li>
+<li>Routing after splash: no saved families → sign-in fork; saved families → My Families; saved families + auto-open enabled → straight into connecting to the starred family (biometric prompt fires over the list).</li>
+</ul>
+
+<h2>3. Sign-in fork (front screen) <span class="tag p0">P0</span></h2>
+<ul>
+<li>Top ~176px: same hero photo + cream gradient fading into paper; circle badge logo overlapping the fold.</li>
+<li>Headline "Everyone you love, <i>on the same page.</i>" + "How do you sign in to your family?"</li>
+<li>Two choice cards:
+<ol>
+<li><b>With my Sprout Track account</b> — "Email &amp; password. New here? This creates your account too." → account sign-in (§4).</li>
+<li><b>Family link shared with you?</b> — "Sign in here with the family link and your family PIN or personal caretaker PIN." → caretaker flow (§6). Do <b>not</b> mention "hosted/self-hosted" here.</li>
+</ol></li>
+<li>Footnote: "Either way, your sign-in stays in this phone's secure keychain."</li>
+<li>"Add a family" from My Families returns to this fork screen (both routes always reachable).</li>
+</ul>
+
+<h2>4. Sprout Track account flow <span class="tag p0">P0</span></h2>
+<h3>Sign in</h3>
+<ul>
+<li>Email + password against sprout-track.com account auth.</li>
+<li>"Unlock with Face ID / Touch ID next time" checkbox (default on) — stores the credential in the keychain (§9).</li>
+<li>Error states: wrong email/password ("That email and password didn't match…"), rate-limited/lockout ("Too many tries - the server is taking a breather…"), unreachable.</li>
+<li>Links: "New here? Start your free trial" → create account; "Forgot your password? Reset it" → reset.</li>
+</ul>
+<h3>Create account</h3>
+<ul>
+<li>First name, last name, email, password with live requirements checklist (8+ chars, number, lowercase, symbol, uppercase — pill turns teal per rule met). Button disabled until all pass.</li>
+<li>Terms/Privacy legal line; "Already have an account? Sign in."</li>
+<li>On success: account has no family → setup wizard (§5).</li>
+</ul>
+<h3>Reset password</h3>
+<ul>
+<li>Email field → "Email me the link" → toast "Reset link sent to {email} - it works for one hour." and return to sign-in.</li>
+</ul>
+<h3>Post-auth routing</h3>
+<ul>
+<li>Sign-in where the account already has a family → save that family to the device list and land on My Families.</li>
+<li>Sign-in where the account has no family (or fresh sign-up) → setup wizard.</li>
+</ul>
+
+<h2>5. Setup wizard (3 steps, in-app, themed) <span class="tag p0">P0</span></h2>
+<p>Mirrors <code>src/components/SetupWizard</code> behavior; header has logo + wordmark, teal progress bar, "STEP n OF 3", storybook art sprite per step. <b>Commit-as-you-go:</b> each Next persists to the server (family → security → baby); once a stage is saved there is no Back to it — steps 2/3 instead show a "✓ Family saved" / "✓ Security saved" check by the step counter. Resume lands the user on their lowest unsaved stage.</p>
+<h3>Step 1 — Create your family</h3>
+<ul>
+<li>Family name; family link (slug) auto-generated from name until manually touched; regenerate button suggests <code>{base}-{3 digits}</code>.</li>
+<li>Live URL preview: "Your family will live at <code>sprout-track.com/{slug}</code>".</li>
+<li>Debounced (~500ms) availability check with three states: checking ("Checking if that link is free…"), available (teal check, "/{slug} is free - it's yours."), error box.</li>
+<li>Validation mirrors <code>app/api/utils/slug-validation.ts</code>: lowercase/numbers/hyphens only, 3–50 chars, reserved-URL list (account, api, coming-soon, family-manager, family-select, setup, sphome, login, auth, context, globals, layout, metadata, page, template, features, home, pricing, privacy, terms, health, logs, maintenance, status, update, uptime, version), plus server-side taken check. Spaces typed into the field auto-hyphenate.</li>
+</ul>
+<h3>Step 2 — Security ("Who can open the book?")</h3>
+<ul>
+<li>Radio cards: <b>One shared family PIN</b> (PIN + confirm, 6–10 digits, digits-only input) vs <b>Caretakers with their own PINs</b> (default).</li>
+<li>Caretaker form: 2-digit login ID with live validation (digits only; <code>00</code> reserved; duplicate check), name, PIN (6–10 digits, stripped to digits), optional type. First caretaker is forced Admin; for account users it is prefilled as their profile (name from account, type "Account Owner", CTA "Create my profile"). Subsequent caretakers get a Role select (User default / Admin).</li>
+<li>Added caretakers listed as rows (name, role chip, type chip, ID, remove). Next requires PIN valid+matching or ≥1 caretaker.</li>
+<li>Account users: link the account to its caretaker (system caretaker for shared-PIN mode, first caretaker otherwise) per existing wizard logic.</li>
+</ul>
+<h3>Step 3 — Add your baby</h3>
+<ul>
+<li>First name, last name, birth date, gender — all required.</li>
+<li>"Gentle nudges": feed warning (default 02:00) and diaper warning (default 03:00), hh:mm validated inline.</li>
+<li>Feed timer counts from (start/end of feeding); feed-type checkboxes (breast feeds, breast-milk bottles, formula bottles, other bottles, food — all default checked; all-checked persists as null).</li>
+<li>Complete Setup → busy "Planting your sprout…" → family saved to device (starred if first) → My Families with welcome toast. Refresh the auth token so it carries family info (account auth).</li>
+</ul>
+
+<h2>6. Caretaker / family-link flow <span class="tag p0">P0</span></h2>
+<ul>
+<li>Single "family link" field (e.g. <code>myhost.com/smith-family</code>) — works for hosted and self-hosted servers.</li>
+<li>"Find my family" resolves the server + slug: errors for malformed address, missing slug, family not found, not a Sprout server, unreachable.</li>
+<li>Found family renders as a card (avatar initial, name, host, Hosted/Self-hosted chip). Plain-http addresses get an unencrypted-connection warning (allowed, warned).</li>
+<li>Credential entry adapts to the family's auth type: login ID + PIN, or family PIN only.</li>
+<li>Biometric-save checkbox; "Verify &amp; save" validates against the server before storing; wrong-PIN and lockout errors surfaced inline.</li>
+</ul>
+
+<h2>7. My Families, settings, offline, unlock <span class="tag p0">P0</span></h2>
+<h3>My Families</h3>
+<ul>
+<li>Card per saved family: avatar initial (teal = hosted, apricot = self-hosted), name, host + last-opened, Face ID glyph when biometric unlock is enabled, "Opens first" chip on the starred family.</li>
+<li>Row actions: star (sets the auto-open default — exactly one starred), remove (removes family + its keychain entry). Dashed "Add a family" → fork screen.</li>
+<li>Header: title + settings gear (use a real gear icon, not a sun/rays glyph).</li>
+<li>Tapping a family: biometric prompt (if enabled) → connecting screen ("Opening {family}… signing you in with your saved credentials") → webview.</li>
+</ul>
+<h3>Settings</h3>
+<ul>
+<li>"Open my starred family automatically" toggle — copy explicitly ties auto-open to the ★ family by name.</li>
+<li>Keychain explainer section ("Your sign-ins stay put").</li>
+<li>"Clear this phone" with inline confirm — wipes all saved families + keychain entries, server data untouched; returns to fork screen.</li>
+<li>Version footer: "Sprout Track Mobile v0.1.0 / The tracker itself lives on your server."</li>
+</ul>
+<h3>Offline / errors</h3>
+<ul>
+<li>Server unreachable on open → themed offline screen (kitten art): "Can't reach your server." + Try again / Switch family.</li>
+</ul>
+<h3>Biometric unlock</h3>
+<ul>
+<li>Native Face ID / Touch ID sheet before auto-fill of saved credentials; success state ("Unlocked") then connect. Both biometric types supported.</li>
+</ul>
+
+<h2>8. Webview integration <span class="tag p1">P1</span></h2>
+<ul>
+<li>Side menu (hamburger): standard web nav (Log Entry, Full Log, Calendar, Reports, Nursery Mode), version/language line, Settings — and a single <b>"Exit to My Families"</b> item replacing both "Switch Family" and "Logout" when running inside the shell. It returns to the native family list. No separate Account item in the sidebar.</li>
+<li>Header "Hi, {name} ⌄" pop-down (account users only, as on web): name + email, Account settings, Send feedback, Log out (Log out inside the shell also exits to My Families).</li>
+<li>Account settings drawer: same as v1 web overhaul (Account / Family &amp; people tabs, edit name/email, reset password, family info, babies, caretakers) <b>except the subscription section</b> when in-app:
+<ul>
+<li>Show status only (Active/Trial/Expired + renewal date + price).</li>
+<li>Note: "Subscriptions are managed on the web, not in this app."</li>
+<li>Button "Manage your subscription at sprout-track.com" (external-link icon) → opens the <b>system browser</b> (Capacitor Browser plugin), never Stripe inside the webview. This is the Apple/Google payments compliance boundary — no Renew/Payment-history/Stripe links rendered in-app.</li>
+</ul></li>
+<li>The web app detects it's inside the shell (user-agent flag or query param injected by the shell) to swap these behaviors.</li>
+</ul>
+
+<h2>9. Credential &amp; state storage <span class="tag p0">P0</span></h2>
+<ul>
+<li>Per-family credential (PIN, ID+PIN, or account email/password token) in the platform secure keychain; never synced off-device; deleted with the family.</li>
+<li>Device store: saved families (name, host, slug, hosted flag, biometric flag, starred flag, last-opened), auto-open setting.</li>
+<li>Biometric gate wraps keychain retrieval; declining biometrics falls back to manual entry.</li>
+</ul>
+
+<h2>10. App icons <span class="tag p2">P2</span></h2>
+<ul>
+<li>Home-screen icon: the <b>square</b> sprout mark (cream bg, orange ground bar) — assets at 192/512/1024 (<code>uploads/sprout-track-square-*.png</code>); OS applies its own mask (iOS squircle, Android circle).</li>
+<li>In-app branding keeps the existing <b>circle badge</b> logo, rendered without added drop shadows or rings.</li>
+</ul>
+
+<h2>11. Copy inventory (use verbatim)</h2>
+<table>
+<tr><th>Where</th><th>Copy</th></tr>
+<tr><td>Fork headline</td><td>Everyone you love, <i>on the same page.</i> / How do you sign in to your family?</td></tr>
+<tr><td>Fork card 2</td><td>Family link shared with you? — Sign in here with the family link and your family PIN or personal caretaker PIN.</td></tr>
+<tr><td>Keychain footnote</td><td>Either way, your sign-in stays in this phone's secure keychain.</td></tr>
+<tr><td>Find button</td><td>Find my family / Knocking on the door…</td></tr>
+<tr><td>Biometric checkbox</td><td>Unlock with {Face ID|Touch ID} next time — Your {PIN|password} lives in this phone's secure keychain - a glance opens the book.</td></tr>
+<tr><td>Wizard step 2 title</td><td>Who can open the book?</td></tr>
+<tr><td>Wizard finishing</td><td>Planting your sprout… → Welcome home - {family} is set up and saved to this phone.</td></tr>
+<tr><td>Offline</td><td>Can't reach your server. — …Everything already logged is safe - we just can't say hello.</td></tr>
+<tr><td>Clear-all confirm</td><td>This clears the book from this phone - the server keeps everything. Sure?</td></tr>
+<tr><td>Subscription note (in-app)</td><td>Subscriptions are managed on the web, not in this app. / Manage your subscription at sprout-track.com</td></tr>
+</table>
+
+<h2>12. Anti-slop design pass (required before merge)</h2>
+<p>Run a final review against the anti-“AI slop” reference (<code>uploads/compass_artifact_wf-235148cc-397a-4eb5-ab59-bf4306e1ff65_text_markdown.md</code>). The shell must read as Sprout Track's storybook world, not a generic AI-generated app. Concretely:</p>
+<h3>Locked design tokens (use exactly these — no invented values)</h3>
+<ul>
+<li><b>Palette:</b> paper <code>#f7f1e2</code>, paper-2 <code>#efe6d0</code>, card <code>#fffdf6</code>, ink <code>#26382f</code>, body <code>#3d5044</code>, sub <code>#6b7a6c</code>, line <code>#ddd2b8</code>, teal <code>#0c6b62</code> / deep <code>#0a544d</code>, apricot <code>#c2691e</code>, rust <code>#9e2b25</code>. Dominant cream, teal for action, apricot as the sharp accent. Extend via tints only; never introduce new hues.</li>
+<li><b>Type:</b> Literata (display/headings) + Alegreya Sans (body/UI). Nothing else — no Inter, Roboto, Space Grotesk, or system-font fallthrough on the shell's own screens.</li>
+<li><b>Shape:</b> the existing radius scale (~9–16px, pills only for chips/toggles), dashed <code>1px</code> dividers, soft warm shadows (<code>rgba(58,48,24,…)</code>) — never colored glows.</li>
+</ul>
+<h3>Do-not-use list (the slop tells)</h3>
+<ul>
+<li>No purple/indigo/blue gradient accents; no gradient meshes, floating blobs, or aurora backgrounds — the only photographic background is the landing-hero photo with the cream gradient (splash + fork top).</li>
+<li>No glassmorphism/frosted cards (the one exception: the OS-native biometric sheet, which intentionally mimics the system surface).</li>
+<li>No colored left/top border strips on cards or callouts; no cards nested in cards.</li>
+<li>No eyebrow badge pills above headings other than the established apricot kicker style; no emoji in UI; no all-caps body text.</li>
+<li>No unmodified component-library defaults (shadcn etc.) — every control is hand-styled to the tokens above.</li>
+<li>No dark mode unless designed deliberately later; webview dark handling belongs to the web app.</li>
+<li>Copy: no “Supercharge/Unlock/Seamlessly” filler and no em dashes — keep the warm, specific voice from the copy inventory (§11). Errors talk like a person, not a status code.</li>
+</ul>
+<h3>Pass criteria</h3>
+<ul>
+<li>5-second test on each screen: a new user can say what it is and what to tap.</li>
+<li>Side-by-side with <code>capacitor-app.html</code>: spacing, type scale, and color match the mockup, not a framework default.</li>
+<li>Optional: run Krebs's open-source <code>ai-design-checker</code> against the built screens; investigate anything it flags.</li>
+</ul>
+
+<div class="note"><b>For the implementing agent:</b> the mockup (<code>capacitor-app.html</code> + <code>capacitor-screens.jsx</code>, <code>capacitor-wizard.jsx</code>, <code>capacitor-app.jsx</code>) is the source of truth for layout, spacing, states, and copy. Its tweaks panel enumerates the scenario matrix to test: caretaker sign-in type (ID+PIN / PIN), find-family results, credential errors (wrong / locked), account-has-family, server reachability, Face vs Touch ID, first-run vs returning user.</div>
+
+</doc-page>
+</body>
+</html>

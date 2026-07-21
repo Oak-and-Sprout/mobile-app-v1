@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sprout Track — Open-source baby tracking</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head><body data-screen-label="V2 Landing">
+<svg style="display:none" aria-hidden="true"><defs>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-sprout" viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7-6.5-.3 4-3 6.5-7 6.5z"/><path d="M12 13c0-4-3-6.5-7-6.5.3 4 3 6.5 7 6.5z"/></symbol>
+</defs></svg>
+<header class="nav"><div class="wrap">
+<a class="logo" href="index.html"><img src="logo.png" alt="" width="22" height="22" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav class="nav-links">
+<a href="features.html">Features</a>
+<a href="pricing.html">Pricing</a>
+<a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a>
+<a class="btn" href="pricing.html">Start free trial</a>
+</nav>
+</div></header>
+
+<section class="hero"><div class="wrap">
+<div>
+<span class="kick">Open-source baby tracking</span>
+<h1>Your baby&rsquo;s data belongs to your family. Full stop.</h1>
+<p class="lede">Sprout Track logs sleep, feeds, diapers, and everything between, for every caretaker in the house. No ads, no analytics brokers, and the entire codebase is public. Run it on our servers or yours.</p>
+<div class="cta-row">
+<a class="btn big" href="pricing.html">Start my free trial</a>
+<a class="btn big ghost" href="https://sprout-track.com/demo" rel="noopener">Open the live demo</a>
+</div>
+<p class="assure">14 days free · no card · then $2.99/mo · cancel anytime</p>
+<p class="proof"><span><b>322</b> github stars</span><span><b>70+</b> families</span><span><b>100%</b> source available</span></p>
+</div>
+<div class="term">
+<div class="term-bar"><i></i><i></i><i></i></div>
+<pre><span class="c"># hosted: nothing to install.</span>
+<span class="c"># prefer your own hardware?</span>
+<span class="g">$</span> <span class="w">git clone</span> Oak-and-Sprout/sprout-track
+<span class="g">$</span> <span class="w">docker compose up -d</span>
+<span class="c">→ sprout-track running on :3000</span>
+<span class="c">→ your data, your disk, your rules</span></pre>
+</div>
+</div></section>
+
+<div class="band"><div class="wrap">
+<img class="shot" src="../shots/full-window.png" alt="Sprout Track: shared family log with daily summary and timeline">
+<p class="shot-cap">the actual app — log entry view, Moore family demo</p>
+</div></div>
+
+<section class="rule"><div class="wrap">
+<div class="sect-head"><span class="kick">Why it exists</span>
+<h2>Most baby apps monetize your newborn. This one doesn&rsquo;t.</h2></div>
+<div class="ledger">
+<div class="ledger-row"><span class="k">Ownership</span><div><h3>Export everything, anytime</h3><p>Your logs are yours. Take a full export whenever you want, or skip our hosting entirely and run the same app from a Docker container on your NAS.</p></div></div>
+<div class="ledger-row"><span class="k">No lock-in</span><div><h3>Open source, auditable, forkable</h3><p>The code that runs sprout-track.com is the code on GitHub. Read it, patch it, self-host it. If we ever disappear, your tracker doesn&rsquo;t.</p></div></div>
+<div class="ledger-row"><span class="k">Shared access</span><div><h3>One family, every caretaker</h3><p>Parents, grandparents, and the nanny log into the same timeline with a link and a PIN. Every entry records who logged it. No per-seat pricing, ever.</p></div></div>
+<div class="ledger-row"><span class="k">Boring reliability</span><div><h3>Fast, plain, dependable</h3><p>A web app that loads fast on any device, works one-handed at 3 am, and has a dimmed nursery mode for the crib-side tablet. No gamification, no streaks, no upsells.</p></div></div>
+</div>
+</div></section>
+
+<section class="rule"><div class="wrap">
+<div class="sect-head"><span class="kick">Capabilities</span>
+<h2>Sixteen entry types. Zero SKUs.</h2>
+<p>Everything ships to every plan, including the free self-hosted one.</p></div>
+<div class="spec">
+<div class="spec-row"><span class="k">sleep</span><span class="v">Naps &amp; nights with live timers</span></div>
+<div class="spec-row"><span class="k">feeds</span><span class="v">Breast, bottle, and solids with amounts</span></div>
+<div class="spec-row"><span class="k">diapers</span><span class="v">Wet, dirty, both — two taps</span></div>
+<div class="spec-row"><span class="k">pumping</span><span class="v">Per-side amounts and stored milk totals</span></div>
+<div class="spec-row"><span class="k">medicine</span><span class="v">Doses, vitamins, schedules</span></div>
+<div class="spec-row"><span class="k">vaccines</span><span class="v">Dose history with PDF/image documents</span></div>
+<div class="spec-row"><span class="k">growth</span><span class="v">Weight, height, head circumference</span></div>
+<div class="spec-row"><span class="k">milestones</span><span class="v">Firsts, with notes and photos</span></div>
+<div class="spec-row"><span class="k">summary</span><span class="v">Daily rollups: awake, sleep, oz, diapers</span></div>
+<div class="spec-row"><span class="k">reports</span><span class="v">Calendar, full log, pattern heatmap</span></div>
+<div class="spec-row"><span class="k">nursery</span><span class="v">Dimmed always-on tablet mode</span></div>
+<div class="spec-row"><span class="k">access</span><span class="v">Unlimited caretakers &amp; babies, PIN login</span></div>
+</div>
+<div style="margin-top:36px"><a class="btn ghost" href="features.html">Full feature breakdown</a></div>
+</div></section>
+
+<section class="rule"><div class="wrap">
+<div class="feat" style="border-top:none;padding-top:0">
+<div><span class="kick">Nursery mode</span><h3>An always-on display that respects the dark</h3>
+<p>Mount a tablet by the crib. Big tap targets for feed, pump, diaper, and sleep; adjustable dim and hue; a wake lock so the screen never dies mid-change.</p></div>
+<div class="fig"><img class="shot" src="../shots/nursery.png" alt="Nursery mode dimmed clock and one-tap tiles"></div>
+</div>
+</div></section>
+
+<section class="rule"><div class="wrap">
+<div class="sect-head"><span class="kick">Pricing</span>
+<h2>$2.99 a month. Or $19.99 forever. Or free on your own box.</h2></div>
+<div class="compare">
+<div class="col hot">
+<h3>Hosted <span class="mono">managed</span></h3>
+<div class="price">$2.99<small> /mo</small></div>
+<p class="per">14-day free trial · or $19.99 lifetime</p>
+<ul><li>Backups, updates, uptime handled</li><li>Every feature, unlimited caretakers</li><li>Cancel anytime, export everything</li></ul>
+<a class="btn" href="pricing.html">Start my free trial</a>
+</div>
+<div class="col">
+<h3>Self-hosted <span class="mono">DIY</span></h3>
+<div class="price">$0<small> forever</small></div>
+<p class="per">docker compose up -d</p>
+<ul><li>Identical feature set</li><li>Your hardware, your backups</li><li>Read it, fork it, patch it</li></ul>
+<a class="btn ghost" href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">Clone the repo</a>
+</div>
+</div>
+</div></section>
+
+<section class="rule close-cta"><div class="wrap">
+<h2>Track the kid. Keep the data.</h2>
+<p>Two minutes to set up. Fourteen days to decide. $2.99 after that.</p>
+<div class="cta-row"><a class="btn big" href="pricing.html">Start my free trial</a></div>
+<p class="assure">no card required · cancel anytime</p>
+</div></section>
+
+<footer><div class="wrap">
+<a class="logo" href="index.html" style="font-size:15px"><img src="logo.png" alt="" width="18" height="18" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="https://sprout-track.com/demo" rel="noopener">Demo</a><a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></nav>
+<span>© 2025–2026 <a href="https://www.openglades.com" rel="noopener">Open Glades LLC</a></span>
+</div></footer>
+</body></html>

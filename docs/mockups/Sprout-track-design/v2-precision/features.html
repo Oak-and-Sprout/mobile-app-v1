@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Features — Sprout Track</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>.pagehead{padding:72px 0 20px}
+.pagehead h1{font-size:clamp(30px,3.8vw,44px);margin:14px 0 14px;line-height:1.1;max-width:24ch;text-wrap:pretty}
+.pagehead p{font-size:18px;max-width:56ch;text-wrap:pretty}</style>
+</head><body data-screen-label="V2 Features">
+<svg style="display:none" aria-hidden="true"><defs>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-sprout" viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7-6.5-.3 4-3 6.5-7 6.5z"/><path d="M12 13c0-4-3-6.5-7-6.5.3 4 3 6.5 7 6.5z"/></symbol>
+</defs></svg>
+<header class="nav"><div class="wrap">
+<a class="logo" href="index.html"><img src="logo.png" alt="" width="22" height="22" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav class="nav-links">
+<a href="features.html" class="on">Features</a>
+<a href="pricing.html">Pricing</a>
+<a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a>
+<a class="btn" href="pricing.html">Start free trial</a>
+</nav>
+</div></header>
+
+<section class="pagehead"><div class="wrap">
+<span class="kick">Features</span>
+<h1>A spec sheet, not a brochure.</h1>
+<p>Everything below ships in every plan, including free self-hosted installs. No feature gates, no premium tier, no asterisks.</p>
+</div></section>
+
+<section><div class="wrap">
+<div class="feat" style="border-top:none;padding-top:0">
+<div><span class="kick">Logging</span><h3>Two taps, pre-filled from last time</h3>
+<p>Sixteen entry types with big targets and sensible defaults. Amounts remember themselves; timers run for naps, nursing, and pumping. Built for one hand and no sleep.</p>
+<ul><li>Sleep, feeds, diapers, pumping, solids</li><li>Medicine, vitamins, baths, activities, notes</li><li>Milestones, measurements, photos, milk storage</li></ul></div>
+<div class="fig"><img class="shot" src="../shots/feed-form.png" alt="Log Feeding drawer: breast, bottle, solids with stepper"></div>
+</div>
+<div class="feat flip">
+<div><span class="kick">Shared access</span><h3>Every caretaker on the same timeline</h3>
+<p>Invite the other parent, grandparents, and the nanny with a link and a PIN. Each entry is attributed, so the handoff question is already answered. Unlimited caretakers and babies on every plan.</p>
+<ul><li>PIN login simple enough for grandparents</li><li>Multiple babies, one-tap switching</li><li>Live daily summary: awake, sleep, oz, diapers</li></ul></div>
+<div class="fig"><img class="shot" src="../shots/log-entry.png" alt="Shared family log with daily summary"></div>
+</div>
+<div class="feat">
+<div><span class="kick">Records</span><h3>Vaccines with the documents attached</h3>
+<p>Dose numbers, provider contacts, notes, and the clinic&rsquo;s PDF or a photo of the card, stored with the record. Growth measurements chart over time next to the daily log.</p>
+<ul><li>Vaccine history with attachments</li><li>Healthcare provider contact book</li><li>Weight, height, head circumference</li></ul></div>
+<div class="fig"><img class="shot" src="../shots/vaccine.png" alt="Vaccine tracker with dose, provider, documents"></div>
+</div>
+<div class="feat flip">
+<div><span class="kick">Nursery mode</span><h3>A crib-side terminal for the night shift</h3>
+<p>Always-on, dimmed, and glanceable across a dark room. One tap starts a sleep timer or logs a feed. Wake lock keeps the screen alive; hue and dim sliders keep it from lighting up the nursery.</p>
+<ul><li>Configurable activity tiles</li><li>Background hue, dim, and saturation controls</li><li>Fullscreen kiosk-style display</li></ul></div>
+<div class="fig"><img class="shot" src="../shots/nursery.png" alt="Nursery mode dimmed display with tiles"></div>
+</div>
+</div></section>
+
+<section class="rule"><div class="wrap">
+<div class="sect-head"><span class="kick">Analysis</span><h2>Reports that answer real questions</h2>
+<p>How long did she sleep this week? When did the cluster feeding start? Calendar, full log, and heatmap views make the pattern visible before you feel it.</p></div>
+<div class="spec">
+<div class="spec-row"><span class="k">daily</span><span class="v">Summary bar: awake time, total sleep, intake</span></div>
+<div class="spec-row"><span class="k">calendar</span><span class="v">Month view with per-day activity</span></div>
+<div class="spec-row"><span class="k">full log</span><span class="v">Filter and search across all history</span></div>
+<div class="spec-row"><span class="k">heatmap</span><span class="v">Time-of-day patterns across weeks</span></div>
+<div class="spec-row"><span class="k">export</span><span class="v">Take a full copy of your data anytime</span></div>
+<div class="spec-row"><span class="k">devices</span><span class="v">Any browser: phone, tablet, laptop</span></div>
+</div>
+</div></section>
+
+<section class="rule"><div class="wrap">
+<div class="sect-head"><span class="kick">Self-hosting</span><h2>The homelab path is a first-class citizen</h2>
+<p>Same codebase as the hosted service. Clone, compose, done.</p></div>
+<div class="term" style="max-width:640px">
+<div class="term-bar"><i></i><i></i><i></i></div>
+<pre><span class="g">$</span> <span class="w">git clone</span> https://github.com/Oak-and-Sprout/sprout-track
+<span class="g">$</span> <span class="w">cd</span> sprout-track
+<span class="g">$</span> <span class="w">docker compose up -d</span>
+<span class="c">→ listening on :3000 — invite your caretakers</span></pre>
+</div>
+<div class="cta-row" style="margin-top:26px"><a class="btn ghost" href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">Read the source</a></div>
+</div></section>
+
+<section class="rule close-cta"><div class="wrap">
+<h2>Everything above, free for 14 days.</h2>
+<div class="cta-row"><a class="btn big" href="pricing.html">Start my free trial</a></div>
+<p class="assure">no card required · then $2.99/mo · cancel anytime</p>
+</div></section>
+
+<footer><div class="wrap">
+<a class="logo" href="index.html" style="font-size:15px"><img src="logo.png" alt="" width="18" height="18" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="https://sprout-track.com/demo" rel="noopener">Demo</a><a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></nav>
+<span>© 2025–2026 <a href="https://www.openglades.com" rel="noopener">Open Glades LLC</a></span>
+</div></footer>
+</body></html>

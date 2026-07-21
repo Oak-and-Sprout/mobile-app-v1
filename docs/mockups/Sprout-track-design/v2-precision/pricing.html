@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pricing — Sprout Track</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>.pagehead{padding:72px 0 20px}
+.pagehead h1{font-size:clamp(30px,3.8vw,44px);margin:14px 0 14px;line-height:1.1}
+.pagehead p{font-size:18px;max-width:54ch;text-wrap:pretty}
+.compare3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+@media(max-width:900px){.compare3{grid-template-columns:1fr}}</style>
+</head><body data-screen-label="V2 Pricing">
+<svg style="display:none" aria-hidden="true"><defs>
+<symbol fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" id="i-sprout" viewBox="0 0 24 24"><path d="M12 21v-8"/><path d="M12 13c0-4 3-6.5 7-6.5-.3 4-3 6.5-7 6.5z"/><path d="M12 13c0-4-3-6.5-7-6.5.3 4 3 6.5 7 6.5z"/></symbol>
+</defs></svg>
+<header class="nav"><div class="wrap">
+<a class="logo" href="index.html"><img src="logo.png" alt="" width="22" height="22" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav class="nav-links">
+<a href="features.html">Features</a>
+<a href="pricing.html" class="on">Pricing</a>
+<a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a>
+<a class="btn" href="#plans">Start free trial</a>
+</nav>
+</div></header>
+
+<section class="pagehead"><div class="wrap">
+<span class="kick">Pricing</span>
+<h1>Three prices. One feature set.</h1>
+<p>Nothing is gated. The plans differ only in who runs the server and how you&rsquo;d like to pay for it.</p>
+</div></section>
+
+<section id="plans" style="padding-top:36px"><div class="wrap">
+<div class="compare3">
+<div class="col hot">
+<h3>Hosted Monthly <span class="mono">most popular</span></h3>
+<div class="price">$2.99<small> /mo</small></div>
+<p class="per">after a 14-day free trial</p>
+<ul><li>Backups, updates, uptime handled</li><li>Unlimited caretakers &amp; babies</li><li>Cancel anytime, keep your export</li></ul>
+<a class="btn" href="#plans">Start my free trial</a>
+</div>
+<div class="col">
+<h3>Lifetime <span class="mono">best value</span></h3>
+<div class="price">$19.99<small> once</small></div>
+<p class="per">breaks even at month 7</p>
+<ul><li>Everything in Hosted Monthly</li><li>One payment, all future updates</li><li>Covers future babies too</li></ul>
+<a class="btn ghost" href="#plans">Get lifetime access</a>
+</div>
+<div class="col">
+<h3>Self-hosted <span class="mono">DIY</span></h3>
+<div class="price">$0<small> forever</small></div>
+<p class="per">docker compose up -d</p>
+<ul><li>Identical feature set</li><li>Your hardware, your backups</li><li>Community support on GitHub</li></ul>
+<a class="btn ghost" href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">Clone the repo</a>
+</div>
+</div>
+</div></section>
+
+<section class="rule"><div class="wrap">
+<div class="sect-head"><span class="kick">FAQ</span><h2>Straight answers</h2></div>
+<div class="faq">
+<details><summary>What happens when the trial ends?</summary><p>You get a reminder before day 14. If you don&rsquo;t subscribe, the account pauses. Nothing is deleted; export your data or subscribe whenever.</p></details>
+<details><summary>Is $2.99 really the whole price?</summary><p>Yes. No per-caretaker seats, no premium tier, no feature unlocks. One family, one price.</p></details>
+<details><summary>Can I move from hosted to self-hosted later?</summary><p>Yes. Export from the hosted service and import into your own instance. It&rsquo;s the same codebase.</p></details>
+<details><summary>What exactly does Lifetime cover?</summary><p>Hosting, every feature, and all future updates for one $19.99 payment. If you&rsquo;ll track longer than seven months, it&rsquo;s the better deal.</p></details>
+<details><summary>What do you do with my data?</summary><p>Store it, back it up, and serve it to your family. No ads, no analytics resale, no third-party trackers. The code is public, so this is verifiable rather than a promise.</p></details>
+<details><summary>What does self-hosting require?</summary><p>Any machine that runs Docker: a Raspberry Pi, a NAS, a $5 VPS. Clone the repo, run docker compose, open port 3000.</p></details>
+</div>
+</div></section>
+
+<section class="rule close-cta"><div class="wrap">
+<h2>Fourteen days. No card. Decide later.</h2>
+<div class="cta-row"><a class="btn big" href="#plans">Start my free trial</a></div>
+<p class="assure">cancel anytime · export everything</p>
+</div></section>
+
+<footer><div class="wrap">
+<a class="logo" href="index.html" style="font-size:15px"><img src="logo.png" alt="" width="18" height="18" style="border-radius:50%"><span>Sprout Track</span></a>
+<nav><a href="features.html">Features</a><a href="pricing.html">Pricing</a><a href="https://sprout-track.com/demo" rel="noopener">Demo</a><a href="https://github.com/Oak-and-Sprout/sprout-track" rel="noopener">GitHub</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></nav>
+<span>© 2025–2026 <a href="https://www.openglades.com" rel="noopener">Open Glades LLC</a></span>
+</div></footer>
+</body></html>

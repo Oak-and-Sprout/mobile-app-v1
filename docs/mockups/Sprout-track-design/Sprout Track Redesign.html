@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprout Track — 3 Redesign Directions</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Helvetica,Arial,sans-serif;background:#1a2320;color:#dfe8e4;min-height:100vh;display:grid;place-items:center;padding:40px 20px}
+a{color:inherit;text-decoration:none}
+.hub{max-width:1060px;width:100%}
+h1{font-size:clamp(24px,3vw,34px);letter-spacing:-.02em;color:#fff}
+.sub{color:#93a69e;margin:10px 0 34px;font-size:16px;max-width:64ch;line-height:1.5}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+@media(max-width:860px){.cards{grid-template-columns:1fr}}
+.card{border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#212c28;transition:transform .15s,border-color .15s;display:block}
+.card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.3)}
+.swatch{height:130px;display:flex;align-items:center;justify-content:center;font-size:26px;letter-spacing:-.02em}
+.card .b{padding:18px 20px 22px}
+.card h2{font-size:17px;color:#fff;margin-bottom:6px}
+.card p{font-size:13.5px;color:#93a69e;line-height:1.5}
+.card .links{display:flex;gap:12px;margin-top:14px;font-size:12.5px;font-weight:700}
+.card .links span{color:#7ad4c2;border:1px solid rgba(122,212,194,.35);border-radius:99px;padding:4px 12px}
+.s1{background:#f7f1e2;color:#26382f;font-family:Georgia,serif;font-style:italic}
+.s2{background:#0c1210;color:#2dd4bf;font-family:ui-monospace,Menlo,monospace;font-size:20px}
+.s3{background:linear-gradient(180deg,#edf5f2,#fafcfb);color:#0f766e;font-weight:700}
+</style>
+</head><body>
+<div class="hub">
+<h1>Sprout Track — three redesign directions</h1>
+<p class="sub">Each is a full site (landing, features, pricing), fully responsive, built around one conversion goal: start the 14-day trial. Same real numbers everywhere — 70+ families, 322 GitHub stars, $2.99/mo or $19.99 lifetime — but each version leads with a different angle.</p>
+<div class="cards">
+<a class="card" href="v1-storybook/index.html">
+<div class="swatch s1">Warm &amp; storybook</div>
+<div class="b"><h2>V1 · Everyone on the same page</h2>
+<p>Cream paper, Literata serif, the plush sprite art as duotone illustrations. Leads with the shared care team: a narrated day tracked by four caretakers.</p>
+<div class="links"><span>Landing</span><span>Features</span><span>Pricing</span></div></div>
+</a>
+<a class="card" href="v2-precision/index.html">
+<div class="swatch s2">$ calm precision</div>
+<div class="b"><h2>V2 · Your data, your terms</h2>
+<p>Dark, restrained, IBM Plex. Leads with privacy and ownership for the self-host-curious: terminal hero, spec-sheet features, three-column pricing.</p>
+<div class="links"><span>Landing</span><span>Features</span><span>Pricing</span></div></div>
+</a>
+<a class="card" href="v3-clinical/index.html">
+<div class="swatch s3">Soft clinical</div>
+<div class="b"><h2>V3 · Two taps at 3 am</h2>
+<p>Airy, pediatric-calm, Albert Sans. Leads with simplicity: an interactive phone mock you can tap in the hero, trust strip, gentle pricing.</p>
+<div class="links"><span>Landing</span><span>Features</span><span>Pricing</span></div></div>
+</a>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sprout Track — Nursery Mode PRD</title>
+<script src="doc-page.js"></script>
+<style>
+doc-page:not(:defined){visibility:hidden}
+doc-page{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;font-size:14.5px;line-height:1.62}
+a{color:#0d9488}a:hover{color:#0f766e}
+h1{font-size:27px;line-height:1.2;color:#0f766e;margin:0 0 4px}
+.meta{font-size:12.5px;color:#64748b;margin:0 0 6px}
+.meta b{color:#334155}
+h2{font-size:18px;color:#0f766e;margin:28px 0 8px;padding-bottom:5px;border-bottom:2px solid #ccfbf1}
+h3{font-size:14.5px;color:#134e4a;margin:18px 0 6px}
+p{margin:0 0 10px}
+ul,ol{margin:0 0 12px;padding-left:22px}
+li{margin-bottom:4px}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 14px}
+th{text-align:left;background:#f0fdfa;color:#0f766e;font-weight:600;padding:7px 10px;border:1px solid #e2e8f0}
+td{padding:7px 10px;border:1px solid #e2e8f0;vertical-align:top}
+tr{break-inside:avoid}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;margin-right:4px}
+.p0{background:#ffe4e6;color:#be123c}.p1{background:#fef3c7;color:#b45309}.p2{background:#e2e8f0;color:#475569}
+.callout{background:#f0fdfa;border:1px solid #99f6e4;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid;orphans:3;widows:3}
+.callout b{color:#0f766e}
+.note{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin:10px 0 14px;break-inside:avoid;orphans:3;widows:3}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:#f1f5f9;padding:1px 5px;border-radius:5px}
+pre{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.5;overflow-x:auto;break-inside:avoid}
+pre code{background:none;padding:0}
+.foot{font-size:11px;color:#94a3b8;display:flex;justify-content:space-between;width:100%}
+</style>
+</head>
+<body>
+<doc-page size="letter" orientation="portrait" margin="0.8in">
+<div slot="footer" class="foot"><span>Sprout Track — Nursery Mode PRD v1.0</span><span>Confidential · Draft</span></div>
+<h1>Nursery Mode — Overhaul PRD</h1>
+<p class="meta"><b>Product:</b> Sprout Track (PWA) &nbsp;·&nbsp; <b>Feature:</b> Nursery Mode redesign — scenes, quick logging &amp; personalization &nbsp;·&nbsp; <b>Version:</b> 1.0 Draft &nbsp;·&nbsp; <b>Date:</b> Jul 13, 2026 &nbsp;·&nbsp; <b>Owner:</b> John Overton</p>
+<p class="meta"><b>Prototype:</b> <a href="nursery-mode.html">nursery-mode.html</a> (interactive; all scenes, settings &amp; controls functional)</p>
+
+<h2>1. Overview</h2>
+<p>Nursery Mode today is a static dimmed clock over a single "lava lamp" gradient. This overhaul turns it into a stylish, personalizable <b>nightlight + care station</b>: a large serif clock and baby name over one of four configurable <b>scenes</b>, with activity cards or big tile icons for one-tap logging of Feed, Pump, Diaper, and Sleep. Every visual element — scene, background pattern, palette, icon shape and color, button transparency, dimming — is user-configurable from an on-screen Settings drawer, and the whole surface works from wall-mounted tablets down to phones.</p>
+<div class="callout"><b>Design principle:</b> calm first. Nursery Mode is a nightlight that happens to log activities: dark-friendly colors, slow motion only where asked for, big touch targets (≥44px), and nothing that demands attention. The screen must be glanceable from across a dark room and operable one-handed while holding a baby.</div>
+<p><b>This PRD replaces the existing Nursery Mode outright</b> — no feature flag or side-by-side period.</p>
+
+<h2>2. Goals &amp; Non-Goals</h2>
+<h3>Goals</h3>
+<ul>
+<li>Log any of the four core activities in one tap from the nursery screen, with undo.</li>
+<li>Four scenes (Ambient, Starlit, Tapestry, Photo) sharing one settings model; every scene usable as a genuine nightlight.</li>
+<li>Deep personalization from artwork the team ships as greyscale assets: palettes recolor every sprite, wallpaper, and rug at runtime.</li>
+<li>Layout independent of scene: glass activity Cards or icon-forward Big Tiles over any background.</li>
+<li>Responsive: tablet-first (wall-mounted / bedside), fully functional on phone and desktop browsers.</li>
+<li>Settings persist per user as a JSON string; a device picks up the signed-in user's configuration.</li>
+</ul>
+<h3>Non-Goals (v1)</h3>
+<ul>
+<li>Success-metric instrumentation (explicitly out of scope for this document).</li>
+<li>Sound / white-noise features.</li>
+<li>Editing activity history from Nursery Mode (undo of the just-logged entry only).</li>
+<li>User-uploaded sprite artwork (users upload photos only; sprites are first-party assets).</li>
+<li>Exit protection — Exit works with a single tap (no PIN / hold-to-exit).</li>
+</ul>
+
+<h2>3. User Stories</h2>
+<ul>
+<li>As a parent at 3am, I can glance at the screen and read the time and the last feed without picking up my phone.</li>
+<li>As a parent finishing a diaper change, I tap <b>Wet</b> once and see a quiet confirmation with Undo — no forms.</li>
+<li>As a parent of two, I tap the baby's name to switch which child the screen shows and logs against (existing behavior, unchanged).</li>
+<li>As a design-conscious parent, I pick the Tapestry scene, a paisley rug or a pinstripe-and-teddy-bears arrangement, and tune it to my nursery's colors.</li>
+<li>As a parent who built a nursery around a theme, I drop a photo of it behind the tiles and the icons tint to match.</li>
+</ul>
+
+<h2>4. Screen Anatomy</h2>
+<ul>
+<li><b>Top bar</b> — ghost buttons: <code>Settings</code> (opens drawer) and <code>Exit</code> (returns to app, unprotected).</li>
+<li><b>Clock block</b> — large serif time (12/24h), italic baby name beside it (<b>tap name to switch baby</b> — existing switcher, unchanged), uppercase letter-spaced date below.</li>
+<li><b>Activity area</b> — Cards or Big Tiles layout (§6) for Feed, Pump, Diaper, Sleep; any activity can be toggled off in Settings.</li>
+<li><b>Footer</b> — "NURSERY MODE" wordmark + wake-lock status indicator.</li>
+<li><b>Background</b> — active scene (§5), always behind a legibility scrim; global Dim/Saturation filters apply to the background only, never the foreground text.</li>
+</ul>
+
+<h2>5. Scenes</h2>
+<h3>5.1 Ambient</h3>
+<p>Animated gradient nightlight. Background picker offers:</p>
+<ul>
+<li><b>Aurora</b> — drifting blurred color blobs over a base gradient. <b>Color range</b> slider (0–100) scales the ± hue spread of the blobs from near-monochrome to full spectrum.</li>
+<li><b>Waves</b> — layered wave bank anchored to the bottom. <b>Motion</b> slider: 0 = still; otherwise the bank slowly rocks (rotates about its base) and drifts laterally; speed and amplitude scale together.</li>
+<li><b>Bubbles</b> — glassy orbs rise from the bottom edge with lateral drift and staggered timing. Sliders: <b>count</b> (4–80, default 24), <b>min size</b>, <b>max size</b> (px).</li>
+<li><b>Sprite outlines</b> — any of the 11 sprite sets rendered as faint line-art icons (edge-traced from the greyscale artwork, tinted to the scene hue, ~34% opacity). Sliders: <b>Rotation</b> (0 = upright → random tilt up to full tumble), <b>Movement</b> (0 = static collision-free arrangement; &gt;0 = icons float freely across the screen in random directions, speed scales), <b>Icon size</b> (0 = uniform → wide small-to-large variance). Picker thumbnails show one random pose over the ambient gradient.</li>
+</ul>
+<h3>5.2 Starlit</h3>
+<ul>
+<li>Static starfield: each star has a fixed position and its own brightness (dim → bright). The brightest ~18% carry a soft glow and fire an occasional cross-shaped sparkle on independent random timers. No global pulsing.</li>
+<li><b>Star density</b> slider 30–400, default <b>200</b>.</li>
+<li><b>Aura</b> toggle — pronounced aurora curtains rendered over the starfield (screen-blended, slow sway).</li>
+</ul>
+<h3>5.3 Tapestry</h3>
+<p>Composed wallpaper: a <b>backdrop</b> + scattered <b>objects</b>, all tinted by the palette (§7).</p>
+<ul>
+<li><b>Backdrop</b> (13 options): 8 CSS patterns drawn from the base color — Plain, Pinstripe, Horizontal, Diagonal, Chevron, Dots, Blocks, Scallops — plus 5 full-bleed recolored artworks: Classic / Trailing / Garden Paisley, Medallion / Heirloom Rug. Selecting a rug defaults both objects to <b>None</b>; returning to a CSS backdrop restores Teddy Bears + Stars if the user hasn't customized.</li>
+<li><b>Primary object</b> (None + 11 sets) and <b>Accent object</b> (None + 11 sets): Teddy Bears, Kittens, Puppies, Unicorns, Butterflies, Flowers, Rockets, Cars, Sports Balls, Stars, Fairies. Thumbnails show one random pose over the base color.</li>
+<li><b>Placement algorithm</b> — dart-throwing: candidates get a random position, pose, size (0.62×–1.3×), and rotation (±28°); any candidate whose bounding circle (+margin) intersects an already-placed object is rejected. ~17 primaries land first, then ~16 accents at <b>50% scale</b> fill leftover pockets. Pose selection is weighted: each use multiplies that pose's weight by 0.4 so variety spreads evenly. Result: organic, never-overlapping texture; re-dealt per visit.</li>
+</ul>
+<h3>5.4 Photo</h3>
+<ul>
+<li>Personal photo as the background behind a legibility scrim. Sources: <b>pick from the Photos gallery</b> (existing feature) <b>or upload directly</b> in Settings.</li>
+<li><b>Auto icon color</b>: sample the photo's dominant color and derive a light, contrasting icon tint (production replaces the prototype's hue-derived approximation with true pixel sampling — downscale to ≤64px, cluster, pick dominant hue, output <code>oklch</code> tint at fixed lightness).</li>
+</ul>
+
+<h2>6. Layouts &amp; Quick Logging</h2>
+<ul>
+<li><b>Cards</b> — 2×2 glass cards (1-column on phone): icon badge, activity name, last-event time + detail (right-aligned serif), and action buttons: Feed → Bottle / Breast L / Breast R; Pump → Start Left / Right / Both; Diaper → Wet / Dirty / Both; Sleep → Start Sleep.</li>
+<li><b>Big Tiles</b> — icon-forward square tiles (badge, label, last-event time). Tap opens the same actions as a compact overlay.</li>
+<li><b>One-tap logging with undo:</b> tapping an action writes a real log entry immediately (timestamped now, attributed to the signed-in user and selected baby) and shows a quiet toast — "Wet diaper logged · <b>Undo</b>" — for 6s. Undo deletes the entry. Card/tile metadata refreshes instantly. Timers (Sleep, Pump) follow existing start/stop semantics: an active timer replaces the card's actions with elapsed time + Stop.</li>
+<li>All hit targets ≥44px; buttons inherit the transparency setting; text always full-opacity.</li>
+</ul>
+
+<h2>7. Customization Controls (Settings drawer)</h2>
+<table>
+<tr><th>Control</th><th>Type / Range</th><th>Default</th><th>Applies to</th></tr>
+<tr><td>Scene</td><td>Ambient · Starlit · Tapestry · Photo</td><td>Ambient</td><td>—</td></tr>
+<tr><td>Layout</td><td>Cards · Big Tiles</td><td>Cards</td><td>All scenes</td></tr>
+<tr><td>Screen wake lock / Fullscreen</td><td>Toggles</td><td>Wake on</td><td>All</td></tr>
+<tr><td>Background hue</td><td>0–360°</td><td>248°</td><td>Ambient, Starlit, Photo scrim</td></tr>
+<tr><td>Dim / Saturation</td><td>0–100%</td><td>46 / 38</td><td>Background layer only</td></tr>
+<tr><td>Button transparency</td><td>0–100% slider</td><td>58</td><td>Cards, tiles, buttons</td></tr>
+<tr><td>Icon shape / color</td><td>Circle · Square; Auto + 6 swatches</td><td>Square, Auto</td><td>Badges</td></tr>
+<tr><td>Palette</td><td>Boys / Girls preset + base color (6 chips + custom) + 5 editable pattern colors</td><td>Boys</td><td>Tapestry</td></tr>
+<tr><td>Activity tiles</td><td>Per-activity toggles</td><td>All on</td><td>Activity area</td></tr>
+<tr><td>Scene-specific</td><td>See §5 (density, aura, motion, bubbles, rotation/movement/size…)</td><td>per §5</td><td>—</td></tr>
+</table>
+<p><b>Palette defaults:</b> Boys = cream base through blues and reds; Girls = cream base through greens and pinks. Every color individually adjustable; presets are starting points, not constraints.</p>
+
+<h2>8. Asset Pipeline &amp; Recolor Engine</h2>
+<div class="note"><b>Asset change from prototype:</b> the prototype auto-slices multi-sprite sheets (background flood-fill + connected-component detection). Production ships <b>one SVG per sprite</b>, removing the slicing step entirely. The recolor engine below is unchanged.</div>
+<ul>
+<li><b>Source format:</b> greyscale vector artwork (or greyscale PNG fallback), transparent or uniform background, one sprite per file. Suggested layout: <code>assets/nursery/sprites/&lt;set&gt;/&lt;pose&gt;.svg</code> + a manifest JSON per set (<code>id</code>, <code>label</code>, <code>poses[]</code>, native aspect ratio).</li>
+<li><b>Runtime canvas recolor (as prototyped):</b> rasterize → map each grey tone by luminance onto the active palette — lightest ~20% → base color, darker bands → the 5 pattern colors in order — preserving tonal depth (output lightness = 0.55·grey + 0.45·target). SVG text fills (<code>#hex</code> and <code>rgb()</code>) can be remapped without rasterizing; rasters go through a 256-entry LUT. Background pixels → transparent.</li>
+<li><b>Outline variant:</b> edge-trace (silhouette + interior luminance edges, dilated ~5px at source scale), tinted to scene hue, exported as transparent PNG blob.</li>
+<li><b>Caching:</b> recolored results cached per (asset, palette) as object URLs; palette edits re-tint live. Rug artworks are large (~100–250KB SVG) — recolor lazily on first use.</li>
+<li><b>Motion &amp; accessibility:</b> all animation behind <code>prefers-reduced-motion</code>; static fallbacks render full content.</li>
+</ul>
+
+<h2>9. Settings Persistence</h2>
+<p>Stored <b>per user</b> as a single JSON string (server-side user preference; mirrored to <code>localStorage</code> for instant load and offline). Last-write-wins; the nursery screen re-reads on focus.</p>
+<pre><code>{"v":1,"scene":"tapestry","layout":"cards","hue":248,"dim":46,"sat":38,
+ "trans":58,"iconShape":"square","iconColor":null,
+ "acts":{"feed":true,"pump":true,"diaper":true,"sleep":true},
+ "ambient":{"pattern":"sprite:teddy","auroraRange":50,"waveMotion":40,
+   "bubbles":{"count":24,"min":10,"max":48},"rot":20,"move":0,"size":40},
+ "starlit":{"density":200,"aura":true},
+ "tapestry":{"backdrop":"vstripe","primary":"teddy","accent":"stars",
+   "palette":"boys","base":"#f2e9d8",
+   "colors":["#3a6ea5","#5f93c9","#8fb4d9","#b1492f","#d67f65"]},
+ "photo":{"src":"gallery:1234","autoTint":true}}</code></pre>
+
+<h2>10. Technical Notes</h2>
+<ul>
+<li><b>Wake lock:</b> Screen Wake Lock API with visibility-change re-acquisition; status shown in footer. Fullscreen via Fullscreen API (user-initiated).</li>
+<li><b>Clock:</b> local time, minute precision display, seconds-level tick to keep minute rollover crisp.</li>
+<li><b>Performance:</b> scatter/outline fields are static DOM (no rAF loops); CSS animations only. Target: no dropped frames on a 2019-class tablet; recolor of the largest asset &lt; 150ms off the interaction path.</li>
+<li><b>Responsive:</b> ≤680px — single-column cards, 2-up tiles, full-width settings drawer, fixed background with scrolling foreground; clock scales via viewport-clamped type.</li>
+<li><b>Data:</b> last-event metadata and quick-log writes use existing activity endpoints; no new API surface beyond the user-preference JSON.</li>
+</ul>
+
+<h2>11. Priorities</h2>
+<table>
+<tr><th>Priority</th><th>Scope</th></tr>
+<tr><td><span class="tag p0">P0</span></td><td>Scene framework + Ambient (Aurora, Waves, Bubbles); Cards layout with one-tap logging + undo; Settings drawer core (scene, layout, hue/dim/sat, transparency, icon shape/color, activity toggles, wake lock, fullscreen); per-user JSON persistence; baby-name switcher; responsive behavior.</td></tr>
+<tr><td><span class="tag p1">P1</span></td><td>Starlit (density + aura); Tapestry (CSS backdrops, primary/accent objects, palette system, placement algorithm); Big Tiles layout; sprite outline patterns + motion sliders.</td></tr>
+<tr><td><span class="tag p2">P2</span></td><td>Photo scene (gallery + upload, dominant-color auto-tint); rug artworks as backdrops; weighted pose distribution polish.</td></tr>
+</table>
+
+<h2>12. Resolved Decisions</h2>
+<table>
+<tr><th>Question</th><th>Decision</th></tr>
+<tr><td>Settings persistence</td><td>Per user, single JSON string (§9)</td></tr>
+<tr><td>Recolor approach</td><td>Runtime canvas recolor, as prototyped</td></tr>
+<tr><td>Quick logging</td><td>One-tap with 6s undo toast</td></tr>
+<tr><td>Exit protection</td><td>None — single tap exits</td></tr>
+<tr><td>Devices</td><td>Tablet-first; phone and desktop fully supported</td></tr>
+<tr><td>Photo source</td><td>Both gallery picker and direct upload</td></tr>
+<tr><td>Multi-baby</td><td>Tap baby name to switch (existing behavior, unchanged)</td></tr>
+<tr><td>Rollout</td><td>Replace existing Nursery Mode outright</td></tr>
+<tr><td>Auto icon tint on Photo</td><td>True dominant-color sampling in production</td></tr>
+<tr><td>Metrics</td><td>Not included in this PRD</td></tr>
+</table>
+</doc-page>
+</body>
+</html>
