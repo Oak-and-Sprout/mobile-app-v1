@@ -1,19 +1,29 @@
-import { expect, test } from 'vitest'
-import { bootActionFromSearch } from './bridge-events'
+import { expect, it } from 'vitest'
 import { encodeMessage } from '../../shared/bridge-contract'
+import { bootActionFromSearch } from './bridge-events'
 
 const search = (msg: Parameters<typeof encodeMessage>[0]) =>
   `?bridge-event=${encodeURIComponent(encodeMessage(msg))}`
 
-test('switch-family shows the server list', () => {
-  expect(bootActionFromSearch(search({ type: 'loggedOut', reason: 'switch-family' }))).toBe('show-server-list')
+it.each([
+  ['switch-family', 'show-server-list'],
+  ['logout-user', 'show-server-list'],
+  ['logout-idle', 'reconnect'],
+  ['logout-refresh-failed', 'reconnect'],
+  ['logout-jwt-error', 'reconnect'],
+  ['something-new', 'show-server-list'],
+] as const)('loggedOut reason %s -> %s', (reason, expected) => {
+  expect(bootActionFromSearch(search({ type: 'loggedOut', reason }))).toBe(expected)
 })
 
-test('a 401 logout falls through to auto-open (silent re-login)', () => {
-  expect(bootActionFromSearch(search({ type: 'loggedOut', reason: 'logout-401' }))).toBe('auto-open')
+it('sessionExpired -> reconnect', () => {
+  expect(bootActionFromSearch(search({ type: 'sessionExpired' }))).toBe('reconnect')
 })
 
-test('absent or malformed params auto-open', () => {
+it('no param -> auto-open', () => {
   expect(bootActionFromSearch('')).toBe('auto-open')
-  expect(bootActionFromSearch('?bridge-event=%7Bnot-json')).toBe('auto-open')
+})
+
+it('undecodable param -> auto-open', () => {
+  expect(bootActionFromSearch('?bridge-event=garbage')).toBe('auto-open')
 })

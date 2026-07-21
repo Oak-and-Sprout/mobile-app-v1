@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from './App'
-import { saveServer } from './services/server-registry'
+import { saveServer, touchServer } from './services/server-registry'
 import * as connectService from './services/connect'
 import { encodeMessage } from '../shared/bridge-contract'
 
@@ -77,4 +77,18 @@ test('a ?bridge-event= switch-family param shows the families list instead of au
   render(<App />)
   await waitFor(() => expect(screen.getByText(/my families/i)).toBeInTheDocument())
   expect(connectSpy).not.toHaveBeenCalled()
+})
+
+test('reconnects to the most recent family after a session-expiry logout', async () => {
+  const entry = await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'recent-family', familyName: 'Recent Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  await touchServer(entry.id)
+  // Never resolves, so the app stays on the Connecting screen for the assertion below.
+  vi.spyOn(connectService, 'connectToFamily').mockReturnValue(new Promise(() => {}))
+  const bridgeEvent = encodeURIComponent(encodeMessage({ type: 'loggedOut', reason: 'logout-idle' }))
+  window.history.replaceState(null, '', `/?bridge-event=${bridgeEvent}`)
+  render(<App />)
+  await waitFor(() => expect(screen.getByText(/opening recent family/i)).toBeInTheDocument())
 })

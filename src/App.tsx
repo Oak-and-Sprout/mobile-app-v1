@@ -26,10 +26,7 @@ export default function App() {
     // A `?bridge-event=` param means the web app handed control back to the shell.
     // Read it before the async work below and strip it immediately so it isn't
     // reprocessed on a later remount.
-    // Task 11 narrows this: bootActionFromSearch currently returns only
-    // 'auto-open' | 'show-server-list', so the 'reconnect' comparison below needs
-    // a local widening until that task adds the 'reconnect' member to the union.
-    const bootAction: string = bootActionFromSearch(window.location.search)
+    const bootAction = bootActionFromSearch(window.location.search)
     stripBridgeEvent()
 
     void (async () => {
