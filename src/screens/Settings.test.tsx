@@ -88,7 +88,8 @@ test('description names the default family when one exists', async () => {
 
 test('description falls back when there is no default family', async () => {
   render(<Settings navigate={vi.fn()} />)
-  expect(await screen.findByText(/skip the list/i)).toBeInTheDocument()
+  expect(await screen.findByText(/opens the moment the app does/i)).toBeInTheDocument()
+  expect(screen.queryByText('Smith Family')).not.toBeInTheDocument()
 })
 
 test('footer shows the app version', () => {

@@ -33,12 +33,12 @@ interface Located {
 }
 
 const ERROR_TEXT: Record<string, string> = {
-  'invalid-url': "That doesn't look like an address. Try something like myhost.com/smith-family.",
-  'missing-slug': "Add your family's name to the end - like myhost.com/smith-family.",
+  'invalid-url': "That doesn’t look like an address. Try something like myhost.com/smith-family.",
+  'missing-slug': "Add your family’s name to the end - like myhost.com/smith-family.",
   'family-not-found': "No family by that name on this server. Check the spelling?",
-  'not-sprout-track': "We reached it, but it isn't a Sprout Track server.",
-  unreachable: "Can't reach that server. Check the address and your connection.",
-  invalid: "That PIN didn't work. Give it another look and try again.",
+  'not-sprout-track': "We reached it, but it isn’t a Sprout Track server.",
+  unreachable: "Can’t reach that server. Check the address and your connection.",
+  invalid: "That PIN didn’t work. Give it another look and try again.",
   locked: 'Too many tries - the server is taking a breather. Try again in a few minutes.',
   'save-failed': 'Login worked but saving the family failed - try again.',
 }
@@ -64,7 +64,7 @@ export default function AddFamily({
     let cancelled = false
     deps.listServers().then(list => {
       if (!cancelled) setHasFamilies(list.length > 0)
-    }).catch(() => { /* keep default true — don't strand the user on a listServers error */ })
+    }).catch(() => { /* keep default true  -  don't strand the user on a listServers error */ })
     return () => { cancelled = true }
   }, [deps])
 
@@ -110,7 +110,7 @@ export default function AddFamily({
           authType: located.authType,
         })
         await deps.vault.store(saved.id, creds, { biometric })
-        navigate({ name: 'families', toast: `Saved — ${located.family.name} is on this phone now.` })
+        navigate({ name: 'families', toast: `Saved - ${located.family.name} is on this phone now.` })
       } catch {
         setError(ERROR_TEXT['save-failed'])
       }
