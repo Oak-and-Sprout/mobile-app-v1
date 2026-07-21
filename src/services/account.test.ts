@@ -33,10 +33,20 @@ test('resendVerification and requestPasswordReset post email, return envelope su
   expect(post).toHaveBeenLastCalledWith('https://x.com/api/accounts/forgot-password', { email: 'a@b.com' })
   expect(await resendVerification('https://x.com', 'a@b.com', vi.fn().mockRejectedValue(new Error()))).toBe(false)
 })
-test('fetchSetupStatus maps familyData; null on failure', async () => {
-  const get = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { setupStage: 2, currentStage: 3, familyData: { id: 'f1', name: 'Smith', slug: 'smith' } } } })
+test('fetchSetupStatus maps familyData including authType; null on failure', async () => {
+  const get = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { setupStage: 2, currentStage: 3, familyData: { id: 'f1', name: 'Smith', slug: 'smith', authType: 'CARETAKER' } } } })
   expect(await fetchSetupStatus('https://x.com', 'tok', get))
-    .toEqual({ setupStage: 2, currentStage: 3, familyId: 'f1', familyName: 'Smith', familySlug: 'smith' })
+    .toEqual({ setupStage: 2, currentStage: 3, familyId: 'f1', familyName: 'Smith', familySlug: 'smith', authType: 'CARETAKER' })
   expect(get).toHaveBeenCalledWith('https://x.com/api/family/setup-status', { token: 'tok' })
   expect(await fetchSetupStatus('https://x.com', 'tok', vi.fn().mockRejectedValue(new Error()))).toBeNull()
+})
+test('fetchSetupStatus maps SYSTEM authType, and null when absent or unrecognized', async () => {
+  const system = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { setupStage: 1, currentStage: 2, familyData: { id: 'f1', name: 'Smith', slug: 'smith', authType: 'SYSTEM' } } } })
+  expect(await fetchSetupStatus('https://x.com', 'tok', system)).toMatchObject({ authType: 'SYSTEM' })
+
+  const absent = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { setupStage: 1, currentStage: 2, familyData: { id: 'f1', name: 'Smith', slug: 'smith' } } } })
+  expect(await fetchSetupStatus('https://x.com', 'tok', absent)).toMatchObject({ authType: null })
+
+  const unrecognized = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { setupStage: 1, currentStage: 2, familyData: { id: 'f1', name: 'Smith', slug: 'smith', authType: 'BOGUS' } } } })
+  expect(await fetchSetupStatus('https://x.com', 'tok', unrecognized)).toMatchObject({ authType: null })
 })

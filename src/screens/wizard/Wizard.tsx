@@ -1,12 +1,12 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Screen } from '../../App'
 import { SAAS_BASE } from '../../services/account'
 import type { WizardResume } from '../../services/account-routing'
 import type { AccountCreds } from '../../services/credential-vault'
 import { listServers } from '../../services/server-registry'
 import {
-  checkSlugAvailability, createFamily, finishWizard, saveBabyAndLink, saveSecurity, suggestSlug, WizardError,
-  type BabyConfig, type FinishDeps, type SecurityConfig,
+  checkSlugAvailability, createFamily, finishWizard, linkAccountToCaretaker, saveBaby, saveSecurity, suggestSlug,
+  WizardError, type BabyConfig, type FinishDeps, type SecurityConfig,
 } from '../../services/wizard'
 import Step1Family from './Step1Family'
 import Step2Security from './Step2Security'
@@ -17,7 +17,8 @@ export interface WizardDeps {
   suggestSlug: typeof suggestSlug
   createFamily: typeof createFamily
   saveSecurity: typeof saveSecurity
-  saveBabyAndLink: typeof saveBabyAndLink
+  saveBaby: typeof saveBaby
+  linkAccountToCaretaker: typeof linkAccountToCaretaker
   finishWizard: typeof finishWizard
   listServers: typeof listServers
   finish?: FinishDeps
@@ -28,7 +29,8 @@ const defaultDeps = (): WizardDeps => ({
   suggestSlug,
   createFamily,
   saveSecurity,
-  saveBabyAndLink,
+  saveBaby,
+  linkAccountToCaretaker,
   finishWizard,
   listServers,
   // finish left undefined - finishWizard falls back to its own real (login/saveServer/vault) deps.
@@ -70,15 +72,22 @@ export default function Wizard({
   const [familyId, setFamilyId] = useState(resume?.familyId ?? '')
   const [familyName, setFamilyName] = useState(resume?.familyName ?? '')
   const [slug, setSlug] = useState(resume?.slug ?? '')
-  // Security mode chosen in step 2, needed by saveBabyAndLink to know which caretaker-lookup
-  // endpoint to hit when linking the account. When resuming directly at stage 3, this session
-  // never saw step 2 run, so the mode is unrecoverable from the resume payload (fetchSetupStatus
-  // carries no security-mode signal) - we default to 'caretakers' as the more common path. A
-  // wrong guess here surfaces as a retryable WizardError('rejected'), not silent data loss.
-  const [mode, setMode] = useState<'pin' | 'caretakers' | undefined>(undefined)
+  // Security mode, needed by linkAccountToCaretaker to know which caretaker-lookup endpoint to
+  // hit when linking the account. Set in step 2, or carried through resume.mode when resuming
+  // directly at stage 3 (account-routing.ts maps the server's setup-status authType). If still
+  // unknown (e.g. an older server that doesn't report authType), default to 'caretakers' as the
+  // last resort - safe because linkAccountToCaretaker's caretakers-mode lookup falls back to the
+  // system caretaker when the family has none but the reserved '00' entry, so a pin-mode family
+  // guessed as 'caretakers' still links correctly instead of throwing.
+  const [mode, setMode] = useState<'pin' | 'caretakers' | undefined>(resume?.mode)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<ReactNode | null>(null)
   const [hasFamilies, setHasFamilies] = useState(true)
+  // Tracks whether saveBaby has already succeeded this session, so a step-3 retry (after e.g. a
+  // failed link or finish call) re-runs only the still-failing remainder instead of re-POSTing
+  // the baby - each sub-call is retried only if it hasn't already succeeded (idempotent-by-
+  // construction retries, per the design spec's step-retry requirement).
+  const babySavedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -127,7 +136,14 @@ export default function Wizard({
     setBusy(true)
     try {
       const effectiveMode = mode ?? 'caretakers'
-      await deps.saveBabyAndLink(SAAS_BASE, token, familyId, baby, effectiveMode)
+      // Idempotent-by-construction retry: saveBaby POSTs a new baby record, so it must not
+      // repeat once it has already succeeded this session - only the failed remainder (link,
+      // then finish) is re-run when the button is clicked again after an error.
+      if (!babySavedRef.current) {
+        await deps.saveBaby(SAAS_BASE, token, familyId, baby)
+        babySavedRef.current = true
+      }
+      await deps.linkAccountToCaretaker(SAAS_BASE, token, familyId, effectiveMode)
       const { toast } = await deps.finishWizard(SAAS_BASE, creds, familyName, biometric, deps.finish)
       navigate({ name: 'families', toast })
     } catch (e) {

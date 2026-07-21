@@ -6,7 +6,7 @@ const base = 'https://sprout-track.com'
 
 function deps(over: Partial<Parameters<typeof routeAfterAccountLogin>[1]> = {}) {
   return {
-    fetchSetupStatus: vi.fn().mockResolvedValue({ setupStage: 3, currentStage: 3, familyId: 'f1', familyName: 'Smith', familySlug: 'smith' }),
+    fetchSetupStatus: vi.fn().mockResolvedValue({ setupStage: 3, currentStage: 3, familyId: 'f1', familyName: 'Smith', familySlug: 'smith', authType: 'CARETAKER' }),
     fetchFamilyBySlug: vi.fn().mockResolvedValue({ name: 'Smith Family', slug: 'smith', isActive: true }),
     saveServer: vi.fn().mockResolvedValue({ id: 'srv1' }),
     vault: { store: vi.fn().mockResolvedValue(undefined) },
@@ -21,10 +21,21 @@ test('complete family: saves, vaults, returns saved toast', async () => {
   expect(d.saveServer).toHaveBeenCalledWith({ baseUrl: base, familySlug: 'smith', familyName: 'Smith Family', deploymentMode: 'saas', authType: 'ACCOUNT' })
   expect(d.vault.store).toHaveBeenCalledWith('srv1', creds, { biometric: true })
 })
-test('incomplete family: wizard resume at currentStage', async () => {
-  const d = deps({ fetchSetupStatus: vi.fn().mockResolvedValue({ setupStage: 1, currentStage: 2, familyId: 'f1', familyName: 'Smith', familySlug: 'smith' }) })
+test('incomplete family: wizard resume at currentStage, carrying mode SYSTEM -> pin', async () => {
+  const d = deps({ fetchSetupStatus: vi.fn().mockResolvedValue({ setupStage: 1, currentStage: 2, familyId: 'f1', familyName: 'Smith', familySlug: 'smith', authType: 'SYSTEM' }) })
   expect(await routeAfterAccountLogin({ base, token: 't', creds, biometric: false, familySlug: 'smith', verified: true }, d))
-    .toEqual({ kind: 'wizard', resume: { familyId: 'f1', stage: 2, familyName: 'Smith', slug: 'smith' } })
+    .toEqual({ kind: 'wizard', resume: { familyId: 'f1', stage: 2, familyName: 'Smith', slug: 'smith', mode: 'pin' } })
+})
+test('incomplete family: wizard resume carries mode CARETAKER -> caretakers', async () => {
+  const d = deps({ fetchSetupStatus: vi.fn().mockResolvedValue({ setupStage: 1, currentStage: 2, familyId: 'f1', familyName: 'Smith', familySlug: 'smith', authType: 'CARETAKER' }) })
+  expect(await routeAfterAccountLogin({ base, token: 't', creds, biometric: false, familySlug: 'smith', verified: true }, d))
+    .toEqual({ kind: 'wizard', resume: { familyId: 'f1', stage: 2, familyName: 'Smith', slug: 'smith', mode: 'caretakers' } })
+})
+test('incomplete family: wizard resume omits mode when authType is null/unrecognized', async () => {
+  const d = deps({ fetchSetupStatus: vi.fn().mockResolvedValue({ setupStage: 1, currentStage: 2, familyId: 'f1', familyName: 'Smith', familySlug: 'smith', authType: null }) })
+  const result = await routeAfterAccountLogin({ base, token: 't', creds, biometric: false, familySlug: 'smith', verified: true }, d)
+  expect(result).toEqual({ kind: 'wizard', resume: { familyId: 'f1', stage: 2, familyName: 'Smith', slug: 'smith' } })
+  expect(result).toMatchObject({ resume: expect.not.objectContaining({ mode: expect.anything() }) })
 })
 test('no family, verified → wizard; unverified → verify', async () => {
   expect(await routeAfterAccountLogin({ base, token: 't', creds, biometric: true, verified: true }, deps())).toEqual({ kind: 'wizard' })

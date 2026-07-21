@@ -4,7 +4,8 @@ import {
   suggestSlug,
   createFamily,
   saveSecurity,
-  saveBabyAndLink,
+  saveBaby,
+  linkAccountToCaretaker,
   finishWizard,
   FEED_TYPE_OPTIONS,
   WizardError,
@@ -152,7 +153,7 @@ test('saveSecurity surfaces envelope rejection and network unreachable', async (
   await expect(saveSecurity(BASE, 'jwt-1', 'fam-1', { mode: 'pin', securityPin: '1' }, { post: vi.fn(), put: putErr })).rejects.toMatchObject({ kind: 'unreachable' })
 })
 
-// --- saveBabyAndLink --------------------------------------------------------
+// --- saveBaby ----------------------------------------------------------------
 
 function baby(overrides: Partial<BabyConfig> = {}): BabyConfig {
   return {
@@ -168,22 +169,48 @@ function baby(overrides: Partial<BabyConfig> = {}): BabyConfig {
   }
 }
 
-test('saveBabyAndLink pin path: posts baby, fetches system caretaker, links account', async () => {
+test('saveBaby posts the exact baby payload with token', async () => {
   const post = vi.fn().mockResolvedValue(ok())
-  const get = vi.fn().mockResolvedValue(ok({ id: 'ct-system' }))
 
-  await saveBabyAndLink(BASE, 'jwt-1', 'fam-1', baby(), 'pin', { post, get })
+  await saveBaby(BASE, 'jwt-1', 'fam-1', baby(), post)
 
-  expect(post).toHaveBeenNthCalledWith(1, 'https://x.com/api/baby?familyId=fam-1', {
+  expect(post).toHaveBeenCalledWith('https://x.com/api/baby?familyId=fam-1', {
     firstName: 'Jo', lastName: 'Smith', birthDate: '2026-01-01', gender: 'FEMALE',
     feedWarningTime: '03:00', diaperWarningTime: '02:00', feedTimerFrom: 'start',
     feedTimerTypes: null, familyId: 'fam-1',
   }, { token: 'jwt-1' })
-  expect(get).toHaveBeenCalledWith('https://x.com/api/caretaker/system?familyId=fam-1', { token: 'jwt-1' })
-  expect(post).toHaveBeenNthCalledWith(2, 'https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-system' }, { token: 'jwt-1' })
 })
 
-test('saveBabyAndLink caretakers path: skips loginId 00 and links first real caretaker', async () => {
+test('feedTimerTypes is null when all 5 categories selected, JSON string otherwise', async () => {
+  expect(FEED_TYPE_OPTIONS.length).toBe(5)
+  const post = vi.fn().mockResolvedValue(ok())
+
+  await saveBaby(BASE, 'jwt-1', 'fam-1', baby({ feedTimerCategories: ['BREAST', 'FOOD'] }), post)
+  expect(post).toHaveBeenCalledWith('https://x.com/api/baby?familyId=fam-1', expect.objectContaining({
+    feedTimerTypes: JSON.stringify(['BREAST', 'FOOD']),
+  }), { token: 'jwt-1' })
+})
+
+test('saveBaby surfaces envelope rejection and network unreachable', async () => {
+  await expect(saveBaby(BASE, 'jwt-1', 'fam-1', baby(), vi.fn().mockResolvedValue(fail(400, 'nope'))))
+    .rejects.toMatchObject({ kind: 'rejected', message: 'nope' })
+  await expect(saveBaby(BASE, 'jwt-1', 'fam-1', baby(), vi.fn().mockRejectedValue(new TypeError('net'))))
+    .rejects.toMatchObject({ kind: 'unreachable' })
+})
+
+// --- linkAccountToCaretaker ----------------------------------------------------
+
+test('linkAccountToCaretaker pin mode: fetches the system caretaker, links account', async () => {
+  const post = vi.fn().mockResolvedValue(ok())
+  const get = vi.fn().mockResolvedValue(ok({ id: 'ct-system' }))
+
+  await linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'pin', { post, get })
+
+  expect(get).toHaveBeenCalledWith('https://x.com/api/caretaker/system?familyId=fam-1', { token: 'jwt-1' })
+  expect(post).toHaveBeenCalledWith('https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-system' }, { token: 'jwt-1' })
+})
+
+test('linkAccountToCaretaker caretakers mode: skips loginId 00 and links the first real caretaker', async () => {
   const post = vi.fn().mockResolvedValue(ok())
   const get = vi.fn().mockResolvedValue(ok([
     { id: 'ct-system', loginId: '00' },
@@ -191,29 +218,42 @@ test('saveBabyAndLink caretakers path: skips loginId 00 and links first real car
     { id: 'ct-02', loginId: '02' },
   ]))
 
-  await saveBabyAndLink(BASE, 'jwt-1', 'fam-1', baby(), 'caretakers', { post, get })
+  await linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'caretakers', { post, get })
 
   expect(get).toHaveBeenCalledWith('https://x.com/api/family/fam-1/caretakers', { token: 'jwt-1' })
-  expect(post).toHaveBeenNthCalledWith(2, 'https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-01' }, { token: 'jwt-1' })
+  expect(get).toHaveBeenCalledTimes(1) // a real caretaker was found - no system-caretaker fallback needed
+  expect(post).toHaveBeenCalledWith('https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-01' }, { token: 'jwt-1' })
 })
 
-test('feedTimerTypes is null when all 5 categories selected, JSON string otherwise', async () => {
-  expect(FEED_TYPE_OPTIONS.length).toBe(5)
+test('linkAccountToCaretaker caretakers mode with only the "00" caretaker falls back to the system caretaker', async () => {
+  // Covers a wizard resumed at stage 3 with a mis-guessed mode: a pin-mode family's caretaker
+  // list has nothing but the reserved system entry, so this must not throw - it should recover
+  // via GET /api/caretaker/system, same as pin mode would have used directly.
   const post = vi.fn().mockResolvedValue(ok())
-  const get = vi.fn().mockResolvedValue(ok({ id: 'ct-system' }))
+  const get = vi.fn()
+    .mockResolvedValueOnce(ok([{ id: 'ct-system', loginId: '00' }]))
+    .mockResolvedValueOnce(ok({ id: 'ct-system' }))
 
-  await saveBabyAndLink(BASE, 'jwt-1', 'fam-1', baby({ feedTimerCategories: ['BREAST', 'FOOD'] }), 'pin', { post, get })
-  expect(post).toHaveBeenNthCalledWith(1, 'https://x.com/api/baby?familyId=fam-1', expect.objectContaining({
-    feedTimerTypes: JSON.stringify(['BREAST', 'FOOD']),
-  }), { token: 'jwt-1' })
+  await linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'caretakers', { post, get })
+
+  expect(get).toHaveBeenNthCalledWith(1, 'https://x.com/api/family/fam-1/caretakers', { token: 'jwt-1' })
+  expect(get).toHaveBeenNthCalledWith(2, 'https://x.com/api/caretaker/system?familyId=fam-1', { token: 'jwt-1' })
+  expect(post).toHaveBeenCalledWith('https://x.com/api/accounts/link-caretaker', { caretakerId: 'ct-system' }, { token: 'jwt-1' })
 })
 
-test('saveBabyAndLink treats link failure as WizardError(rejected)', async () => {
+test('linkAccountToCaretaker throws WizardError(rejected) when neither the list nor the fallback yields an id', async () => {
   const post = vi.fn()
-    .mockResolvedValueOnce(ok()) // baby POST succeeds
-    .mockResolvedValueOnce(fail(400, 'link failed')) // link POST fails
+  const get = vi.fn()
+    .mockResolvedValueOnce(ok([{ id: 'ct-system', loginId: '00' }]))
+    .mockResolvedValueOnce(ok({})) // fallback succeeds but carries no id
+  await expect(linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'caretakers', { post, get })).rejects.toMatchObject({ kind: 'rejected' })
+  expect(post).not.toHaveBeenCalled()
+})
+
+test('linkAccountToCaretaker treats a link-POST failure as WizardError(rejected)', async () => {
+  const post = vi.fn().mockResolvedValue(fail(400, 'link failed'))
   const get = vi.fn().mockResolvedValue(ok({ id: 'ct-system' }))
-  await expect(saveBabyAndLink(BASE, 'jwt-1', 'fam-1', baby(), 'pin', { post, get })).rejects.toMatchObject({ kind: 'rejected' })
+  await expect(linkAccountToCaretaker(BASE, 'jwt-1', 'fam-1', 'pin', { post, get })).rejects.toMatchObject({ kind: 'rejected' })
 })
 
 // --- finishWizard ------------------------------------------------------------

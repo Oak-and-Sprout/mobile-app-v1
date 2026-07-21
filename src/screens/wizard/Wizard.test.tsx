@@ -13,7 +13,8 @@ function makeDeps(overrides: Record<string, unknown> = {}) {
     suggestSlug: vi.fn().mockResolvedValue(null),
     createFamily: vi.fn().mockResolvedValue({ familyId: 'fam1' }),
     saveSecurity: vi.fn().mockResolvedValue(undefined),
-    saveBabyAndLink: vi.fn().mockResolvedValue(undefined),
+    saveBaby: vi.fn().mockResolvedValue(undefined),
+    linkAccountToCaretaker: vi.fn().mockResolvedValue(undefined),
     finishWizard: vi.fn().mockResolvedValue({ toast: 'Welcome home - Smith Family is set up and saved to this phone.' }),
     listServers: vi.fn().mockResolvedValue([{ id: 'srv0' }]),
     ...overrides,
@@ -69,12 +70,12 @@ test('fresh run walks 1 -> 2 -> 3 -> families, calling every service in order wi
   fireEvent.click(screen.getByRole('button', { name: /complete setup/i }))
 
   await waitFor(() =>
-    expect(deps.saveBabyAndLink).toHaveBeenCalledWith(
+    expect(deps.saveBaby).toHaveBeenCalledWith(
       BASE, 'tok', 'fam1',
       expect.objectContaining({ firstName: 'Jackson', lastName: 'Sprout', gender: 'MALE' }),
-      'caretakers',
     ),
   )
+  await waitFor(() => expect(deps.linkAccountToCaretaker).toHaveBeenCalledWith(BASE, 'tok', 'fam1', 'caretakers'))
   await waitFor(() => expect(deps.finishWizard).toHaveBeenCalledWith(BASE, creds, 'Smith Family', true, undefined))
   await waitFor(() =>
     expect(navigate).toHaveBeenCalledWith({
@@ -84,7 +85,7 @@ test('fresh run walks 1 -> 2 -> 3 -> families, calling every service in order wi
   )
 
   // Services fire in step order, not interleaved.
-  const order = [deps.createFamily, deps.saveSecurity, deps.saveBabyAndLink, deps.finishWizard]
+  const order = [deps.createFamily, deps.saveSecurity, deps.saveBaby, deps.linkAccountToCaretaker, deps.finishWizard]
     .map(fn => fn.mock.invocationCallOrder[0])
   expect(order).toEqual([...order].sort((a, b) => a - b))
 })
@@ -108,7 +109,7 @@ test('resuming at stage 2 skips createFamily and renders step 2 with the "Family
   await waitFor(() => expect(deps.saveSecurity).toHaveBeenCalledWith(BASE, 'tok', 'fam9', expect.anything()))
 })
 
-test('resuming at stage 3 goes straight to the baby step, skipping createFamily and saveSecurity', async () => {
+test('resuming at stage 3 goes straight to the baby step, skipping createFamily and saveSecurity, and links via the default mode when none was given', async () => {
   const deps = makeDeps()
   const navigate = vi.fn()
   render(
@@ -126,8 +127,52 @@ test('resuming at stage 3 goes straight to the baby step, skipping createFamily 
   await fillBaby()
   fireEvent.click(screen.getByRole('button', { name: /complete setup/i }))
 
-  await waitFor(() => expect(deps.saveBabyAndLink).toHaveBeenCalledWith(BASE, 'tok', 'fam9', expect.anything(), 'caretakers'))
+  await waitFor(() => expect(deps.saveBaby).toHaveBeenCalledWith(BASE, 'tok', 'fam9', expect.anything()))
+  await waitFor(() => expect(deps.linkAccountToCaretaker).toHaveBeenCalledWith(BASE, 'tok', 'fam9', 'caretakers'))
   await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'families', toast: expect.any(String) }))
+})
+
+test('resuming at stage 3 with resume.mode "pin" links via the pin-mode lookup, not the default', async () => {
+  const deps = makeDeps()
+  const navigate = vi.fn()
+  render(
+    <Wizard
+      navigate={navigate} token="tok" creds={creds} biometric={true} deps={deps}
+      resume={{ familyId: 'fam9', stage: 3, familyName: 'Resumed Family', slug: 'resumed-family', mode: 'pin' }}
+    />,
+  )
+
+  await fillBaby()
+  fireEvent.click(screen.getByRole('button', { name: /complete setup/i }))
+
+  await waitFor(() => expect(deps.linkAccountToCaretaker).toHaveBeenCalledWith(BASE, 'tok', 'fam9', 'pin'))
+})
+
+test('a linking failure on step 3 retries only the failed remainder - saveBaby fires exactly once across both attempts', async () => {
+  const linkAccountToCaretaker = vi.fn()
+    .mockRejectedValueOnce(new WizardError('rejected', 'link failed'))
+    .mockResolvedValueOnce(undefined)
+  const deps = makeDeps({ linkAccountToCaretaker })
+  const navigate = vi.fn()
+  render(
+    <Wizard
+      navigate={navigate} token="tok" creds={creds} biometric={true} deps={deps}
+      resume={{ familyId: 'fam9', stage: 3, familyName: 'Resumed Family', slug: 'resumed-family' }}
+    />,
+  )
+
+  await fillBaby()
+  const completeBtn = screen.getByRole('button', { name: /complete setup/i })
+  fireEvent.click(completeBtn)
+
+  expect(await screen.findByText('link failed')).toBeInTheDocument()
+  expect(deps.saveBaby).toHaveBeenCalledTimes(1)
+
+  // Retry: same button, same handler - saveBaby must not run again since it already succeeded.
+  fireEvent.click(screen.getByRole('button', { name: /complete setup/i }))
+  await waitFor(() => expect(linkAccountToCaretaker).toHaveBeenCalledTimes(2))
+  await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'families', toast: expect.any(String) }))
+  expect(deps.saveBaby).toHaveBeenCalledTimes(1)
 })
 
 test('a slug-taken error from createFamily lands in an ErrBox and keeps the user on step 1', async () => {

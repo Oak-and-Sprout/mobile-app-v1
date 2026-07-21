@@ -118,7 +118,7 @@ export async function createFamily(
  * for both pin and caretakers mode, and pin mode makes NO post call at all — a single
  * postJson-shaped injectable cannot let tests observe those PUT calls (which is exactly
  * what Step 1's "pin sequence exact URL/body/order" requirement needs). Mirroring the
- * sibling saveBabyAndLink's `{ post, get }` deps bundle, this takes `{ post, put }` instead.
+ * sibling linkAccountToCaretaker's `{ post, get }` deps bundle, this takes `{ post, put }` instead.
  */
 export async function saveSecurity(
   base: string,
@@ -164,18 +164,21 @@ export async function saveSecurity(
   assertSuccess(stageRes)
 }
 
-// --- Step: baby + caretaker link ----------------------------------------------
+// --- Step: baby -----------------------------------------------------------------
 
-export async function saveBabyAndLink(
+/**
+ * POSTs the baby record. Split out from the caretaker-linking step (see
+ * `linkAccountToCaretaker` below) so a retry after a failure further down the wizard's step-3
+ * handler does not repeat this non-idempotent POST - see Wizard.tsx's `handleStep3Complete`,
+ * which only calls this once per session and re-runs just the failed remainder on retry.
+ */
+export async function saveBaby(
   base: string,
   token: string,
   familyId: string,
   baby: BabyConfig,
-  mode: 'pin' | 'caretakers',
-  deps: { post: typeof postJson; get: typeof getJson } = { post: postJson, get: getJson },
+  post: typeof postJson = postJson,
 ): Promise<void> {
-  const { post, get } = deps
-
   const feedTimerTypes =
     baby.feedTimerCategories.length === FEED_TYPE_OPTIONS.length ? null : JSON.stringify(baby.feedTimerCategories)
 
@@ -197,19 +200,46 @@ export async function saveBabyAndLink(
     ),
   )
   assertSuccess(babyRes)
+}
 
-  let caretakerId: string | undefined
-  if (mode === 'pin') {
+// --- Step: link the account to a caretaker -------------------------------------
+
+/**
+ * Finds the right caretaker to attach the just-logged-in account to, then links it.
+ * `mode` picks the lookup strategy, but it can be a guess (e.g. the wizard resuming directly
+ * at stage 3, where the original security mode wasn't recoverable from the server) - so
+ * caretakers-mode falls back to the system caretaker when the family caretaker list has
+ * nothing but the reserved '00' entry, rather than failing outright. Every pin-mode family
+ * always has a system caretaker, so this fallback is always safe to attempt.
+ */
+export async function linkAccountToCaretaker(
+  base: string,
+  token: string,
+  familyId: string,
+  mode: 'pin' | 'caretakers',
+  deps: { post: typeof postJson; get: typeof getJson } = { post: postJson, get: getJson },
+): Promise<void> {
+  const { post, get } = deps
+
+  async function systemCaretakerId(): Promise<string | undefined> {
     const res = await callOrThrowUnreachable(() => get(`${base}/api/caretaker/system?familyId=${familyId}`, { token }))
     assertSuccess(res)
     const data = envelopeOf(res.body)?.data as { id?: unknown } | undefined
-    caretakerId = typeof data?.id === 'string' ? data.id : undefined
+    return typeof data?.id === 'string' ? data.id : undefined
+  }
+
+  let caretakerId: string | undefined
+  if (mode === 'pin') {
+    caretakerId = await systemCaretakerId()
   } else {
     const res = await callOrThrowUnreachable(() => get(`${base}/api/family/${familyId}/caretakers`, { token }))
     assertSuccess(res)
     const data = envelopeOf(res.body)?.data as Array<{ id?: unknown; loginId?: unknown }> | undefined
     const found = data?.find(c => c.loginId !== '00')
     caretakerId = typeof found?.id === 'string' ? found.id : undefined
+    if (!caretakerId) {
+      caretakerId = await systemCaretakerId()
+    }
   }
   if (!caretakerId) throw new WizardError('rejected')
 

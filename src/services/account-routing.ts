@@ -5,7 +5,16 @@ import type { CredentialVault, AccountCreds } from './credential-vault'
 import { titleFromSlug } from '../lib/slug'
 import type { Screen } from '../App'
 
-export interface WizardResume { familyId: string; stage: 2 | 3; familyName: string; slug: string }
+export interface WizardResume {
+  familyId: string
+  stage: 2 | 3
+  familyName: string
+  slug: string
+  /** The family's already-chosen security mode, when the server's setup-status reports one
+   *  (SYSTEM -> 'pin', CARETAKER -> 'caretakers'). Omitted when unknown - the wizard falls
+   *  back to a safe default rather than assuming. */
+  mode?: 'pin' | 'caretakers'
+}
 
 export type PostLoginRoute =
   | { kind: 'saved'; toast: string }
@@ -43,6 +52,7 @@ export async function routeAfterAccountLogin(
   }
 
   if (status.setupStage < 3) {
+    const mode = status.authType === 'SYSTEM' ? 'pin' : status.authType === 'CARETAKER' ? 'caretakers' : undefined
     return {
       kind: 'wizard',
       resume: {
@@ -50,6 +60,7 @@ export async function routeAfterAccountLogin(
         stage: status.currentStage,
         familyName: status.familyName,
         slug: status.familySlug,
+        ...(mode ? { mode } : {}),
       },
     }
   }

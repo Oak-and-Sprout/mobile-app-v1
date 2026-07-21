@@ -102,6 +102,10 @@ export interface SetupStatus {
   familyId: string
   familyName: string
   familySlug: string
+  /** The family's chosen security mode, when the server reports one. null when absent or an
+   *  unrecognized value - callers (account-routing's wizard resume) must treat that as unknown,
+   *  not assume a default here. */
+  authType: 'SYSTEM' | 'CARETAKER' | null
 }
 
 export async function fetchSetupStatus(
@@ -118,7 +122,7 @@ export async function fetchSetupStatus(
           data?: {
             setupStage?: number
             currentStage?: number
-            familyData?: { id?: string; name?: string; slug?: string }
+            familyData?: { id?: string; name?: string; slug?: string; authType?: unknown }
           }
         }
       | null
@@ -134,12 +138,15 @@ export async function fetchSetupStatus(
     ) {
       return null
     }
+    const authType =
+      familyData.authType === 'SYSTEM' || familyData.authType === 'CARETAKER' ? familyData.authType : null
     return {
       setupStage: data.setupStage,
       currentStage: data.currentStage,
       familyId: familyData.id,
       familyName: familyData.name,
       familySlug: familyData.slug,
+      authType,
     }
   } catch {
     return null
