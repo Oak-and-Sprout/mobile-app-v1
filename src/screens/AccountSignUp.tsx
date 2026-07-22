@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Screen } from '../App'
 import { Header, ErrBox } from '../components/chrome'
 import { BioCheck } from '../components/BioCheck'
+import { useBiometricDefault } from '../lib/biometric'
 import { createVault, type StoredCredentials } from '../services/credential-vault'
 import { fetchFamilyBySlug } from '../services/server-probe'
 import { saveServer } from '../services/server-registry'
@@ -43,7 +44,7 @@ export default function AccountSignUp({
   const [last, setLast] = useState('')
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
-  const [biometric, setBiometric] = useState(true)
+  const [biometric, setBiometric] = useBiometricDefault()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -3,6 +3,7 @@ import type { Screen } from '../App'
 import { Header, ErrBox } from '../components/chrome'
 import Toast from '../components/Toast'
 import { BioCheck } from '../components/BioCheck'
+import { useBiometricDefault } from '../lib/biometric'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
 import { fetchFamilyBySlug } from '../services/server-probe'
 import { saveServer } from '../services/server-registry'
@@ -34,7 +35,7 @@ export default function AccountSignIn({
   const [deps] = useState<AccountSignInDeps>(() => ({ ...defaultDeps(), ...depsOverride }))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [biometric, setBiometric] = useState(true)
+  const [biometric, setBiometric] = useBiometricDefault()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

@@ -129,11 +129,18 @@ function webDevBackend(): VaultBackend {
     async get(key) { return localStorage.getItem(key) },
     async set(key, value) { localStorage.setItem(key, value) },
     async delete(key) { localStorage.removeItem(key) },
+    // The browser dev fallback fakes biometric as a no-op that always succeeds,
+    // so it reports itself "available" to stay internally consistent.
     async verifyIdentity() { return true },
-    async isAvailable() { return false },
+    async isAvailable() { return true },
   }
 }
 
 export function createVault(): CredentialVault {
   return new CredentialVault(Capacitor.isNativePlatform() ? nativeBackend() : webDevBackend())
+}
+
+/** Whether this device can perform biometric verification — drives the "Unlock with Face ID" default. */
+export function isBiometricAvailable(): Promise<boolean> {
+  return createVault().biometricAvailable()
 }

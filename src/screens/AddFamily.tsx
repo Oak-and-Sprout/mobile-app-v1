@@ -3,6 +3,7 @@ import type { Screen } from '../App'
 import { ErrBox, Header, WarnBox } from '../components/chrome'
 import { BioCheck } from '../components/BioCheck'
 import { CredentialFields } from '../components/CredentialFields'
+import { useBiometricDefault } from '../lib/biometric'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
 import {
   ProbeError, fetchAuthType, fetchFamilyBySlug, parseServerInput, probeDeployment,
@@ -55,7 +56,7 @@ export default function AddFamily({
   const [input, setInput] = useState(prefillInput ?? '')
   const [located, setLocated] = useState<Located | null>(null)
   const [creds, setCreds] = useState<StoredCredentials | null>(null)
-  const [biometric, setBiometric] = useState(true)
+  const [biometric, setBiometric] = useBiometricDefault()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [hasFamilies, setHasFamilies] = useState(true)
