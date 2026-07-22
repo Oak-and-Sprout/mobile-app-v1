@@ -5,6 +5,26 @@ import { touchServer, type ServerEntry } from './server-registry'
 
 export type ConnectOutcome = 'navigated' | 'needs-reauth' | 'offline' | 'locked'
 
+/**
+ * Build the URL that hands a freshly-obtained session to the web app: the family
+ * log-entry page with the session encoded in a `#bridge-session=` fragment the
+ * server's native layer consumes on load. Shared so re-auth can hand off with the
+ * token it already has instead of re-running connect (which would re-read the
+ * vault and re-prompt biometric).
+ */
+export function sessionHandoffUrl(
+  baseUrl: string,
+  result: { familySlug: string; token: string; caretakerId?: string },
+): string {
+  const msg = {
+    type: 'sessionInjected' as const,
+    slug: result.familySlug,
+    token: result.token,
+    ...(result.caretakerId !== undefined ? { caretakerId: result.caretakerId } : {}),
+  }
+  return `${baseUrl}/${result.familySlug}/log-entry#bridge-session=${encodeURIComponent(encodeMessage(msg))}`
+}
+
 export interface ConnectDeps {
   vault: CredentialVault
   login: typeof loginWithCredentials
@@ -33,13 +53,7 @@ export async function connectToFamily(
   if (!creds) return 'needs-reauth'
   const result = await deps.login(entry, creds)
   if (result.ok) {
-    const msg = {
-      type: 'sessionInjected' as const,
-      slug: result.familySlug,
-      token: result.token,
-      ...(result.caretakerId !== undefined ? { caretakerId: result.caretakerId } : {}),
-    }
-    deps.openUrl(`${entry.baseUrl}/${result.familySlug}/log-entry#bridge-session=${encodeURIComponent(encodeMessage(msg))}`)
+    deps.openUrl(sessionHandoffUrl(entry.baseUrl, result))
     return 'navigated'
   }
   if (result.error === 'unreachable') return 'offline'

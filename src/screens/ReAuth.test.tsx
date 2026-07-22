@@ -20,15 +20,16 @@ function deps(over: Record<string, unknown> = {}) {
       isBiometric: vi.fn().mockResolvedValue(true),
       peekIdentifier: vi.fn().mockResolvedValue({ loginId: '07' }),
     },
+    touch: vi.fn().mockResolvedValue(undefined),
+    openUrl: vi.fn(),
     ...over,
   }
 }
 
-test('verifies the new credential, re-vaults it, and continues into connecting', async () => {
+test('verifies the new credential, re-vaults it, and hands off directly to the web app', async () => {
   const d = deps()
-  const navigate = vi.fn()
   const user = userEvent.setup()
-  render(<ReAuth navigate={navigate} entry={entry()} deps={d} />)
+  render(<ReAuth navigate={vi.fn()} entry={entry()} deps={d} />)
   await waitFor(() => expect((screen.getByLabelText('Login ID') as HTMLInputElement).value).toBe('07'))
   await user.type(screen.getByLabelText('PIN'), '654321')
   await user.click(screen.getByRole('button', { name: 'Verify & save' }))
@@ -37,10 +38,12 @@ test('verifies the new credential, re-vaults it, and continues into connecting',
     { type: 'pin', loginId: '07', securityPin: '654321' },
   ))
   expect(d.vault.store).toHaveBeenCalledWith('e1', { type: 'pin', loginId: '07', securityPin: '654321' }, { biometric: true })
-  expect(navigate).toHaveBeenCalledWith({ name: 'connecting', entry: expect.objectContaining({ id: 'e1' }) })
+  // Hands off with the token it already has — never re-reads the vault (no biometric loop).
+  await waitFor(() => expect(d.openUrl).toHaveBeenCalled())
+  expect((d.openUrl.mock.calls[0][0] as string).startsWith('https://x.com/smith/log-entry#bridge-session=')).toBe(true)
 })
 
-test('shows an error and does not navigate when the new credential is still wrong', async () => {
+test('shows an error and does not hand off when the new credential is still wrong', async () => {
   const d = deps({ login: vi.fn().mockResolvedValue({ ok: false, error: 'invalid' }) })
   const navigate = vi.fn()
   const user = userEvent.setup()
@@ -50,6 +53,7 @@ test('shows an error and does not navigate when the new credential is still wron
   await user.click(screen.getByRole('button', { name: 'Verify & save' }))
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/didn’t work/))
   expect(navigate).not.toHaveBeenCalled()
+  expect(d.openUrl).not.toHaveBeenCalled()
   expect(d.vault.store).not.toHaveBeenCalled()
 })
 

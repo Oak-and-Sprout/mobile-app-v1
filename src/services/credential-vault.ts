@@ -12,6 +12,7 @@ export interface VaultBackend {
   set(key: string, value: string): Promise<void>
   delete(key: string): Promise<void>
   verifyIdentity(reason: string): Promise<boolean>
+  isAvailable(): Promise<boolean>
 }
 
 interface VaultRecord { biometric: boolean; creds: StoredCredentials }
@@ -22,8 +23,17 @@ export class CredentialVault {
   constructor(private backend: VaultBackend) {}
 
   async store(serverId: string, creds: StoredCredentials, opts: { biometric: boolean }): Promise<void> {
-    const record: VaultRecord = { biometric: opts.biometric, creds }
+    // Only arm the biometric gate if the device can actually verify — otherwise
+    // a later read would prompt for a biometric that always fails (e.g. Face ID
+    // not enrolled on a simulator), locking the user out of their own credential.
+    const biometric = opts.biometric ? await this.backend.isAvailable() : false
+    const record: VaultRecord = { biometric, creds }
     await this.backend.set(keyFor(serverId), JSON.stringify(record))
+  }
+
+  /** Whether this device can perform biometric verification (drives the checkbox default). */
+  async biometricAvailable(): Promise<boolean> {
+    return this.backend.isAvailable()
   }
 
   async retrieve(serverId: string): Promise<StoredCredentials | null> {
@@ -102,6 +112,14 @@ function nativeBackend(): VaultBackend {
         return false
       }
     },
+    async isAvailable() {
+      try {
+        const { isAvailable } = await NativeBiometric.isAvailable()
+        return isAvailable
+      } catch {
+        return false
+      }
+    },
   }
 }
 
@@ -112,6 +130,7 @@ function webDevBackend(): VaultBackend {
     async set(key, value) { localStorage.setItem(key, value) },
     async delete(key) { localStorage.removeItem(key) },
     async verifyIdentity() { return true },
+    async isAvailable() { return false },
   }
 }
 

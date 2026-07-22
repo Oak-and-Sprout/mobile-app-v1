@@ -12,7 +12,7 @@ const entry: ServerEntry = {
 function vaultWith(creds: unknown): CredentialVault {
   const backend: VaultBackend = {
     get: async () => (creds ? JSON.stringify({ biometric: false, creds }) : null),
-    set: async () => {}, delete: async () => {}, verifyIdentity: async () => true,
+    set: async () => {}, delete: async () => {}, verifyIdentity: async () => true, isAvailable: async () => true,
   }
   return new CredentialVault(backend)
 }

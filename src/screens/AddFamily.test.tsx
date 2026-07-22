@@ -7,7 +7,7 @@ import { ProbeError } from '../services/server-probe'
 
 function makeDeps(overrides: Record<string, unknown> = {}) {
   const backend: VaultBackend = {
-    get: async () => null, set: vi.fn(async () => {}), delete: async () => {}, verifyIdentity: async () => true,
+    get: async () => null, set: vi.fn(async () => {}), delete: async () => {}, verifyIdentity: async () => true, isAvailable: async () => true,
   }
   return {
     probeDeployment: vi.fn().mockResolvedValue({

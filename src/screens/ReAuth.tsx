@@ -4,15 +4,21 @@ import { Header, ErrBox } from '../components/chrome'
 import { BioCheck } from '../components/BioCheck'
 import { CredentialFields } from '../components/CredentialFields'
 import { CredentialVault, createVault, type StoredCredentials } from '../services/credential-vault'
-import type { ServerEntry } from '../services/server-registry'
+import { sessionHandoffUrl } from '../services/connect'
+import { touchServer, type ServerEntry } from '../services/server-registry'
 import { loginWithCredentials } from '../services/session'
 
 export interface ReAuthDeps {
   login: typeof loginWithCredentials
   vault: Pick<CredentialVault, 'store' | 'isBiometric' | 'peekIdentifier'>
+  touch: typeof touchServer
+  openUrl: (url: string) => void
 }
 
-const defaultDeps = (): ReAuthDeps => ({ login: loginWithCredentials, vault: createVault() })
+const defaultDeps = (): ReAuthDeps => ({
+  login: loginWithCredentials, vault: createVault(), touch: touchServer,
+  openUrl: url => window.location.assign(url),
+})
 
 const ERROR_TEXT: Record<string, string> = {
   invalid: 'That still didn’t work. Give it another look and try again.',
@@ -60,10 +66,15 @@ export default function ReAuth({
       }
       try {
         await deps.vault.store(entry.id, creds, { biometric })
-        navigate({ name: 'connecting', entry })
       } catch {
         setError(ERROR_TEXT['save-failed'])
+        return
       }
+      // Hand the session straight to the web app with the token we just got.
+      // Going back through Connecting would re-read the vault (and re-prompt
+      // biometric), which loops when biometric can't verify on this device.
+      await deps.touch(entry.id)
+      deps.openUrl(sessionHandoffUrl(entry.baseUrl, result))
     } finally {
       setBusy(false)
     }
