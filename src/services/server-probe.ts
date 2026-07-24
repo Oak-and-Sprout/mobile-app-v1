@@ -1,4 +1,10 @@
-export interface ParsedServerInput { baseUrl: string; familySlug: string | null }
+export interface ParsedServerInput {
+  baseUrl: string
+  familySlug: string | null
+  /** Base URLs to probe in order. Scheme-less input is a guess, so it gets
+   *  https first with an http fallback; an explicit scheme is respected as-is. */
+  candidates: string[]
+}
 
 export interface DeploymentConfig {
   deploymentMode: 'saas' | 'selfhosted'
@@ -20,7 +26,8 @@ const SLUG_RE = /^[a-z0-9][a-z0-9-]*$/i
 
 export function parseServerInput(input: string): ParsedServerInput {
   const trimmed = input.trim()
-  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+  const hasScheme = /^https?:\/\//i.test(trimmed)
+  const withScheme = hasScheme ? trimmed : `https://${trimmed}`
   let url: URL
   try {
     url = new URL(withScheme)
@@ -30,7 +37,9 @@ export function parseServerInput(input: string): ParsedServerInput {
   if (!url.hostname || url.hostname.includes(' ')) throw new Error('invalid-url')
   const segments = url.pathname.split('/').filter(Boolean)
   const familySlug = segments.length > 0 && SLUG_RE.test(segments[0]) ? segments[0] : null
-  return { baseUrl: `${url.protocol}//${url.host}`, familySlug }
+  const baseUrl = `${url.protocol}//${url.host}`
+  const candidates = hasScheme ? [baseUrl] : [baseUrl, `http://${url.host}`]
+  return { baseUrl, familySlug, candidates }
 }
 
 /** Accept either a raw payload or the Sprout Track `{ success, data }` envelope. */

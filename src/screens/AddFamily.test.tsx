@@ -36,6 +36,54 @@ test('shows the located family card with host and deployment chip', async () => 
   expect(screen.getByText('Self-hosted')).toBeInTheDocument()
 })
 
+test('scheme-less address falls back to http when https is unreachable', async () => {
+  const user = userEvent.setup()
+  const probeDeployment = vi.fn(async (baseUrl: string) => {
+    if (baseUrl.startsWith('https://')) throw new ProbeError('unreachable')
+    return { deploymentMode: 'selfhosted', enableAccounts: false, allowAccountRegistration: false }
+  })
+  const deps = makeDeps({ probeDeployment })
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
+
+  await user.type(screen.getByLabelText(/family link/i), 'myhost.local/smith-family')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+
+  expect(await screen.findByText('Smith Family')).toBeInTheDocument()
+  expect(probeDeployment.mock.calls.map(c => c[0])).toEqual(['https://myhost.local', 'http://myhost.local'])
+  expect(screen.getByText(/isn’t encrypted/)).toBeInTheDocument()
+  expect(deps.fetchFamilyBySlug).toHaveBeenCalledWith('http://myhost.local', 'smith-family')
+})
+
+test('explicit https:// address does not fall back to http', async () => {
+  const user = userEvent.setup()
+  const probeDeployment = vi.fn().mockRejectedValue(new ProbeError('unreachable'))
+  const deps = makeDeps({ probeDeployment })
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
+
+  await user.type(screen.getByLabelText(/family link/i), 'https://myhost.com/smith-family')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+
+  expect(await screen.findByText(/Can’t reach that server/)).toBeInTheDocument()
+  expect(probeDeployment).toHaveBeenCalledTimes(1)
+  expect(probeDeployment).toHaveBeenCalledWith('https://myhost.com')
+})
+
+test('when both schemes fail, the more specific error wins over "unreachable"', async () => {
+  const user = userEvent.setup()
+  const probeDeployment = vi.fn(async (baseUrl: string) => {
+    if (baseUrl.startsWith('https://')) throw new ProbeError('unreachable')
+    throw new ProbeError('not-sprout-track')
+  })
+  const deps = makeDeps({ probeDeployment })
+  render(<AddFamily navigate={vi.fn()} deps={deps} />)
+
+  await user.type(screen.getByLabelText(/family link/i), 'myhost.local/smith-family')
+  await user.click(screen.getByRole('button', { name: /find my family/i }))
+
+  expect(await screen.findByText(/isn’t a Sprout Track server/)).toBeInTheDocument()
+  expect(probeDeployment).toHaveBeenCalledTimes(2)
+})
+
 test('navigates to families with a toast after verify & save', async () => {
   const user = userEvent.setup()
   const deps = makeDeps()

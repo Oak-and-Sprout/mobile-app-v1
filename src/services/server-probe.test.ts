@@ -8,17 +8,24 @@ const jsonResponse = (body: unknown, status = 200) =>
 
 describe('parseServerInput', () => {
   test('adds https and strips trailing slash', () => {
-    expect(parseServerInput('myhost.com/')).toEqual({ baseUrl: 'https://myhost.com', familySlug: null })
+    expect(parseServerInput('myhost.com/')).toEqual({
+      baseUrl: 'https://myhost.com', familySlug: null, candidates: ['https://myhost.com', 'http://myhost.com'],
+    })
   })
   test('extracts a family slug from a full URL', () => {
     expect(parseServerInput('https://myhost.com/smith-family')).toEqual({
-      baseUrl: 'https://myhost.com', familySlug: 'smith-family',
+      baseUrl: 'https://myhost.com', familySlug: 'smith-family', candidates: ['https://myhost.com'],
     })
   })
   test('keeps explicit http and port', () => {
     expect(parseServerInput('http://192.168.1.10:3000/fam')).toEqual({
-      baseUrl: 'http://192.168.1.10:3000', familySlug: 'fam',
+      baseUrl: 'http://192.168.1.10:3000', familySlug: 'fam', candidates: ['http://192.168.1.10:3000'],
     })
+  })
+  test('scheme-less input with a port keeps the port in the http fallback candidate', () => {
+    expect(parseServerInput('192.168.1.10:3000/fam').candidates).toEqual([
+      'https://192.168.1.10:3000', 'http://192.168.1.10:3000',
+    ])
   })
   test('throws on garbage', () => {
     expect(() => parseServerInput('not a url at all !!')).toThrow('invalid-url')

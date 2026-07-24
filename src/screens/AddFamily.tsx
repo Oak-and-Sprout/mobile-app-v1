@@ -75,9 +75,23 @@ export default function AddFamily({
     setLocated(null)
     setBusy(true)
     try {
-      const { baseUrl, familySlug } = parseServerInput(input)
+      const { candidates, familySlug } = parseServerInput(input)
       if (!familySlug) throw new Error('missing-slug')
-      const config = await deps.probeDeployment(baseUrl)
+      let baseUrl: string | null = null
+      let config: DeploymentConfig | null = null
+      let probeError: ProbeError | null = null
+      for (const candidate of candidates) {
+        try {
+          config = await deps.probeDeployment(candidate)
+          baseUrl = candidate
+          break
+        } catch (e) {
+          if (!(e instanceof ProbeError)) throw e
+          // Reaching a non-Sprout-Track server is more informative than "unreachable".
+          if (!probeError || probeError.kind === 'unreachable') probeError = e
+        }
+      }
+      if (baseUrl === null || config === null) throw probeError ?? new ProbeError('unreachable')
       const family = await deps.fetchFamilyBySlug(baseUrl, familySlug)
       const authType = await deps.fetchAuthType(baseUrl, familySlug)
       setCreds(null)
