@@ -12,7 +12,6 @@ import Connecting from './screens/Connecting'
 import ReAuth from './screens/ReAuth'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
 import Wizard from './screens/wizard/Wizard'
-import { IconDefs } from './components/Icons'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
 import type { AccountCreds } from './services/credential-vault'
@@ -73,7 +72,6 @@ export default function App() {
 
   return (
     <div className="m-root" data-testid="app-root">
-      <IconDefs />
       {screen.name === 'splash' && <Splash onDone={handleSplashDone} />}
       {screen.name === 'fork' && <Fork navigate={setScreen} />}
       {screen.name === 'acct-signin' && <AccountSignIn navigate={setScreen} notice={screen.notice} />}
