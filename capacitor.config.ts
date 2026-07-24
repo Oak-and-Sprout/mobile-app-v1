@@ -4,6 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.sprouttrack.app',
   appName: 'Sprout Track',
   webDir: 'dist',
+  // Paper theme color behind the webview: with the launch screen now a plain
+  // paper-colored view (no giant icon), launch → splash-hide → first web paint
+  // stays one continuous color instead of flashing white.
+  backgroundColor: '#f7f1e2',
   server: {
     // Spec §2/§10-risk-3: user-entered self-hosted servers must load in the same
     // webview with the bridge available. Validated by the bridge spike.
