@@ -12,6 +12,7 @@ export interface VaultBackend {
   set(key: string, value: string): Promise<void>
   delete(key: string): Promise<void>
   verifyIdentity(reason: string): Promise<boolean>
+  isAvailable(): Promise<boolean>
 }
 
 interface VaultRecord { biometric: boolean; creds: StoredCredentials }
@@ -22,8 +23,17 @@ export class CredentialVault {
   constructor(private backend: VaultBackend) {}
 
   async store(serverId: string, creds: StoredCredentials, opts: { biometric: boolean }): Promise<void> {
-    const record: VaultRecord = { biometric: opts.biometric, creds }
+    // Only arm the biometric gate if the device can actually verify — otherwise
+    // a later read would prompt for a biometric that always fails (e.g. Face ID
+    // not enrolled on a simulator), locking the user out of their own credential.
+    const biometric = opts.biometric ? await this.backend.isAvailable() : false
+    const record: VaultRecord = { biometric, creds }
     await this.backend.set(keyFor(serverId), JSON.stringify(record))
+  }
+
+  /** Whether this device can perform biometric verification (drives the checkbox default). */
+  async biometricAvailable(): Promise<boolean> {
+    return this.backend.isAvailable()
   }
 
   async retrieve(serverId: string): Promise<StoredCredentials | null> {
@@ -59,6 +69,22 @@ export class CredentialVault {
       return false
     }
   }
+
+  /**
+   * Read the non-secret identifier (caretaker login ID or account email) from a
+   * stored record without unlocking the secret — used to prefill the re-auth
+   * screen. Never returns the PIN/password; falls back to empty on any error.
+   */
+  async peekIdentifier(serverId: string): Promise<{ loginId?: string | null; email?: string }> {
+    const raw = await this.backend.get(keyFor(serverId))
+    if (!raw) return {}
+    try {
+      const { creds } = JSON.parse(raw) as VaultRecord
+      return creds.type === 'account' ? { email: creds.email } : { loginId: creds.loginId }
+    } catch {
+      return {}
+    }
+  }
 }
 
 /** Keychain/Keystore via NativeBiometric credential storage; server field namespaces the entry. */
@@ -86,6 +112,14 @@ function nativeBackend(): VaultBackend {
         return false
       }
     },
+    async isAvailable() {
+      try {
+        const { isAvailable } = await NativeBiometric.isAvailable()
+        return isAvailable
+      } catch {
+        return false
+      }
+    },
   }
 }
 
@@ -95,10 +129,18 @@ function webDevBackend(): VaultBackend {
     async get(key) { return localStorage.getItem(key) },
     async set(key, value) { localStorage.setItem(key, value) },
     async delete(key) { localStorage.removeItem(key) },
+    // The browser dev fallback fakes biometric as a no-op that always succeeds,
+    // so it reports itself "available" to stay internally consistent.
     async verifyIdentity() { return true },
+    async isAvailable() { return true },
   }
 }
 
 export function createVault(): CredentialVault {
   return new CredentialVault(Capacitor.isNativePlatform() ? nativeBackend() : webDevBackend())
+}
+
+/** Whether this device can perform biometric verification — drives the "Unlock with Face ID" default. */
+export function isBiometricAvailable(): Promise<boolean> {
+  return createVault().biometricAvailable()
 }

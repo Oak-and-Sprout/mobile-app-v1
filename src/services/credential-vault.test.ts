@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'vitest'
 import { CredentialVault, type StoredCredentials, type VaultBackend } from './credential-vault'
 
-function memoryBackend(verifyResult = true): VaultBackend & { verify: ReturnType<typeof vi.fn> } {
+function memoryBackend(verifyResult = true, available = true): VaultBackend & { verify: ReturnType<typeof vi.fn> } {
   const store = new Map<string, string>()
   const verify = vi.fn().mockResolvedValue(verifyResult)
   return {
@@ -9,6 +9,7 @@ function memoryBackend(verifyResult = true): VaultBackend & { verify: ReturnType
     set: async (k, v) => void store.set(k, v),
     delete: async k => void store.delete(k),
     verifyIdentity: verify,
+    isAvailable: async () => available,
     verify,
   }
 }
@@ -53,6 +54,20 @@ test('clear removes the entry', async () => {
   await vault.store('srv1', pinCreds, { biometric: false })
   await vault.clear('srv1')
   await expect(vault.retrieve('srv1')).resolves.toBeNull()
+})
+
+test('does not arm biometric when the device cannot verify — stored plain, read without a prompt', async () => {
+  const backend = memoryBackend(false, false) // biometric unavailable on this device
+  const vault = new CredentialVault(backend)
+  await vault.store('srv1', pinCreds, { biometric: true })
+  expect(await vault.isBiometric('srv1')).toBe(false)
+  await expect(vault.retrieve('srv1')).resolves.toEqual(pinCreds)
+  expect(backend.verify).not.toHaveBeenCalled()
+})
+
+test('biometricAvailable reflects the backend capability', async () => {
+  expect(await new CredentialVault(memoryBackend(true, true)).biometricAvailable()).toBe(true)
+  expect(await new CredentialVault(memoryBackend(true, false)).biometricAvailable()).toBe(false)
 })
 
 test('isBiometric reports the stored flag without verifying identity', async () => {

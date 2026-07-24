@@ -18,7 +18,8 @@ export default function Connecting({
       const outcome = await connect(entry)
       if (outcome === 'offline') navigate({ name: 'offline', entry })
       else if (outcome === 'locked') navigate({ name: 'families', notice: 'locked' })
-      // 'navigated' and 'needs-login' both mean the webview is navigating away — keep showing.
+      else if (outcome === 'needs-reauth') navigate({ name: 'reauth', entry })
+      // 'navigated' means the webview is navigating away — keep showing.
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

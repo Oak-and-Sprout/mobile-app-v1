@@ -9,9 +9,9 @@ import AccountVerify from './screens/AccountVerify'
 import AccountReset from './screens/AccountReset'
 import Offline from './screens/Offline'
 import Connecting from './screens/Connecting'
+import ReAuth from './screens/ReAuth'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
 import Wizard from './screens/wizard/Wizard'
-import { IconDefs } from './components/Icons'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
 import type { AccountCreds } from './services/credential-vault'
@@ -30,6 +30,7 @@ export type Screen =
   | { name: 'settings' }
   | { name: 'offline'; entry: ServerEntry }
   | { name: 'connecting'; entry: ServerEntry }
+  | { name: 'reauth'; entry: ServerEntry }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'splash' })
@@ -71,7 +72,6 @@ export default function App() {
 
   return (
     <div className="m-root" data-testid="app-root">
-      <IconDefs />
       {screen.name === 'splash' && <Splash onDone={handleSplashDone} />}
       {screen.name === 'fork' && <Fork navigate={setScreen} />}
       {screen.name === 'acct-signin' && <AccountSignIn navigate={setScreen} notice={screen.notice} />}
@@ -95,6 +95,7 @@ export default function App() {
       {screen.name === 'settings' && <Settings navigate={setScreen} />}
       {screen.name === 'offline' && <Offline navigate={setScreen} entry={screen.entry} />}
       {screen.name === 'connecting' && <Connecting entry={screen.entry} navigate={setScreen} />}
+      {screen.name === 'reauth' && <ReAuth entry={screen.entry} navigate={setScreen} />}
     </div>
   )
 }

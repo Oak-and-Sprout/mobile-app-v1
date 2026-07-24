@@ -34,6 +34,12 @@ describe('Connecting', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'families', notice: 'locked' }))
   })
 
+  it('routes to the re-auth screen when creds are missing or stale', async () => {
+    const navigate = vi.fn()
+    render(<Connecting entry={entry} navigate={navigate} connect={vi.fn().mockResolvedValue('needs-reauth')} />)
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'reauth', entry }))
+  })
+
   it('stays put on navigated (webview is taking over)', async () => {
     const navigate = vi.fn()
     const connect = vi.fn().mockResolvedValue('navigated')
