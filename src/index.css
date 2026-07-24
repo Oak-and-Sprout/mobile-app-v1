@@ -210,3 +210,15 @@ body {
 .ct-item .nm{font-weight:700;font-size:15px;color:var(--color-ink);flex:1;min-width:0}
 .ct-item .meta{font-size:12.5px;color:var(--color-sub);flex-shrink:0}
 .fi-err{font-size:12.5px;color:var(--color-rust);margin-top:4px}
+
+/* ---- wide screens (tablet / landscape): center the content column ----
+   Padding (not max-width) keeps backgrounds, dashed borders, and the scroll
+   container full-bleed while the content itself sits in a centered column.
+   Must stay last: it overrides padding shorthands of equal specificity above. */
+@media (min-width: 640px) {
+  .m-hd { padding-left: max(14px, calc((100% - 560px) / 2)); padding-right: max(14px, calc((100% - 560px) / 2)); }
+  .m-bd, .wiz-hd, .wiz-bd, .wiz-ft, .fork-bd { padding-left: max(22px, calc((100% - 560px) / 2)); padding-right: max(22px, calc((100% - 560px) / 2)); }
+  .center-scr { padding-left: max(34px, calc((100% - 420px) / 2)); padding-right: max(34px, calc((100% - 420px) / 2)); }
+  .wiz-art { right: max(18px, calc((100% - 640px) / 2)); }
+  .m-toast { max-width: min(86%, 420px); }
+}
