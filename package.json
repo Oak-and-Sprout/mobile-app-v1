@@ -23,7 +23,6 @@
   "homepage": "https://github.com/Oak-and-Sprout/mobile-app-v1#readme",
   "type": "module",
   "dependencies": {
-    "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor/app": "^8.1.1",
     "@capacitor/browser": "^8.0.4",
     "@capacitor/core": "^8.4.2",
