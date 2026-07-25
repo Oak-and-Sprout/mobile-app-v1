@@ -35,6 +35,7 @@ describe('screenForDeepLink', () => {
   it('ignores a claimed path with no token', () => {
     expect(screenForDeepLink('https://sprout-track.com/passwordreset')).toBeNull()
     expect(screenForDeepLink('https://sprout-track.com/setup/')).toBeNull()
+    expect(screenForDeepLink('https://sprout-track.com/verify')).toBeNull()
   })
 
   it('ignores a malformed url', () => {
