@@ -153,6 +153,46 @@ test('navigating fork -> acct-signin -> acct-reset renders the reset-password sc
   expect(screen.getByRole('heading', { name: 'Reset your password.' })).toBeInTheDocument()
 })
 
+test('with a prior connect and an unasked opt-in, the splash resolves to the push intro', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  await Preferences.set({ key: 'has-connected-once', value: 'true' })
+  // push-opt-in left unset -> getOptIn() === 'unasked'
+  render(<App />)
+  await finishSplash()
+  expect(screen.getByRole('button', { name: /turn on/i })).toBeInTheDocument()
+})
+
+test('a bridge-event logout still wins over a pending push intro', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  await Preferences.set({ key: 'has-connected-once', value: 'true' })
+  const bridgeEvent = encodeURIComponent(encodeMessage({ type: 'loggedOut', reason: 'switch-family' }))
+  window.history.replaceState(null, '', `/?bridge-event=${bridgeEvent}`)
+  render(<App />)
+  await finishSplash()
+  expect(screen.getByText(/my families/i)).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /turn on/i })).not.toBeInTheDocument()
+})
+
+test('with a prior connect but opt-in already granted, the intro never re-shows', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  await Preferences.set({ key: 'has-connected-once', value: 'true' })
+  await Preferences.set({ key: 'push-opt-in', value: 'granted' })
+  await Preferences.set({ key: AUTO_OPEN_KEY, value: 'false' })
+  render(<App />)
+  await finishSplash()
+  expect(screen.getByText(/my families/i)).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: /turn on/i })).not.toBeInTheDocument()
+})
+
 test('a fresh account with no family routes straight from signup into the wizard', async () => {
   // Spies must be in place before AccountSignUp mounts - its deps are captured once at mount.
   vi.spyOn(accountService, 'registerAccount').mockResolvedValue({ ok: true })
