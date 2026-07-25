@@ -24,7 +24,7 @@ on mobile-app-v1; server-side changes go on the sprout-track feature branch.
 - `npm run android` — needs `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"` if `java` isn't on PATH.
 - `npx cap run ios` — full Xcode required; deps resolve via **SPM, not CocoaPods**.
 
-In `sprout-track/`: `npm test` (706 tests, node env, `@/` alias), `npm run dev` (Next.js on :3000).
+In `sprout-track/`: `npm test` (920 tests, node env, `@/` alias), `npm run dev` (Next.js on :3000).
 
 ## Emulator/simulator networking (recurring gotcha)
 
@@ -78,17 +78,53 @@ to any user-entered server. iOS additionally has an ATS
 
 ## Known v0 seams (things that look like bugs and partly are)
 
-- **Session handoff is incomplete**: `src/services/connect.ts` logs in from
-  the shell (gets a JWT) but then just navigates to `{base}/{slug}/log-entry`
-  — the token is never handed to the web app, so the user sees the web login
-  screen again. Silent injection (getting the token into the web app's
-  localStorage on the server origin) is the planned fix and needs cooperation
-  from the server's native-aware layer.
 - Biometric gate is JS-level (verify-then-read), not OS accessControl-backed
   Keychain — hardening is a follow-up.
-- Push: server needs `FCM_SERVICE_ACCOUNT_JSON`; app side still needs
-  `android/app/google-services.json` and the Firebase iOS SDK (raw APNs
-  tokens are not accepted by FCM v1).
+- A human must open Xcode once to reconcile automatic signing and the
+  Push/Associated-Domains capabilities with the Apple Developer portal — not
+  automatable from the CLI, not yet done as of this pass.
+- Manual device verification of nursery mode (screen stays awake, goes
+  immersive, cleanly reverts, on a real device or simulator) has not been run.
+- `android/app/google-services.json` is gitignored and must be supplied to
+  register with FCM for Android native push. `ios/App/App/GoogleService-Info.plist`
+  is also gitignored from an earlier design but is **not actually referenced
+  anywhere in the Xcode project** — iOS push is direct APNs (see below), not
+  Firebase, so this file is vestigial for iOS builds today.
+
+Session handoff is no longer a seam: `sessionHandoffUrl()` in
+`src/services/connect.ts` (shell side) builds a `#bridge-session=` URL carrying
+the freshly-issued JWT, and `sprout-track/src/utils/native-session.ts` (server
+side) decodes and injects it into `localStorage` before the web app's first
+render — see `docs/superpowers/specs/2026-07-25-native-push-and-nursery-wake-design.md`
+for the full design.
+
+## Push and deep links
+
+Native push, Universal/App Links, and the native-URL-driven nursery wake lock
+were built in the `2026-07-25-native-push-deep-links-and-nursery-wake` pass.
+Full design: `docs/superpowers/specs/2026-07-25-native-push-and-nursery-wake-design.md`.
+Ledger: `.superpowers/sdd/2026-07-25-native-push-deep-links-and-nursery-wake/progress.md`.
+Server-side architecture (push transports, `DeviceToken`, deep-link claiming):
+`sprout-track/documentation/Architecture-Documentation/NativeAppIntegration.md`.
+
+The short version:
+
+- Push is **FCM for Android + direct APNs for iOS** — no Firebase iOS SDK —
+  dispatched from the server behind `nativePush.ts`. The shell (`src/services/push.ts`,
+  `push-opt-in.ts`) owns permission, token acquisition, and registration;
+  `sprout-track/src/utils/native-push.ts` no longer exists. The permission
+  intro shows on the **launch after** the first connect (`hasConnectedOnce`),
+  not immediately after connecting — the shell's React tree is gone by the
+  time a connect finishes handing the WebView to the server.
+- `src/services/deep-links.ts` claims `/setup/*`, `/verify*`, `/passwordreset*`.
+  **`/account` is never claimed, on purpose** — that's what keeps subscription
+  management opening in the system browser for App Store compliance.
+- Nursery keep-awake/immersive is now **native URL observation**
+  (`ios/App/App/NurseryAwareViewController.swift` KVO on `webView.url`;
+  `android/.../NurseryAwareWebViewClient.java` `doUpdateVisitedHistory`), not
+  the `KeepAwake` plugin, which has been removed as a dependency — the shell's
+  JS stops running once the WebView is handed to the server, so nothing on
+  this side can drive a plugin-based wake lock.
 
 ## Theme — two generations, don't mix them
 
