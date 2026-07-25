@@ -1,5 +1,5 @@
 import { describe, expect, it, test, vi } from 'vitest'
-import { registerAccount, fetchAccountStatus, resendVerification, requestPasswordReset, fetchSetupStatus, validateResetToken, submitPasswordReset } from './account'
+import { registerAccount, fetchAccountStatus, resendVerification, requestPasswordReset, fetchSetupStatus, validateResetToken, submitPasswordReset, verifyEmailToken } from './account'
 
 test('registerAccount posts and maps success', async () => {
   const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { success: true, requiresVerification: true } } })
@@ -97,5 +97,47 @@ describe('submitPasswordReset', () => {
     const post = vi.fn().mockRejectedValue(new Error('offline'))
     expect(await submitPasswordReset('https://s.test', 'tok', 'Abcdef1!', post))
       .toEqual({ ok: false, error: 'unreachable' })
+  })
+})
+
+describe('verifyEmailToken', () => {
+  it('succeeds on a success envelope', async () => {
+    const post = vi.fn().mockResolvedValue({
+      status: 200,
+      body: { success: true, data: { success: true, message: 'Account verified successfully! You can now set up your family.', redirectUrl: '/coming-soon' } },
+    })
+    expect(await verifyEmailToken('https://s.test', 'tok', post)).toEqual({ ok: true })
+    expect(post).toHaveBeenCalledWith('https://s.test/api/accounts/verify', { token: 'tok' })
+  })
+
+  it('treats an already-verified account as success too', async () => {
+    const post = vi.fn().mockResolvedValue({
+      status: 200,
+      body: { success: true, data: { success: true, message: 'Account already verified.', familySlug: 'smith', redirectUrl: '/smith' } },
+    })
+    expect(await verifyEmailToken('https://s.test', 'tok', post)).toEqual({ ok: true })
+  })
+
+  it('maps 404 (unknown/expired token) to invalid with the server message', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 404, body: { success: false, error: 'Invalid or expired verification token' } })
+    expect(await verifyEmailToken('https://s.test', 'tok', post))
+      .toEqual({ ok: false, error: 'invalid', message: 'Invalid or expired verification token' })
+  })
+
+  it('maps 400 (missing token) to invalid', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 400, body: { success: false, error: 'Verification token is required' } })
+    expect(await verifyEmailToken('https://s.test', 'tok', post))
+      .toEqual({ ok: false, error: 'invalid', message: 'Verification token is required' })
+  })
+
+  it('maps a 500 to unreachable, not invalid - the request never completed', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 500, body: { success: false, error: 'Verification failed. Please try again or contact support.' } })
+    expect(await verifyEmailToken('https://s.test', 'tok', post))
+      .toEqual({ ok: false, error: 'unreachable', message: 'Verification failed. Please try again or contact support.' })
+  })
+
+  it('maps a thrown request to unreachable', async () => {
+    const post = vi.fn().mockRejectedValue(new Error('offline'))
+    expect(await verifyEmailToken('https://s.test', 'tok', post)).toEqual({ ok: false, error: 'unreachable' })
   })
 })

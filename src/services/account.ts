@@ -191,3 +191,41 @@ export async function submitPasswordReset(
   const error = res.status === 429 ? 'rate-limited' : 'invalid'
   return { ok: false, error, ...(typeof message === 'string' ? { message } : {}) }
 }
+
+export type VerifyEmailResult =
+  | { ok: true }
+  | { ok: false; error: 'invalid' | 'unreachable'; message?: string }
+
+/**
+ * Consumes the one-time token from an emailed `/verify?token=` link
+ * (POST /api/accounts/verify on the server). Unauthenticated and distinct
+ * from fetchAccountStatus's polling, which needs an account JWT from a
+ * fresh login - a cold deep-link tap has neither a JWT nor stored
+ * credentials, only this token.
+ */
+export async function verifyEmailToken(
+  base: string,
+  token: string,
+  post: typeof postJson = postJson,
+): Promise<VerifyEmailResult> {
+  let res: { status: number; body: unknown }
+  try {
+    res = await post(`${base}/api/accounts/verify`, { token })
+  } catch {
+    return { ok: false, error: 'unreachable' }
+  }
+  const envelope = res.body as
+    | { success?: boolean; error?: string; data?: { success?: boolean; message?: string } }
+    | null
+  if (res.status === 200 && envelope?.success && envelope.data?.success !== false) {
+    return { ok: true }
+  }
+  const message = envelope?.error ?? envelope?.data?.message
+  // 400 (malformed request - missing token) and 404 (unknown/expired token) both
+  // mean the link itself can't be honored. Anything else (500, an unparseable
+  // response) means the request didn't complete, not that the token is bad.
+  if (res.status === 400 || res.status === 404) {
+    return { ok: false, error: 'invalid', ...(typeof message === 'string' ? { message } : {}) }
+  }
+  return { ok: false, error: 'unreachable', ...(typeof message === 'string' ? { message } : {}) }
+}
