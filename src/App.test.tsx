@@ -345,21 +345,25 @@ test('a Universal Link the shell does not claim leaves the normal boot destinati
   expect(screen.getByText(/Everyone you love,/)).toBeInTheDocument()
 })
 
-test('a deep link tapped after landing on the push intro does not clobber it', async () => {
+test('a deep link tapped after landing on a screen still navigates (post-splash)', async () => {
   await saveServer({
     baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
     deploymentMode: 'selfhosted', authType: 'SYSTEM',
   })
   await Preferences.set({ key: 'has-connected-once', value: 'true' })
   // push-opt-in left unset -> getOptIn() === 'unasked' -> boots to push-intro.
+  // AccountResetConfirm isn't given injectable deps from App.tsx, so it calls the
+  // real validateResetToken on mount - stub fetch to keep this test off the network.
+  vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => {}))
   const deepLink = fakeDeepLinkPlugin()
   render(<App deepLinkPlugin={deepLink.plugin} />)
   await finishSplash()
   expect(screen.getByRole('button', { name: /turn on/i })).toBeInTheDocument()
-  // Once splash is done, applyBootTarget only swaps the live screen while it's
-  // still 'splash' - a link tapped after landing on a real screen can't override it.
+  // Once splash is done, a tapped link is a live user-initiated navigation
+  // (e.g. "forgot password" -> mail app -> tap the link), not a boot-time
+  // race - it must actually land on the target screen, not be dropped.
   await deepLink.open('https://sprout-track.com/passwordreset?token=abc123')
-  expect(screen.getByRole('button', { name: /turn on/i })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Set a new password.' })).toBeInTheDocument()
 })
 
 test('a push tap with a malicious route degrades to log-entry', async () => {

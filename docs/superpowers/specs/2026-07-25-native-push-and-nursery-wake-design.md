@@ -591,11 +591,14 @@ today.
 | `APNS_BUNDLE_ID` | New. `apns-topic` header value — `com.sprouttrack.app`. |
 | `APNS_PRODUCTION` | New. `'true'` ⇒ `api.push.apple.com`, otherwise the sandbox host. |
 
-**`APNS_PRODUCTION` is the operational trap.** Development and TestFlight builds
-mint *sandbox* device tokens, which return `BadDeviceToken` against the
-production host and vice versa. This is why §5.2 does not delete on
-`BadDeviceToken`: during rollout it will almost always mean the environment is
-misconfigured, not that the device is gone.
+**`APNS_PRODUCTION` is the operational trap.** Only an Xcode-installed
+development build mints *sandbox* device tokens. TestFlight builds are signed
+with an App Store distribution profile (`aps-environment: production`) and so,
+like App Store builds, mint *production* tokens — TestFlight is not sandbox.
+A token minted under one environment returns `BadDeviceToken` against the
+other host. This is why §5.2 does not delete on `BadDeviceToken`: during
+rollout it will almost always mean the environment is misconfigured, not that
+the device is gone.
 
 All variables are documented in
 `documentation/Admin-Documentation/environment-variables.md`, noting that native

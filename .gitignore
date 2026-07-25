@@ -11,4 +11,7 @@ docs/mockups/v1-storybook/art/family-porch-flipped.png
 
 # Firebase config artifacts (real files come from the Firebase console; not checked in)
 android/app/google-services.json
+# Not used on iOS - iOS push is direct APNs with no Firebase iOS SDK (spec
+# decision D2, Package.swift carries no Firebase dependency). Ignored only so
+# an operator who mistakenly drops one in doesn't accidentally commit it.
 ios/App/App/GoogleService-Info.plist

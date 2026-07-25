@@ -27,7 +27,11 @@ export interface PushDeps {
 // server-registry.ts, main.tsx); reaching through globalThis instead silently
 // leaves `Capacitor.Plugins.PushNotifications` unpopulated and every push call
 // below degrades to its swallowed-failure path with no error anywhere.
-function defaults(): PushDeps {
+// Exported so push.test.ts can assert `defaults().plugin === PushNotifications`
+// directly - a test that only imports PushNotifications and asserts on the npm
+// export never exercises this function at all, and would stay green even if
+// this reverted to the globalThis reach-through described above.
+export function defaults(): PushDeps {
   return {
     plugin: PushNotifications as unknown as PushPlugin,
     platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',

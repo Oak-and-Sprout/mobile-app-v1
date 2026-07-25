@@ -30,6 +30,20 @@
             </intent-filter>
         </activity>
 
+        <!--
+          Spec §6.4: without these, Android 8+ falls back to the launcher icon
+          (forced to a solid white silhouette by the OS, so it renders as a
+          blob) and routes messages into FCM's auto-created "Miscellaneous"
+          channel instead of a named one. The channel id referenced here is
+          created in MainActivity.onCreate() before any message can arrive.
+        -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="@string/default_notification_channel_id" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

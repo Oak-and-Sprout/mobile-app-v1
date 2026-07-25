@@ -188,8 +188,17 @@ export async function submitPasswordReset(
   const envelope = res.body as { success?: boolean; error?: string; data?: { success?: boolean } } | null
   if (res.status === 200 && envelope?.success && envelope.data?.success) return { ok: true }
   const message = envelope?.error
-  const error = res.status === 429 ? 'rate-limited' : 'invalid'
-  return { ok: false, error, ...(typeof message === 'string' ? { message } : {}) }
+  if (res.status === 429) {
+    return { ok: false, error: 'rate-limited', ...(typeof message === 'string' ? { message } : {}) }
+  }
+  // 400 (malformed request) and 404 (unknown/expired token) both mean the
+  // link itself can't be honored. Anything else (500, an unparseable
+  // response) means the request didn't complete, not that the token is bad -
+  // same shape as verifyEmailToken above.
+  if (res.status === 400 || res.status === 404) {
+    return { ok: false, error: 'invalid', ...(typeof message === 'string' ? { message } : {}) }
+  }
+  return { ok: false, error: 'unreachable', ...(typeof message === 'string' ? { message } : {}) }
 }
 
 export type VerifyEmailResult =

@@ -70,6 +70,39 @@ describe('notifications row', () => {
     await waitFor(async () => expect(await getOptIn()).toBe('declined'))
   })
 
+  test('turning the switch off unregisters the stored token against every saved family', async () => {
+    vi.mocked(permissionState).mockResolvedValue('granted')
+    await setOptIn('granted')
+    await setLastToken('tok-1')
+    await saveServer({
+      baseUrl: 'https://a.example.com', familySlug: 'a', familyName: 'A',
+      deploymentMode: 'selfhosted', authType: 'SYSTEM',
+    })
+    await saveServer({
+      baseUrl: 'https://b.example.com', familySlug: 'b', familyName: 'B',
+      deploymentMode: 'selfhosted', authType: 'SYSTEM',
+    })
+    const user = userEvent.setup()
+    render(<Settings navigate={vi.fn()} />)
+    const toggle = await screen.findByRole('switch', { name: /notifications/i })
+    await user.click(toggle)
+    await waitFor(() => expect(unregisterFrom).toHaveBeenCalledTimes(2))
+    expect(unregisterFrom).toHaveBeenCalledWith('https://a.example.com', 'tok-1')
+    expect(unregisterFrom).toHaveBeenCalledWith('https://b.example.com', 'tok-1')
+  })
+
+  test('turning the switch off still flips the row even when reading the stored token rejects', async () => {
+    vi.mocked(permissionState).mockResolvedValue('granted')
+    await setOptIn('granted')
+    vi.mocked(getLastToken).mockRejectedValueOnce(new Error('native preferences failure'))
+    const user = userEvent.setup()
+    render(<Settings navigate={vi.fn()} />)
+    const toggle = await screen.findByRole('switch', { name: /notifications/i })
+    await user.click(toggle)
+    expect(await screen.findByRole('button', { name: /turn on notifications/i })).toBeInTheDocument()
+    expect(unregisterFrom).not.toHaveBeenCalled()
+  })
+
   test('shows a turn-on button when off, which opens the intro screen', async () => {
     vi.mocked(permissionState).mockResolvedValue('prompt')
     const navigate = vi.fn()

@@ -98,6 +98,12 @@ describe('submitPasswordReset', () => {
     expect(await submitPasswordReset('https://s.test', 'tok', 'Abcdef1!', post))
       .toEqual({ ok: false, error: 'unreachable' })
   })
+
+  it('maps a 500 to unreachable, not invalid - the request never completed', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 500, body: { success: false, error: 'Internal error' } })
+    expect(await submitPasswordReset('https://s.test', 'tok', 'Abcdef1!', post))
+      .toEqual({ ok: false, error: 'unreachable', message: 'Internal error' })
+  })
 })
 
 describe('verifyEmailToken', () => {

@@ -4,4 +4,9 @@
     <string name="title_activity_main">Sprout Track</string>
     <string name="package_name">com.sprouttrack.app</string>
     <string name="custom_url_scheme">com.sprouttrack.app</string>
+    <!-- Spec §6.4: default FCM channel id, created in MainActivity.onCreate()
+         so incoming pushes never fall into FCM's auto-created "Miscellaneous"
+         channel. -->
+    <string name="default_notification_channel_id" translatable="false">default</string>
+    <string name="default_notification_channel_name">Sprout Track</string>
 </resources>

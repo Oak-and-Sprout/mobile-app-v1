@@ -48,6 +48,20 @@ export default function Settings({
   async function turnOffNotifications() {
     setNotif('off')
     await setOptIn('declined')
+    // Best effort - stops this phone's notifications immediately rather than
+    // waiting for the token to go stale on the server. Must never block the
+    // row from flipping, including a failed *read* of the stored token, not
+    // just a failed unregister - same pattern as clearAll and Families.remove.
+    try {
+      const token = await getLastToken()
+      if (token) {
+        for (const entry of await listServers()) {
+          await unregisterFrom(entry.baseUrl, token)
+        }
+      }
+    } catch {
+      // Best effort - see comment above.
+    }
   }
 
   async function clearAll() {

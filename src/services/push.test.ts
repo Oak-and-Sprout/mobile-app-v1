@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { PushNotifications } from '@capacitor/push-notifications'
-import { permissionState, requestPermission, acquireToken, registerWith, registerPushForEntry } from './push'
+import { defaults, permissionState, requestPermission, acquireToken, registerWith, registerPushForEntry } from './push'
 import type { ServerEntry } from './server-registry'
 
 function fakePlugin(over: Record<string, unknown> = {}) {
@@ -19,11 +19,11 @@ function fakePlugin(over: Record<string, unknown> = {}) {
 // plugin being absent) but wrong for the shell, which owns its own bundle: an
 // unimported plugin never runs Capacitor's registerPlugin() side effect, so
 // Capacitor.Plugins.PushNotifications stays undefined and every push call
-// silently degrades to its swallowed-failure path with no error anywhere. jsdom
-// has no native PushNotifications implementation to call through to, so this
-// asserts the imported binding itself is live and shaped like a plugin, which
-// is exactly what breaks (import removed -> binding undefined/incomplete) if
-// the globalThis approach is reintroduced.
+// silently degrades to its swallowed-failure path with no error anywhere.
+// Asserting on the imported PushNotifications binding alone (as this test used
+// to) never exercises push.ts's own defaults() - a revert to the globalThis
+// reach-through would leave that assertion green. Asserting identity against
+// defaults().plugin is what actually pins push.ts to the direct import.
 describe('PushNotifications import wiring', () => {
   it('imports a live plugin binding with the methods push.ts depends on', () => {
     expect(PushNotifications).toBeDefined()
@@ -31,6 +31,10 @@ describe('PushNotifications import wiring', () => {
     expect(typeof PushNotifications.addListener).toBe('function')
     expect(typeof PushNotifications.checkPermissions).toBe('function')
     expect(typeof PushNotifications.requestPermissions).toBe('function')
+  })
+
+  it('defaults() wires the plugin to the direct import, not a globalThis reach-through', () => {
+    expect(defaults().plugin).toBe(PushNotifications)
   })
 })
 

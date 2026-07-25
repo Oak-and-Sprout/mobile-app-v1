@@ -121,29 +121,45 @@ export default function App({
     })
 
     // A Universal/App Link (setup, verify, password-reset) can arrive at any
-    // point after launch, cold-start included. Route through applyBootTarget
-    // (never setScreen) so it's still subject to the splash/bootTarget guards
-    // above. Same `bootAction !== 'auto-open'` guard as the push listener: a
-    // pending bridge event (logout, switch-family, session-expired) is an
-    // explicit signal from the web app and must keep winning over a deep
-    // link, exactly like it wins over a queued push tap. There's no ordering
-    // guarantee between a deep link and a push tap themselves - whichever's
-    // applyBootTarget call lands last (while still on splash) wins, same as
-    // any other boot-target race; once splash is done, applyBootTarget only
-    // updates bootTarget.current and no longer swaps the live screen (see the
-    // splashDone check below), so a link tapped after landing on a screen
-    // can't silently override it. screenForDeepLink returns null for
-    // anything it doesn't claim (including /account, deliberately, for App
-    // Store payment compliance) - that means "not ours", so the link is
-    // simply not routed and the normal boot proceeds. Same web-implementation
-    // caveat as the push listener: addListener rejects outright outside a
-    // native runtime (dev server, tests), which must never surface as an
-    // unhandled rejection - but is worth a console.warn so a genuine
-    // on-device registration failure stays diagnosable.
+    // point after launch, cold-start included. Before splash finishes, route
+    // through applyBootTarget so it's still subject to the splash/bootTarget
+    // race guard below. Same `bootAction !== 'auto-open'` guard as the push
+    // listener: a pending bridge event (logout, switch-family,
+    // session-expired) is an explicit signal from the web app and must keep
+    // winning over a deep link, exactly like it wins over a queued push tap.
+    // There's no ordering guarantee between a deep link and a push tap
+    // themselves - whichever's applyBootTarget call lands last (while still
+    // on splash) wins, same as any other boot-target race.
+    //
+    // After splash is done, this must call setScreen directly instead: a link
+    // tapped post-launch (e.g. "forgot password" -> mail app -> tap the link
+    // -> iOS foregrounds this app) is a live navigation the user is actively
+    // waiting on, not a boot-time race, so it has to actually land - going
+    // through applyBootTarget here would silently drop it (it only updates
+    // bootTarget.current once splash has finished, since nothing re-reads
+    // that ref afterwards). screenForDeepLink returns null for anything it
+    // doesn't claim (including /account, deliberately, for App Store payment
+    // compliance) - that means "not ours", so the link is simply not routed;
+    // pre-splash that leaves the normal boot proceeding, post-splash it's a
+    // no-op. Same web-implementation caveat as the push listener: addListener
+    // rejects outright outside a native runtime (dev server, tests), which
+    // must never surface as an unhandled rejection - but is worth a
+    // console.warn so a genuine on-device registration failure stays
+    // diagnosable.
+    //
+    // Out of scope: once the WebView has navigated to the remote server
+    // origin, this shell's JS (and this listener) isn't running - a deep
+    // link tapped at that point needs native (Swift/Kotlin) handling to
+    // route it, which this fix does not add.
     deepLinkPlugin.addListener('appUrlOpen', ({ url }) => {
       if (bootAction !== 'auto-open') return
       const target = screenForDeepLink(url)
-      if (target) applyBootTarget(target)
+      if (!target) return
+      if (splashDone.current) {
+        setScreen(target)
+      } else {
+        applyBootTarget(target)
+      }
     }).catch(err => {
       console.warn('[deep-link] failed to attach appUrlOpen listener', err)
     })

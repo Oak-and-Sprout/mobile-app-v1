@@ -131,6 +131,7 @@ test('still navigates when push registration throws', async () => {
     registerPush: () => { throw new Error('boom') },
   })
   expect(outcome).toBe('navigated')
+  expect(openUrl).toHaveBeenCalled()
 })
 
 test('does not register push when login fails', async () => {
@@ -168,6 +169,7 @@ test('still navigates when marking connected-once throws', async () => {
     markConnectedOnce: () => { throw new Error('boom') },
   })
   expect(outcome).toBe('navigated')
+  expect(openUrl).toHaveBeenCalled()
 })
 
 test('threads a route through to the handoff URL', async () => {
