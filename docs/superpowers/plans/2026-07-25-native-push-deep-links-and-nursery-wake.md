@@ -1886,7 +1886,7 @@ export default function NotificationsIntro({
 If `Icons.tsx` has no `i-bell` glyph, add one in the established style, or reuse
 an existing glyph rather than inventing markup.
 
-- [ ] **Step 4: Wire into `App.tsx`**
+- [ ] **Step 4: Wire into `App.tsx` — shown on the launch AFTER the first connect**
 
 Add to the `Screen` union:
 
@@ -1900,10 +1900,59 @@ and to the render block:
 {screen.name === 'push-intro' && <NotificationsIntro navigate={setScreen} next={screen.next} />}
 ```
 
-In `Connecting.tsx`, after a `'navigated'` outcome, check `getOptIn()` — when it
-returns `'unasked'`, navigate to `{ name: 'push-intro', next: { name: 'families' } }`
-**before** the WebView handoff. Read `Connecting.tsx` first and follow its
-existing navigation shape.
+**Timing matters and is easy to get wrong.** The shell cannot show anything
+"just after connecting" — `connectToFamily` calls `openUrl` internally, so by the
+time it returns `'navigated'` the WebView has left for the server and the shell's
+React tree is gone. Instead:
+
+1. In `push-opt-in.ts`, add `hasConnectedOnce()` / `markConnectedOnce()` backed by
+   a `has-connected-once` Preferences key, mirroring `getOptIn` / `setOptIn`.
+2. In `connect.ts`, call `void markConnectedOnce()` in the same success branch
+   that calls `registerPush`.
+3. In `App.tsx`'s launch effect, **before** resolving the auto-open / families
+   target, insert the intro when the user has already used the app once:
+
+```ts
+if ((await getOptIn()) === 'unasked' && (await hasConnectedOnce())) {
+  const next = def && autoOpen ? { name: 'connecting' as const, entry: def } : { name: 'families' as const }
+  return applyBootTarget({ name: 'push-intro', next })
+}
+```
+
+Place it after `getDefaultServer()` / `isAutoOpenEnabled()` resolve so `next`
+carries the destination the user would otherwise have reached. Leave the
+`bootAction` branches above it untouched — a bridge event is a deliberate
+navigation and must not be preempted by the intro.
+
+Add matching cases to `push-opt-in.test.ts`:
+
+```ts
+it('has not connected before the first connect', async () => {
+  expect(await hasConnectedOnce()).toBe(false)
+})
+
+it('remembers that a connect happened', async () => {
+  await markConnectedOnce()
+  expect(await hasConnectedOnce()).toBe(true)
+})
+```
+
+and to `connect.test.ts`:
+
+```ts
+it('marks that a connect happened so the intro can appear next launch', async () => {
+  const markConnectedOnce = vi.fn()
+  await connectToFamily(ENTRY, {
+    vault: { retrieve: async () => CREDS, store: async () => {}, clear: async () => {} },
+    login: async () => ({ ok: true, token: 'jwt-9', familySlug: 'fam' }),
+    touch: async () => {}, openUrl: () => {}, registerPush: () => {}, markConnectedOnce,
+  })
+  expect(markConnectedOnce).toHaveBeenCalled()
+})
+```
+
+`markConnectedOnce` joins `ConnectDeps` alongside `registerPush`, defaulted the
+same way.
 
 - [ ] **Step 5: Verify**
 
@@ -2709,9 +2758,9 @@ describe('screenForDeepLink', () => {
       .toEqual({ name: 'acct-verify-link', token: 'xyz' })
   })
 
-  it('routes a setup link to add-family with the token prefilled', () => {
-    expect(screenForDeepLink('https://sprout-track.com/setup/tok123'))
-      .toEqual({ name: 'add-family', prefillInput: 'tok123' })
+  it('routes a setup link to the setup-link screen', () => {
+    expect(screenForDeepLink('https://sprout-track.com/setup/a1b2c3'))
+      .toEqual({ name: 'setup-link', token: 'a1b2c3' })
   })
 
   it('NEVER claims /account - IAP compliance depends on it opening externally', () => {
@@ -2778,10 +2827,14 @@ export function screenForDeepLink(url: string): Screen | null {
 
   if (segments[0] === 'passwordreset') return token ? { name: 'acct-reset-confirm', token } : null
   if (segments[0] === 'verify') return token ? { name: 'acct-verify-link', token } : null
-  if (segments[0] === 'setup' && segments[1]) return { name: 'add-family', prefillInput: segments[1] }
+  if (segments[0] === 'setup' && segments[1]) return { name: 'setup-link', token: segments[1] }
   return null
 }
 ```
+
+The `setup-link` screen is built in Task 15. Add
+`| { name: 'setup-link'; token: string }` to the `Screen` union in this task so
+`screenForDeepLink` type-checks; Task 15 adds the screen and its render branch.
 
 The `acct-verify-link` variant is new: `AccountVerify` requires `creds` it cannot
 have on a cold link. Add `{ name: 'acct-verify-link'; token: string }` to the
@@ -2821,9 +2874,331 @@ git commit -m "feat(deeplinks): route setup, verify, and reset links into the sh
 
 ---
 
+### Task 15: Setup-link flow
+
+**Files:**
+- Modify: `mobile-app-v1/src/services/wizard.ts`
+- Modify: `mobile-app-v1/src/services/wizard.test.ts`
+- Create: `mobile-app-v1/src/screens/SetupLink.tsx`
+- Create: `mobile-app-v1/src/screens/SetupLink.test.tsx`
+- Modify: `mobile-app-v1/src/screens/wizard/Wizard.tsx`
+- Modify: `mobile-app-v1/src/App.tsx`
+
+**Interfaces:**
+- Consumes: `screenForDeepLink` producing `{ name: 'setup-link'; token }` (Task 14)
+- Produces:
+  - `validateSetupToken(base, token, post?): Promise<'valid' | 'invalid' | 'expired' | 'used' | 'unreachable'>`
+  - `exchangeSetupToken(base, token, password, post?): Promise<{ ok: true; jwt: string } | { ok: false; error: 'wrong-password' | 'invalid' | 'unreachable' }>`
+  - `createFamily(base, jwt, args, post?)` gains an optional `setupToken` in `args`
+  - `finishSetupWizard(base, slug, familyName, creds, biometric, deps?): Promise<{ toast: string }>`
+  - `Wizard` gains `mode?: 'account' | 'setup'` and `setupToken?: string`
+
+**Background:** `/setup/{token}` is an admin-generated provisioning link
+(`create-setup-link`, system administrators only) — a 6-hex-character token in
+`FamilySetup` with a stored password and a 7-day expiry. It is a **different auth
+model** from account signup, but the Wizard's three steps are reusable: only the
+auth source and the finish step change.
+
+- [ ] **Step 1: Write the failing service tests**
+
+Add to `mobile-app-v1/src/services/wizard.test.ts`:
+
+```ts
+import { validateSetupToken, exchangeSetupToken } from './wizard'
+
+describe('validateSetupToken', () => {
+  it('reports a usable token', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { valid: true } } })
+    expect(await validateSetupToken('https://s.test', 'a1b2c3', post)).toBe('valid')
+    expect(post).toHaveBeenCalledWith('https://s.test/api/setup/validate-token', { token: 'a1b2c3' })
+  })
+
+  it('distinguishes expired from invalid from already-used', async () => {
+    const mk = (status: number) => vi.fn().mockResolvedValue({ status, body: { success: false } })
+    expect(await validateSetupToken('https://s.test', 't', mk(404))).toBe('invalid')
+    expect(await validateSetupToken('https://s.test', 't', mk(410))).toBe('expired')
+    expect(await validateSetupToken('https://s.test', 't', mk(409))).toBe('used')
+  })
+
+  it('reports unreachable when the request throws', async () => {
+    const post = vi.fn().mockRejectedValue(new Error('offline'))
+    expect(await validateSetupToken('https://s.test', 't', post)).toBe('unreachable')
+  })
+})
+
+describe('exchangeSetupToken', () => {
+  it('returns the setup JWT', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { token: 'jwt-setup' } } })
+    expect(await exchangeSetupToken('https://s.test', 'a1b2c3', 'pw', post))
+      .toEqual({ ok: true, jwt: 'jwt-setup' })
+    expect(post).toHaveBeenCalledWith('https://s.test/api/auth/token', { token: 'a1b2c3', password: 'pw' })
+  })
+
+  it('maps 401 to wrong-password so the user can retry', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 401, body: { success: false } })
+    expect(await exchangeSetupToken('https://s.test', 't', 'bad', post))
+      .toEqual({ ok: false, error: 'wrong-password' })
+  })
+
+  it('maps 410 to invalid', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 410, body: { success: false } })
+    expect(await exchangeSetupToken('https://s.test', 't', 'pw', post))
+      .toEqual({ ok: false, error: 'invalid' })
+  })
+
+  it('maps a thrown request to unreachable', async () => {
+    const post = vi.fn().mockRejectedValue(new Error('offline'))
+    expect(await exchangeSetupToken('https://s.test', 't', 'pw', post))
+      .toEqual({ ok: false, error: 'unreachable' })
+  })
+})
+
+describe('createFamily in setup mode', () => {
+  it('sends the setup token and isNewFamily alongside name and slug', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { id: 'fam1' } } })
+    await createFamily('https://s.test', 'jwt', { name: 'Smith', slug: 'smith', setupToken: 'a1b2c3' }, post)
+    expect(post).toHaveBeenCalledWith(
+      'https://s.test/api/setup/start',
+      { name: 'Smith', slug: 'smith', token: 'a1b2c3', isNewFamily: true },
+      { token: 'jwt' },
+    )
+  })
+
+  it('omits both in account mode', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { id: 'fam1' } } })
+    await createFamily('https://s.test', 'jwt', { name: 'Smith', slug: 'smith' }, post)
+    expect(post).toHaveBeenCalledWith(
+      'https://s.test/api/setup/start',
+      { name: 'Smith', slug: 'smith' },
+      { token: 'jwt' },
+    )
+  })
+})
+```
+
+- [ ] **Step 2: Run to verify they fail**
+
+```bash
+cd /Users/johnoverton/Development/mobile-app-v1 && npx vitest run src/services/wizard.test.ts
+```
+
+Expected: FAIL.
+
+- [ ] **Step 3: Implement the service functions**
+
+Append to `mobile-app-v1/src/services/wizard.ts`:
+
+```ts
+export type SetupTokenState = 'valid' | 'invalid' | 'expired' | 'used' | 'unreachable'
+
+/** Admin-generated setup links: 6 hex chars, a stored password, a 7-day expiry.
+ *  The three failure statuses are distinct user-facing situations, so they stay distinct here. */
+export async function validateSetupToken(
+  base: string,
+  token: string,
+  post: typeof postJson = postJson,
+): Promise<SetupTokenState> {
+  let res: { status: number; body: unknown }
+  try {
+    res = await post(`${base}/api/setup/validate-token`, { token })
+  } catch {
+    return 'unreachable'
+  }
+  if (res.status === 410) return 'expired'
+  if (res.status === 409) return 'used'
+  const envelope = envelopeOf(res.body)
+  const data = envelope?.data as { valid?: unknown } | undefined
+  return isSuccessStatus(res.status) && envelope?.success && data?.valid === true ? 'valid' : 'invalid'
+}
+
+export async function exchangeSetupToken(
+  base: string,
+  token: string,
+  password: string,
+  post: typeof postJson = postJson,
+): Promise<{ ok: true; jwt: string } | { ok: false; error: 'wrong-password' | 'invalid' | 'unreachable' }> {
+  let res: { status: number; body: unknown }
+  try {
+    res = await post(`${base}/api/auth/token`, { token, password })
+  } catch {
+    return { ok: false, error: 'unreachable' }
+  }
+  if (res.status === 401) return { ok: false, error: 'wrong-password' }
+  const envelope = envelopeOf(res.body)
+  const data = envelope?.data as { token?: unknown } | undefined
+  if (!isSuccessStatus(res.status) || !envelope?.success || typeof data?.token !== 'string') {
+    return { ok: false, error: 'invalid' }
+  }
+  return { ok: true, jwt: data.token }
+}
+```
+
+Change `createFamily`'s `args` to `{ name: string; slug: string; setupToken?: string }`
+and build the body so account mode is byte-identical to today:
+
+```ts
+const body = args.setupToken
+  ? { name: args.name, slug: args.slug, token: args.setupToken, isNewFamily: true }
+  : { name: args.name, slug: args.slug }
+const res = await callOrThrowUnreachable(() => post(`${base}/api/setup/start`, body, { token }))
+```
+
+Add the setup-mode finish, which stores the **PIN credential the user just
+configured** rather than account credentials:
+
+```ts
+export async function finishSetupWizard(
+  base: string,
+  slug: string,
+  familyName: string,
+  creds: StoredCredentials,
+  biometric: boolean,
+  deps?: FinishDeps,
+): Promise<{ toast: string }> {
+  const { login, saveServer, vault } = deps ?? { login: loginWithCredentials, saveServer: saveServerToRegistry, vault: createVault() }
+  const result = await login({ id: `${base}|${slug}`, baseUrl: base, familySlug: slug }, creds)
+  if (!result.ok) throw new WizardError('rejected', 'relogin')
+  const saved = await saveServer({
+    baseUrl: base,
+    familySlug: slug,
+    familyName,
+    deploymentMode: 'saas',
+    authType: creds.type === 'pin' && creds.loginId === null ? 'SYSTEM' : 'CARETAKER',
+  })
+  await vault.store(saved.id, creds, { biometric })
+  return { toast: `Welcome home - ${familyName} is set up and saved to this phone.` }
+}
+```
+
+Import `StoredCredentials` from `./credential-vault` if it is not already imported.
+
+- [ ] **Step 4: Write the failing screen tests**
+
+Create `mobile-app-v1/src/screens/SetupLink.test.tsx`:
+
+```tsx
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import SetupLink from './SetupLink'
+
+function setup(over = {}) {
+  const navigate = vi.fn()
+  const deps = {
+    validateSetupToken: vi.fn().mockResolvedValue('valid'),
+    exchangeSetupToken: vi.fn().mockResolvedValue({ ok: true, jwt: 'jwt-setup' }),
+    ...over,
+  }
+  render(<SetupLink navigate={navigate} token="a1b2c3" deps={deps} />)
+  return { navigate, deps }
+}
+
+describe('SetupLink', () => {
+  it('asks for the setup password once the token validates', async () => {
+    setup()
+    expect(await screen.findByLabelText(/setup password/i)).toBeInTheDocument()
+  })
+
+  it('distinguishes an expired link from an invalid one', async () => {
+    setup({ validateSetupToken: vi.fn().mockResolvedValue('expired') })
+    expect(await screen.findByText(/expired/i)).toBeInTheDocument()
+  })
+
+  it('says so when the link was already used', async () => {
+    setup({ validateSetupToken: vi.fn().mockResolvedValue('used') })
+    expect(await screen.findByText(/already been used/i)).toBeInTheDocument()
+  })
+
+  it('hands off to the wizard in setup mode with the exchanged jwt', async () => {
+    const { navigate } = setup()
+    await userEvent.type(await screen.findByLabelText(/setup password/i), 'hunter22')
+    await userEvent.click(screen.getByRole('button', { name: /continue/i }))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'wizard', token: 'jwt-setup', mode: 'setup', setupToken: 'a1b2c3' }),
+    ))
+  })
+
+  it('keeps the user on the password step after a wrong password', async () => {
+    const { navigate } = setup({ exchangeSetupToken: vi.fn().mockResolvedValue({ ok: false, error: 'wrong-password' }) })
+    await userEvent.type(await screen.findByLabelText(/setup password/i), 'nope')
+    await userEvent.click(screen.getByRole('button', { name: /continue/i }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(navigate).not.toHaveBeenCalled()
+    expect(screen.getByLabelText(/setup password/i)).toBeInTheDocument()
+  })
+})
+```
+
+- [ ] **Step 5: Run to verify they fail**
+
+```bash
+cd /Users/johnoverton/Development/mobile-app-v1 && npx vitest run src/screens/SetupLink.test.tsx
+```
+
+Expected: FAIL.
+
+- [ ] **Step 6: Implement the screen**
+
+Create `mobile-app-v1/src/screens/SetupLink.tsx`, matching `AccountReset.tsx`'s
+structure and classes (`m-scr` / `Header` / `m-bd` / `f-grid` / `fl` / `fi` /
+`m-btn` / `ErrBox`). Phases: `checking` → `password` → `bad` (with a distinct
+message per `invalid` / `expired` / `used` / `unreachable`). On successful
+exchange, `navigate({ name: 'wizard', token: jwt, mode: 'setup', setupToken: token, creds: null, biometric })`.
+
+Read `AccountReset.tsx` and mirror its deps-injection and busy/error handling
+exactly rather than inventing a new shape.
+
+- [ ] **Step 7: Teach `Wizard` setup mode**
+
+In `Wizard.tsx`:
+- Add `mode?: 'account' | 'setup'` (default `'account'`) and `setupToken?: string`
+  to the props, and make `creds` accept `AccountCreds | null`.
+- `handleStep1Next` passes `setupToken` into `createFamily`'s args when in setup
+  mode.
+- `handleStep3Complete` **skips `linkAccountToCaretaker` in setup mode** — there
+  is no account to link — and calls `finishSetupWizard(SAAS_BASE, slug,
+  familyName, pinCredsFromStep2, biometric, deps.finish)` instead of
+  `finishWizard`.
+- Step 2 already collects the security configuration; capture the credential it
+  produces into state so step 3 can hand it to `finishSetupWizard`.
+
+Add `finishSetupWizard` and `validateSetupToken` / `exchangeSetupToken` to
+`WizardDeps` and `defaultDeps()` alongside the existing entries.
+
+- [ ] **Step 8: Wire `App.tsx`**
+
+Add the render branch:
+
+```tsx
+{screen.name === 'setup-link' && <SetupLink navigate={setScreen} token={screen.token} />}
+```
+
+Extend the `wizard` Screen variant with `mode?: 'account' | 'setup'` and
+`setupToken?: string`, and widen its `creds` to `AccountCreds | null`.
+
+- [ ] **Step 9: Verify**
+
+```bash
+cd /Users/johnoverton/Development/mobile-app-v1 && npm test && npx tsc --noEmit
+```
+
+Expected: PASS, with the existing `Wizard.test.tsx` account-mode cases still
+green — account mode must be unchanged.
+
+- [ ] **Step 10: Commit**
+
+```bash
+cd /Users/johnoverton/Development/mobile-app-v1
+git rev-parse --show-toplevel && git branch --show-current
+git add src/services/wizard.ts src/services/wizard.test.ts src/screens/SetupLink.tsx src/screens/SetupLink.test.tsx src/screens/wizard/Wizard.tsx src/App.tsx
+git commit -m "feat(setup): consume admin setup links in the shell wizard"
+```
+
+---
+
 ## Phase E — Native platform configuration
 
-### Task 15: iOS and Android push + deep-link configuration
+### Task 16: iOS and Android push + deep-link configuration
 
 **Files:**
 - Modify: `mobile-app-v1/ios/App/App/Info.plist`
@@ -2929,7 +3304,7 @@ git commit -m "chore(native): push capability, POST_NOTIFICATIONS, App Links int
 
 ---
 
-### Task 16: Native nursery observation
+### Task 17: Native nursery observation
 
 **Files:**
 - Create: `mobile-app-v1/ios/App/App/NurseryAwareViewController.swift`
@@ -3107,7 +3482,7 @@ git commit -m "feat(nursery): native keep-awake and immersive driven by WebView 
 
 ## Phase F — Documentation
 
-### Task 17: Update architecture and operations docs
+### Task 18: Update architecture and operations docs
 
 **Files:**
 - Modify: `sprout-track/documentation/Architecture-Documentation/NativeAppIntegration.md`
@@ -3172,5 +3547,7 @@ git commit -m "docs: record the native push and deep links pass"
 - [ ] Manual: nursery mode keeps the screen awake and goes immersive, both platforms
 - [ ] Manual: a push notification arrives and its tap opens the right family
 - [ ] Manual: a `/passwordreset?token=` link from a real email opens the app
+- [ ] Manual: a `/setup/{token}` link opens the shell, accepts the setup password,
+      and completes the wizard with the family saved to the registry and vault
 - [ ] Manual: `https://sprout-track.com/account` opens in the **system browser**,
       not the app — this is the App Store compliance check

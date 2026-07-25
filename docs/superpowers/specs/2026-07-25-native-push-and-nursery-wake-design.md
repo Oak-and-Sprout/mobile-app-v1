@@ -311,11 +311,59 @@ authentication and `connectToFamily` returns `'needs-reauth'`, which routes to
 the `ReAuth` screen and overwrites the stored credential only after a new one
 verifies. No new handling is required.
 
+### 6.6 Setup-link flow
+
+`/setup/{token}` is an **admin-generated** family provisioning link
+(`POST /api/family/create-setup-link`, system administrators only). It is a
+different auth model from account signup: a 6-hex-character token in
+`FamilySetup` with a stored password and a 7-day expiry.
+
+The shell's `Wizard` steps are reusable — only the auth source and the finish
+step differ. The server already exposes everything needed:
+
+| Step | Endpoint |
+|---|---|
+| Validate | `POST /api/setup/validate-token` `{ token }` → `{ valid, requiresPassword }`; 404 invalid, 410 expired, 409 already used |
+| Exchange | `POST /api/auth/token` `{ token, password }` → a 24-hour JWT carrying `isSetupAuth`; 401 on a wrong password |
+| Create | `POST /api/setup/start` `{ name, slug, token, isNewFamily: true }` with that JWT |
+
+`createFamily` in `src/services/wizard.ts` **already posts to
+`/api/setup/start`** — setup mode only adds `token` and `isNewFamily` to the
+body. `saveSecurity` and `saveBaby` work unchanged with the setup JWT.
+
+Two things differ from account mode:
+
+- **`linkAccountToCaretaker` is skipped.** There is no account to link.
+- **Finishing stores a PIN credential, not account credentials.**
+  `finishWizard` logs in with `AccountCreds` and saves `authType: 'ACCOUNT'`. A
+  setup-mode sibling logs in with the caretaker/PIN credential the user just
+  configured in step 2 and saves `authType: 'CARETAKER'` or `'SYSTEM'`.
+
+New screen `src/screens/SetupLink.tsx` sits in front: it validates the token,
+collects the setup password, exchanges it for the JWT, and hands off to `Wizard`
+in setup mode. Invalid, expired, and already-used tokens each get their own
+message rather than a generic failure.
+
+**Note on scope.** Setup links are primarily a self-hosted admin path, and deep
+links are only claimed for sprout-track.com — so this flow is reachable by deep
+link only for setup links generated on the SaaS deployment. Pasting a setup link
+into "Add a family" remains available everywhere.
+
 ## 7. Permission UX
 
-New `src/screens/NotificationsIntro.tsx` in the shell's storybook theme, shown
-once after the **first successful connect**, gated on a Capacitor `Preferences`
-key `push-opt-in` with values `unasked | granted | declined`.
+New `src/screens/NotificationsIntro.tsx` in the shell's storybook theme, gated on
+a Capacitor `Preferences` key `push-opt-in` with values
+`unasked | granted | declined`.
+
+**Timing: the launch *after* the first successful connect.** The shell cannot
+observe "just after connecting" — `connectToFamily` hands the WebView to the
+server and the shell's React tree stops running, so there is no moment after a
+`'navigated'` outcome in which the shell can render anything. Instead
+`connectToFamily` sets a `has-connected-once` preference, and the launch effect
+in `App.tsx` shows the intro before auto-open or the families list when
+`has-connected-once` is set and opt-in is still `unasked`. The user has therefore
+used the app at least once before being asked, which is the point of the soft
+pre-prompt.
 
 Only "Turn on" reaches the OS prompt. "Not now" writes `declined` and is fully
 recoverable from Settings — this is what protects the single iOS prompt (D5).
@@ -373,7 +421,7 @@ unit-tested table.
 
 | Path | Lands on | Notes |
 |---|---|---|
-| `/setup/*` | Shell `Wizard` | Family setup links from `create-setup-link` |
+| `/setup/*` | Shell `SetupLink` → `Wizard` in setup mode | Admin-generated family setup links, §6.6 |
 | `/verify*` | Shell `AccountVerify` | Requires the server change in §9.2 |
 | `/passwordreset*` | Shell `AccountResetConfirm` | New screen, §6.5; requires the server change in §9.2 |
 
