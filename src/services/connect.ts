@@ -1,5 +1,7 @@
 import { encodeMessage } from '../../shared/bridge-contract'
 import { CredentialVault, createVault } from './credential-vault'
+import { registerPushForEntry } from './push'
+import { markConnectedOnce as storeConnectedOnce } from './push-opt-in'
 import { loginWithCredentials } from './session'
 import { touchServer, type ServerEntry } from './server-registry'
 
@@ -30,6 +32,8 @@ export interface ConnectDeps {
   login: typeof loginWithCredentials
   touch: typeof touchServer
   openUrl: (url: string) => void
+  registerPush: (entry: ServerEntry, jwt: string) => void
+  markConnectedOnce: () => void
 }
 
 export async function connectToFamily(
@@ -42,6 +46,8 @@ export async function connectToFamily(
     login: loginWithCredentials,
     touch: touchServer,
     openUrl: url => window.location.assign(url),
+    registerPush: (entry, jwt) => { void registerPushForEntry(entry, jwt) },
+    markConnectedOnce: () => { void storeConnectedOnce() },
     ...depsOverride,
   }
 
@@ -53,6 +59,11 @@ export async function connectToFamily(
   if (!creds) return 'needs-reauth'
   const result = await deps.login(entry, creds)
   if (result.ok) {
+    // Neither call may block or fail the handoff: registration is
+    // best-effort, and the connected-once flag only unlocks the intro on a
+    // future launch (the shell's React tree is gone the instant openUrl runs).
+    try { deps.registerPush(entry, result.token) } catch { /* never block handoff */ }
+    try { deps.markConnectedOnce() } catch { /* never block handoff */ }
     deps.openUrl(sessionHandoffUrl(entry.baseUrl, result))
     return 'navigated'
   }

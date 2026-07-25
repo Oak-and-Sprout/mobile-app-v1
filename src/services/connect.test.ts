@@ -108,3 +108,64 @@ test('lockout returns locked without navigating or wiping creds', async () => {
   expect(openUrl).not.toHaveBeenCalled()
   expect(clearSpy).not.toHaveBeenCalled()
 })
+
+test('registers push with the fresh JWT before handing off', async () => {
+  const openUrl = vi.fn()
+  const registerPush = vi.fn()
+  const outcome = await connectToFamily(entry, {
+    vault: vaultWith({ type: 'pin', loginId: null, securityPin: '123456' }),
+    login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt-9', familySlug: 'fam' }),
+    touch: vi.fn(), openUrl,
+    registerPush,
+  })
+  expect(outcome).toBe('navigated')
+  expect(registerPush).toHaveBeenCalledWith(entry, 'jwt-9')
+})
+
+test('still navigates when push registration throws', async () => {
+  const openUrl = vi.fn()
+  const outcome = await connectToFamily(entry, {
+    vault: vaultWith({ type: 'pin', loginId: null, securityPin: '123456' }),
+    login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt-9', familySlug: 'fam' }),
+    touch: vi.fn(), openUrl,
+    registerPush: () => { throw new Error('boom') },
+  })
+  expect(outcome).toBe('navigated')
+})
+
+test('does not register push when login fails', async () => {
+  const openUrl = vi.fn()
+  const registerPush = vi.fn()
+  const outcome = await connectToFamily(entry, {
+    vault: vaultWith({ type: 'pin', loginId: null, securityPin: '1' }),
+    login: vi.fn().mockResolvedValue({ ok: false, error: 'unreachable' }),
+    touch: vi.fn(), openUrl,
+    registerPush,
+  })
+  expect(outcome).toBe('offline')
+  expect(registerPush).not.toHaveBeenCalled()
+})
+
+test('marks that a connect happened so the intro can appear next launch', async () => {
+  const openUrl = vi.fn()
+  const markConnectedOnce = vi.fn()
+  const outcome = await connectToFamily(entry, {
+    vault: vaultWith({ type: 'pin', loginId: null, securityPin: '123456' }),
+    login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt-9', familySlug: 'fam' }),
+    touch: vi.fn(), openUrl,
+    registerPush: vi.fn(), markConnectedOnce,
+  })
+  expect(outcome).toBe('navigated')
+  expect(markConnectedOnce).toHaveBeenCalled()
+})
+
+test('still navigates when marking connected-once throws', async () => {
+  const openUrl = vi.fn()
+  const outcome = await connectToFamily(entry, {
+    vault: vaultWith({ type: 'pin', loginId: null, securityPin: '123456' }),
+    login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt-9', familySlug: 'fam' }),
+    touch: vi.fn(), openUrl,
+    markConnectedOnce: () => { throw new Error('boom') },
+  })
+  expect(outcome).toBe('navigated')
+})

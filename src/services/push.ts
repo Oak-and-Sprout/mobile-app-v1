@@ -1,6 +1,8 @@
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
-import { postJson } from '../lib/api-client'
+import { getJson, postJson } from '../lib/api-client'
+import { getOptIn, setLastToken } from './push-opt-in'
+import type { ServerEntry } from './server-registry'
 
 export type PermissionState = 'granted' | 'denied' | 'prompt'
 
@@ -127,5 +129,43 @@ export async function unregisterFrom(
     await del(`${baseUrl}/api/notifications/device-tokens?token=${encodeURIComponent(token)}`)
   } catch {
     // Best effort - a stale row is cleaned by the UNREGISTERED lifecycle.
+  }
+}
+
+/**
+ * Newer servers expose per-platform support under `nativePush`; older ones
+ * (pre-dating the per-platform split) only have the flat `nativePushEnabled`
+ * flag. Shell builds and server versions drift because of App Store review
+ * latency, so both shapes have to keep working.
+ */
+async function serverSupportsPush(baseUrl: string, platform: 'ios' | 'android'): Promise<boolean> {
+  try {
+    const res = await getJson(`${baseUrl}/api/deployment-config`)
+    const data = (
+      res.body as { data?: { nativePush?: { ios?: boolean; android?: boolean }; nativePushEnabled?: boolean } } | null
+    )?.data
+    if (data?.nativePush) return Boolean(data.nativePush[platform])
+    return Boolean(data?.nativePushEnabled)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Fire-and-forget. Every failure path is swallowed: registration must never
+ * delay the WebView handoff or change the ConnectOutcome.
+ */
+export async function registerPushForEntry(entry: ServerEntry, jwt: string): Promise<void> {
+  try {
+    if ((await getOptIn()) !== 'granted') return
+    if ((await permissionState()) !== 'granted') return
+    const platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android'
+    if (!(await serverSupportsPush(entry.baseUrl, platform))) return
+    const acquired = await acquireToken()
+    if (!acquired) return
+    const ok = await registerWith(entry.baseUrl, jwt, acquired.token, acquired.platform)
+    if (ok) await setLastToken(acquired.token)
+  } catch {
+    // Deliberately silent - see the doc comment above.
   }
 }
