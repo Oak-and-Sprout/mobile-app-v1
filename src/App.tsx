@@ -9,6 +9,7 @@ import AccountSignIn from './screens/AccountSignIn'
 import AccountSignUp from './screens/AccountSignUp'
 import AccountVerify from './screens/AccountVerify'
 import AccountReset from './screens/AccountReset'
+import AccountResetConfirm from './screens/AccountResetConfirm'
 import Offline from './screens/Offline'
 import Connecting from './screens/Connecting'
 import ReAuth from './screens/ReAuth'
@@ -29,6 +30,7 @@ export type Screen =
   | { name: 'acct-signup' }
   | { name: 'acct-verify'; token: string; creds: AccountCreds; biometric: boolean }
   | { name: 'acct-reset' }
+  | { name: 'acct-reset-confirm'; token: string }
   | { name: 'wizard'; token: string; creds: AccountCreds; biometric: boolean; resume?: WizardResume; firstName?: string }
   | { name: 'add-family'; prefillInput?: string }
   | { name: 'families'; toast?: string; notice?: string }
@@ -127,6 +129,9 @@ export default function App({ pushPlugin = PushNotifications }: { pushPlugin?: P
         <AccountVerify navigate={setScreen} token={screen.token} creds={screen.creds} biometric={screen.biometric} />
       )}
       {screen.name === 'acct-reset' && <AccountReset navigate={setScreen} />}
+      {screen.name === 'acct-reset-confirm' && (
+        <AccountResetConfirm navigate={setScreen} token={screen.token} />
+      )}
       {screen.name === 'wizard' && (
         <Wizard
           navigate={setScreen}
