@@ -45,13 +45,17 @@ const defaultDeps = (): WizardDeps => ({
 })
 
 /** Derives the PIN/caretaker credential from step 2's security config, for setup mode's
- *  finishSetupWizard (there is no account credential to reuse there). Caretakers mode uses
- *  the first-added caretaker - that's always the admin, per Step2Security's own invariant. */
+ *  finishSetupWizard (there is no account credential to reuse there). Caretakers mode selects
+ *  by role, not position: the first-added caretaker is forced ADMIN at add-time, but
+ *  Step2Security's `ok2` gate only requires `cts.length > 0` - it does not require an admin
+ *  among the survivors, so removing the original admin and keeping only USER caretakers is
+ *  reachable through the UI. `caretakers[0]` falls back only for the (currently unreachable,
+ *  but not type-guaranteed) case of a config with no ADMIN entry at all. */
 function credsFromSecurityConfig(config: SecurityConfig): StoredCredentials {
   if (config.mode === 'pin') {
     return { type: 'pin', loginId: null, securityPin: config.securityPin }
   }
-  const admin = config.caretakers[0]
+  const admin = config.caretakers.find(c => c.role === 'ADMIN') ?? config.caretakers[0]
   return { type: 'pin', loginId: admin.loginId, securityPin: admin.securityPin }
 }
 
