@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { PushNotifications } from '@capacitor/push-notifications'
-import { permissionState, requestPermission, acquireToken, registerWith } from './push'
+import { permissionState, requestPermission, acquireToken, registerWith, registerPushForEntry } from './push'
+import type { ServerEntry } from './server-registry'
 
 function fakePlugin(over: Record<string, unknown> = {}) {
   return {
@@ -109,5 +110,107 @@ describe('registerWith', () => {
   it('returns false rather than throwing when the request fails', async () => {
     const post = vi.fn().mockRejectedValue(new Error('offline'))
     expect(await registerWith('https://s.test', 'jwt1', 'tok', 'ios', post)).toBe(false)
+  })
+})
+
+const ENTRY: ServerEntry = {
+  id: 'srv1', baseUrl: 'https://s.test', familySlug: 'smith-family', familyName: 'Smith',
+  deploymentMode: 'selfhosted', authType: 'SYSTEM', lastUsedAt: null, isDefault: true,
+}
+
+function jsonOf(body: unknown, status = 200) {
+  return vi.fn().mockResolvedValue({ status, body })
+}
+
+/** Deps that let registerPushForEntry sail all the way through to a
+ *  successful registration; individual tests override one field at a time. */
+function grantedDeps(over: Record<string, unknown> = {}) {
+  return {
+    getJson: jsonOf({ data: { nativePush: { ios: true, android: true } } }),
+    getOptIn: vi.fn().mockResolvedValue('granted'),
+    permissionState: vi.fn().mockResolvedValue('granted'),
+    acquireToken: vi.fn().mockResolvedValue({ token: 'tok-1', platform: 'ios' }),
+    registerWith: vi.fn().mockResolvedValue(true),
+    setLastToken: vi.fn().mockResolvedValue(undefined),
+    platform: 'ios' as const,
+    ...over,
+  }
+}
+
+describe('registerPushForEntry - serverSupportsPush shapes', () => {
+  it('newer server, running platform true: proceeds to acquire and register', async () => {
+    const deps = grantedDeps({
+      getJson: jsonOf({ data: { nativePush: { ios: true, android: false } } }),
+      platform: 'ios',
+    })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.acquireToken).toHaveBeenCalled()
+    expect(deps.registerWith).toHaveBeenCalledWith(ENTRY.baseUrl, 'jwt', 'tok-1', 'ios')
+  })
+
+  it('newer server, running platform false: returns without acquiring, and the legacy flag does not rescue it', async () => {
+    const deps = grantedDeps({
+      getJson: jsonOf({ data: { nativePush: { ios: false, android: true }, nativePushEnabled: true } }),
+      platform: 'ios',
+    })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.acquireToken).not.toHaveBeenCalled()
+  })
+
+  it('older server (no nativePush key) with nativePushEnabled true: proceeds', async () => {
+    const deps = grantedDeps({ getJson: jsonOf({ data: { nativePushEnabled: true } }) })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.acquireToken).toHaveBeenCalled()
+  })
+
+  it('older server with nativePushEnabled false: returns without acquiring', async () => {
+    const deps = grantedDeps({ getJson: jsonOf({ data: { nativePushEnabled: false } }) })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.acquireToken).not.toHaveBeenCalled()
+  })
+
+  it('getJson throws: returns without acquiring', async () => {
+    const deps = grantedDeps({ getJson: vi.fn().mockRejectedValue(new Error('offline')) })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.acquireToken).not.toHaveBeenCalled()
+  })
+})
+
+describe('registerPushForEntry - gating', () => {
+  it('opt-in not granted: returns immediately, no getJson call', async () => {
+    const deps = grantedDeps({ getOptIn: vi.fn().mockResolvedValue('declined') })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.getJson).not.toHaveBeenCalled()
+    expect(deps.acquireToken).not.toHaveBeenCalled()
+  })
+
+  it('permission not granted: returns without acquiring', async () => {
+    const deps = grantedDeps({ permissionState: vi.fn().mockResolvedValue('denied') })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.getJson).not.toHaveBeenCalled()
+    expect(deps.acquireToken).not.toHaveBeenCalled()
+  })
+
+  it('acquireToken returns null: no registerWith call', async () => {
+    const deps = grantedDeps({ acquireToken: vi.fn().mockResolvedValue(null) })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.registerWith).not.toHaveBeenCalled()
+  })
+
+  it('registerWith returns false: setLastToken not called', async () => {
+    const deps = grantedDeps({ registerWith: vi.fn().mockResolvedValue(false) })
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.setLastToken).not.toHaveBeenCalled()
+  })
+
+  it('registerWith returns true: setLastToken called with the token', async () => {
+    const deps = grantedDeps()
+    await registerPushForEntry(ENTRY, 'jwt', deps)
+    expect(deps.setLastToken).toHaveBeenCalledWith('tok-1')
+  })
+
+  it('any dep throwing resolves without rethrowing', async () => {
+    const deps = grantedDeps({ getOptIn: vi.fn().mockRejectedValue(new Error('boom')) })
+    await expect(registerPushForEntry(ENTRY, 'jwt', deps)).resolves.toBeUndefined()
   })
 })

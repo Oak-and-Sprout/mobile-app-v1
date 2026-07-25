@@ -138,9 +138,13 @@ export async function unregisterFrom(
  * flag. Shell builds and server versions drift because of App Store review
  * latency, so both shapes have to keep working.
  */
-async function serverSupportsPush(baseUrl: string, platform: 'ios' | 'android'): Promise<boolean> {
+async function serverSupportsPush(
+  baseUrl: string,
+  platform: 'ios' | 'android',
+  getJsonFn: typeof getJson,
+): Promise<boolean> {
   try {
-    const res = await getJson(`${baseUrl}/api/deployment-config`)
+    const res = await getJsonFn(`${baseUrl}/api/deployment-config`)
     const data = (
       res.body as { data?: { nativePush?: { ios?: boolean; android?: boolean }; nativePushEnabled?: boolean } } | null
     )?.data
@@ -151,20 +155,46 @@ async function serverSupportsPush(baseUrl: string, platform: 'ios' | 'android'):
   }
 }
 
+export interface RegisterPushDeps {
+  getJson: typeof getJson
+  getOptIn: typeof getOptIn
+  permissionState: typeof permissionState
+  acquireToken: typeof acquireToken
+  registerWith: typeof registerWith
+  setLastToken: typeof setLastToken
+  platform: 'ios' | 'android'
+}
+
+function registerPushDefaults(): RegisterPushDeps {
+  return {
+    getJson,
+    getOptIn,
+    permissionState,
+    acquireToken,
+    registerWith,
+    setLastToken,
+    platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
+  }
+}
+
 /**
  * Fire-and-forget. Every failure path is swallowed: registration must never
  * delay the WebView handoff or change the ConnectOutcome.
  */
-export async function registerPushForEntry(entry: ServerEntry, jwt: string): Promise<void> {
+export async function registerPushForEntry(
+  entry: ServerEntry,
+  jwt: string,
+  over: Partial<RegisterPushDeps> = {},
+): Promise<void> {
+  const deps = { ...registerPushDefaults(), ...over }
   try {
-    if ((await getOptIn()) !== 'granted') return
-    if ((await permissionState()) !== 'granted') return
-    const platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android'
-    if (!(await serverSupportsPush(entry.baseUrl, platform))) return
-    const acquired = await acquireToken()
+    if ((await deps.getOptIn()) !== 'granted') return
+    if ((await deps.permissionState()) !== 'granted') return
+    if (!(await serverSupportsPush(entry.baseUrl, deps.platform, deps.getJson))) return
+    const acquired = await deps.acquireToken()
     if (!acquired) return
-    const ok = await registerWith(entry.baseUrl, jwt, acquired.token, acquired.platform)
-    if (ok) await setLastToken(acquired.token)
+    const ok = await deps.registerWith(entry.baseUrl, jwt, acquired.token, acquired.platform)
+    if (ok) await deps.setLastToken(acquired.token)
   } catch {
     // Deliberately silent - see the doc comment above.
   }
