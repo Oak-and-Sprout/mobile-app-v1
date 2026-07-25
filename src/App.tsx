@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { PushNotifications } from '@capacitor/push-notifications'
 import Splash from './screens/Splash'
 import Fork from './screens/Fork'
 import Families from './screens/Families'
@@ -15,6 +16,7 @@ import NotificationsIntro from './screens/NotificationsIntro'
 import Wizard from './screens/wizard/Wizard'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
+import { entryForNotification } from './services/notification-routing'
 import { getOptIn, hasConnectedOnce } from './services/push-opt-in'
 import type { AccountCreds } from './services/credential-vault'
 import type { WizardResume } from './services/account-routing'
@@ -31,7 +33,7 @@ export type Screen =
   | { name: 'families'; toast?: string; notice?: string }
   | { name: 'settings' }
   | { name: 'offline'; entry: ServerEntry }
-  | { name: 'connecting'; entry: ServerEntry }
+  | { name: 'connecting'; entry: ServerEntry; route?: string }
   | { name: 'reauth'; entry: ServerEntry }
   | { name: 'push-intro'; next: Screen }
 
@@ -51,6 +53,21 @@ export default function App() {
       bootTarget.current = target
       if (splashDone.current) setScreen(s => (s.name === 'splash' ? target : s))
     }
+
+    // pushNotificationActionPerformed fires with retainUntilConsumed on both
+    // platforms, so a cold-start tap is still queued when this attaches here.
+    // Route through applyBootTarget (never setScreen) so the splash/bootTarget
+    // guards above still protect an in-flight user interaction. A pending
+    // bridge event (logout, switch-family, session-expired) is an explicit
+    // signal from the web app and must keep winning over a queued tap.
+    // The plugin has no web implementation, so addListener rejects outright
+    // in a browser (dev server, tests) - that must never surface as an
+    // unhandled rejection or block anything else in this effect.
+    PushNotifications.addListener('pushNotificationActionPerformed', async action => {
+      if (bootAction !== 'auto-open') return
+      const match = entryForNotification(action.notification.data, await listServers())
+      if (match) applyBootTarget({ name: 'connecting', entry: match.entry, route: match.route })
+    }).catch(() => {})
 
     void (async () => {
       const servers = await listServers()
@@ -104,7 +121,7 @@ export default function App() {
       {screen.name === 'add-family' && <AddFamily navigate={setScreen} prefillInput={screen.prefillInput} />}
       {screen.name === 'settings' && <Settings navigate={setScreen} />}
       {screen.name === 'offline' && <Offline navigate={setScreen} entry={screen.entry} />}
-      {screen.name === 'connecting' && <Connecting entry={screen.entry} navigate={setScreen} />}
+      {screen.name === 'connecting' && <Connecting entry={screen.entry} route={screen.route} navigate={setScreen} />}
       {screen.name === 'reauth' && <ReAuth entry={screen.entry} navigate={setScreen} />}
       {screen.name === 'push-intro' && <NotificationsIntro navigate={setScreen} next={screen.next} />}
     </div>

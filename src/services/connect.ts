@@ -1,5 +1,6 @@
 import { encodeMessage } from '../../shared/bridge-contract'
 import { CredentialVault, createVault } from './credential-vault'
+import { safeRoute } from './notification-routing'
 import { registerPushForEntry } from './push'
 import { markConnectedOnce as storeConnectedOnce } from './push-opt-in'
 import { loginWithCredentials } from './session'
@@ -9,14 +10,19 @@ export type ConnectOutcome = 'navigated' | 'needs-reauth' | 'offline' | 'locked'
 
 /**
  * Build the URL that hands a freshly-obtained session to the web app: the family
- * log-entry page with the session encoded in a `#bridge-session=` fragment the
- * server's native layer consumes on load. Shared so re-auth can hand off with the
- * token it already has instead of re-running connect (which would re-read the
- * vault and re-prompt biometric).
+ * page (defaulting to log-entry) with the session encoded in a
+ * `#bridge-session=` fragment the server's native layer consumes on load.
+ * Shared so re-auth can hand off with the token it already has instead of
+ * re-running connect (which would re-read the vault and re-prompt biometric).
+ *
+ * `route` is resolved through `safeRoute` before it ever touches the URL: this
+ * fragment carries the session token, so an unvalidated route is a
+ * token-redirection primitive.
  */
 export function sessionHandoffUrl(
   baseUrl: string,
   result: { familySlug: string; token: string; caretakerId?: string },
+  route = 'log-entry',
 ): string {
   const msg = {
     type: 'sessionInjected' as const,
@@ -24,7 +30,7 @@ export function sessionHandoffUrl(
     token: result.token,
     ...(result.caretakerId !== undefined ? { caretakerId: result.caretakerId } : {}),
   }
-  return `${baseUrl}/${result.familySlug}/log-entry#bridge-session=${encodeURIComponent(encodeMessage(msg))}`
+  return `${baseUrl}/${result.familySlug}/${safeRoute(route)}#bridge-session=${encodeURIComponent(encodeMessage(msg))}`
 }
 
 export interface ConnectDeps {
@@ -39,6 +45,7 @@ export interface ConnectDeps {
 export async function connectToFamily(
   entry: ServerEntry,
   depsOverride: Partial<ConnectDeps> = {},
+  route?: string,
 ): Promise<ConnectOutcome> {
   const vault = depsOverride.vault ?? createVault()
   const deps: ConnectDeps = {
@@ -64,7 +71,7 @@ export async function connectToFamily(
     // future launch (the shell's React tree is gone the instant openUrl runs).
     try { deps.registerPush(entry, result.token) } catch { /* never block handoff */ }
     try { deps.markConnectedOnce() } catch { /* never block handoff */ }
-    deps.openUrl(sessionHandoffUrl(entry.baseUrl, result))
+    deps.openUrl(sessionHandoffUrl(entry.baseUrl, result, route))
     return 'navigated'
   }
   if (result.error === 'unreachable') return 'offline'

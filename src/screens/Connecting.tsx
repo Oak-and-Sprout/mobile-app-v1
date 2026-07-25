@@ -1,21 +1,22 @@
 import { useEffect, useRef } from 'react'
 import type { Screen } from '../App'
-import { connectToFamily, type ConnectOutcome } from '../services/connect'
+import { connectToFamily, type ConnectDeps, type ConnectOutcome } from '../services/connect'
 import type { ServerEntry } from '../services/server-registry'
 
 export default function Connecting({
-  entry, navigate, connect = connectToFamily,
+  entry, route, navigate, connect = connectToFamily,
 }: {
   entry: ServerEntry
+  route?: string
   navigate: (s: Screen) => void
-  connect?: (entry: ServerEntry) => Promise<ConnectOutcome>
+  connect?: (entry: ServerEntry, depsOverride?: Partial<ConnectDeps>, route?: string) => Promise<ConnectOutcome>
 }) {
   const started = useRef(false)
   useEffect(() => {
     if (started.current) return
     started.current = true
     void (async () => {
-      const outcome = await connect(entry)
+      const outcome = await connect(entry, undefined, route)
       if (outcome === 'offline') navigate({ name: 'offline', entry })
       else if (outcome === 'locked') navigate({ name: 'families', notice: 'locked' })
       else if (outcome === 'needs-reauth') navigate({ name: 'reauth', entry })

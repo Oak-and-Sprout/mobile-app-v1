@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest'
 import { decodeMessage } from '../../shared/bridge-contract'
-import { connectToFamily } from './connect'
+import { connectToFamily, sessionHandoffUrl } from './connect'
 import { CredentialVault, type VaultBackend } from './credential-vault'
 import type { ServerEntry } from './server-registry'
 
@@ -168,4 +168,35 @@ test('still navigates when marking connected-once throws', async () => {
     markConnectedOnce: () => { throw new Error('boom') },
   })
   expect(outcome).toBe('navigated')
+})
+
+test('threads a route through to the handoff URL', async () => {
+  const openUrl = vi.fn()
+  const outcome = await connectToFamily(
+    entry,
+    {
+      vault: vaultWith({ type: 'pin', loginId: null, securityPin: '123456' }),
+      login: vi.fn().mockResolvedValue({ ok: true, token: 'jwt-9', familySlug: 'fam' }),
+      touch: vi.fn(), openUrl,
+    },
+    'medicine',
+  )
+  expect(outcome).toBe('navigated')
+  const url = openUrl.mock.calls[0][0] as string
+  expect(url).toContain('/fam/medicine#bridge-session=')
+})
+
+test('defaults the handoff to log-entry', () => {
+  expect(sessionHandoffUrl('https://s.test', { familySlug: 'fam', token: 't' }))
+    .toContain('/fam/log-entry#bridge-session=')
+})
+
+test('honours an allow-listed route', () => {
+  expect(sessionHandoffUrl('https://s.test', { familySlug: 'fam', token: 't' }, 'medicine'))
+    .toContain('/fam/medicine#bridge-session=')
+})
+
+test('falls back to log-entry for a route outside the allow-list', () => {
+  expect(sessionHandoffUrl('https://s.test', { familySlug: 'fam', token: 't' }, '../evil'))
+    .toContain('/fam/log-entry#bridge-session=')
 })
