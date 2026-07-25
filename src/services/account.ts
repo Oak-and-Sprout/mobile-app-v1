@@ -152,3 +152,42 @@ export async function fetchSetupStatus(
     return null
   }
 }
+
+export async function validateResetToken(
+  base: string,
+  token: string,
+  get: typeof getJson = getJson,
+): Promise<{ valid: boolean; email?: string } | null> {
+  try {
+    const res = await get(`${base}/api/accounts/reset-password?token=${encodeURIComponent(token)}`)
+    if (res.status !== 200) return null
+    const data = (res.body as { success?: boolean; data?: { valid?: boolean; email?: string } } | null)?.data
+    if (typeof data?.valid !== 'boolean') return null
+    return { valid: data.valid, ...(typeof data.email === 'string' ? { email: data.email } : {}) }
+  } catch {
+    return null
+  }
+}
+
+export type ResetSubmitResult =
+  | { ok: true }
+  | { ok: false; error: 'invalid' | 'rate-limited' | 'unreachable'; message?: string }
+
+export async function submitPasswordReset(
+  base: string,
+  token: string,
+  password: string,
+  post: typeof postJson = postJson,
+): Promise<ResetSubmitResult> {
+  let res: { status: number; body: unknown }
+  try {
+    res = await post(`${base}/api/accounts/reset-password`, { token, password })
+  } catch {
+    return { ok: false, error: 'unreachable' }
+  }
+  const envelope = res.body as { success?: boolean; error?: string; data?: { success?: boolean } } | null
+  if (res.status === 200 && envelope?.success && envelope.data?.success) return { ok: true }
+  const message = envelope?.error
+  const error = res.status === 429 ? 'rate-limited' : 'invalid'
+  return { ok: false, error, ...(typeof message === 'string' ? { message } : {}) }
+}

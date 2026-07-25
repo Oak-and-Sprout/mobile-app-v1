@@ -1,5 +1,5 @@
-import { expect, test, vi } from 'vitest'
-import { registerAccount, fetchAccountStatus, resendVerification, requestPasswordReset, fetchSetupStatus } from './account'
+import { describe, expect, it, test, vi } from 'vitest'
+import { registerAccount, fetchAccountStatus, resendVerification, requestPasswordReset, fetchSetupStatus, validateResetToken, submitPasswordReset } from './account'
 
 test('registerAccount posts and maps success', async () => {
   const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { success: true, requiresVerification: true } } })
@@ -49,4 +49,53 @@ test('fetchSetupStatus maps SYSTEM authType, and null when absent or unrecognize
 
   const unrecognized = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { setupStage: 1, currentStage: 2, familyData: { id: 'f1', name: 'Smith', slug: 'smith', authType: 'BOGUS' } } } })
   expect(await fetchSetupStatus('https://x.com', 'tok', unrecognized)).toMatchObject({ authType: null })
+})
+
+describe('validateResetToken', () => {
+  it('reports a valid token and the account email', async () => {
+    const get = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { valid: true, email: 'a@b.test' } } })
+    expect(await validateResetToken('https://s.test', 'tok', get)).toEqual({ valid: true, email: 'a@b.test' })
+    expect(get).toHaveBeenCalledWith('https://s.test/api/accounts/reset-password?token=tok')
+  })
+
+  it('reports an expired token as invalid', async () => {
+    const get = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { valid: false } } })
+    expect(await validateResetToken('https://s.test', 'tok', get)).toEqual({ valid: false })
+  })
+
+  it('returns null when the request fails', async () => {
+    const get = vi.fn().mockRejectedValue(new Error('offline'))
+    expect(await validateResetToken('https://s.test', 'tok', get)).toBeNull()
+  })
+
+  it('returns null on a malformed envelope', async () => {
+    const get = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: {} } })
+    expect(await validateResetToken('https://s.test', 'tok', get)).toBeNull()
+  })
+})
+
+describe('submitPasswordReset', () => {
+  it('succeeds on a success envelope', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { success: true } } })
+    expect(await submitPasswordReset('https://s.test', 'tok', 'Abcdef1!', post)).toEqual({ ok: true })
+    expect(post).toHaveBeenCalledWith('https://s.test/api/accounts/reset-password', { token: 'tok', password: 'Abcdef1!' })
+  })
+
+  it('maps 429 to rate-limited', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 429, body: { success: false, error: 'Too many' } })
+    expect(await submitPasswordReset('https://s.test', 'tok', 'Abcdef1!', post))
+      .toEqual({ ok: false, error: 'rate-limited', message: 'Too many' })
+  })
+
+  it('maps 400 to invalid - the token expired between validation and submit', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 400, body: { success: false, error: 'Reset token has expired.' } })
+    expect(await submitPasswordReset('https://s.test', 'tok', 'Abcdef1!', post))
+      .toEqual({ ok: false, error: 'invalid', message: 'Reset token has expired.' })
+  })
+
+  it('maps a thrown request to unreachable', async () => {
+    const post = vi.fn().mockRejectedValue(new Error('offline'))
+    expect(await submitPasswordReset('https://s.test', 'tok', 'Abcdef1!', post))
+      .toEqual({ ok: false, error: 'unreachable' })
+  })
 })

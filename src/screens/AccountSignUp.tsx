@@ -9,14 +9,8 @@ import { saveServer } from '../services/server-registry'
 import { loginWithCredentials } from '../services/session'
 import { SAAS_BASE, registerAccount, fetchSetupStatus } from '../services/account'
 import { routeAfterAccountLogin, screenForRoute, type AccountRoutingDeps } from '../services/account-routing'
-
-export const PW_REQS = [
-  ['8+ characters', (p: string) => p.length >= 8],
-  ['A number', (p: string) => /\d/.test(p)],
-  ['A lowercase letter', (p: string) => /[a-z]/.test(p)],
-  ['A symbol', (p: string) => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p)],
-  ['An uppercase letter', (p: string) => /[A-Z]/.test(p)],
-] as const
+export { PW_REQS } from '../lib/password-rules'
+import { PW_REQS } from '../lib/password-rules'
 
 export interface AccountSignUpDeps extends AccountRoutingDeps {
   register: typeof registerAccount
