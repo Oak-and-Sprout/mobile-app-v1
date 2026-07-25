@@ -5,6 +5,8 @@ import { Ic } from '../components/Icons'
 import Toast from '../components/Toast'
 import { formatLastOpened } from '../lib/relative-time'
 import { createVault } from '../services/credential-vault'
+import { unregisterFrom } from '../services/push'
+import { getLastToken } from '../services/push-opt-in'
 import { listServers, removeServer, setDefaultServer, type ServerEntry } from '../services/server-registry'
 
 const LOCKED_COPY = 'Too many tries - the server is taking a breather. Try again in a few minutes.'
@@ -39,6 +41,10 @@ export default function Families({
 
   async function remove(entry: ServerEntry) {
     await removeServer(entry.id)
+    // Best effort: stops this household's notifications immediately rather than
+    // waiting for the token to go stale on the server. Must never block removal.
+    const token = await getLastToken()
+    if (token) await unregisterFrom(entry.baseUrl, token)
     await createVault().clear(entry.id)
     setConfirmingId(null)
     setToast(`${entry.familyName} was removed from this phone.`)

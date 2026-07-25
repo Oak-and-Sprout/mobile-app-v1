@@ -4,6 +4,8 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import Families from './Families'
 import { formatLastOpened } from '../lib/relative-time'
 import { createVault, type CredentialVault } from '../services/credential-vault'
+import { unregisterFrom } from '../services/push'
+import { setLastToken } from '../services/push-opt-in'
 import { listServers, removeServer, setDefaultServer, type ServerEntry } from '../services/server-registry'
 
 vi.mock('../services/server-registry', () => ({
@@ -15,6 +17,14 @@ vi.mock('../services/server-registry', () => ({
 vi.mock('../services/credential-vault', () => ({
   createVault: vi.fn(),
 }))
+
+vi.mock('../services/push', async importOriginal => {
+  const actual = await importOriginal<typeof import('../services/push')>()
+  // Wraps the real implementation (which already swallows its own network
+  // failures) so tests can assert call args while still exercising the
+  // genuine best-effort behavior on a failing fetch.
+  return { ...actual, unregisterFrom: vi.fn(actual.unregisterFrom) }
+})
 
 function entry(overrides: Partial<ServerEntry> = {}): ServerEntry {
   return {
@@ -42,10 +52,12 @@ function fakeVault(biometric: Record<string, boolean> = {}): CredentialVault {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   vi.mocked(listServers).mockReset().mockResolvedValue([])
   vi.mocked(removeServer).mockReset().mockResolvedValue(undefined)
   vi.mocked(setDefaultServer).mockReset().mockResolvedValue(undefined)
   vi.mocked(createVault).mockReset().mockReturnValue(fakeVault())
+  vi.mocked(unregisterFrom).mockClear()
 })
 
 test('shows the empty state when there are no saved families', async () => {
@@ -126,6 +138,41 @@ test('remove asks for confirmation first, then removes from registry and vault o
   await user.click(screen.getByRole('button', { name: 'Remove' }))
   await waitFor(() => expect(removeServer).toHaveBeenCalledWith('e1'))
   expect(vault.clear).toHaveBeenCalledWith('e1')
+})
+
+test('remove unregisters the stored push token against that family, best effort', async () => {
+  await setLastToken('tok-1')
+  vi.mocked(listServers).mockResolvedValue([entry({ id: 'e1', familyName: 'Smith Family', baseUrl: 'https://smith.example.com' })])
+  const user = userEvent.setup()
+  render(<Families navigate={vi.fn()} />)
+  await user.click(await screen.findByRole('button', { name: 'Remove Smith Family' }))
+  await user.click(screen.getByRole('button', { name: 'Remove' }))
+  await waitFor(() => expect(unregisterFrom).toHaveBeenCalledWith('https://smith.example.com', 'tok-1'))
+})
+
+test('remove skips unregister when there is no stored push token', async () => {
+  vi.mocked(listServers).mockResolvedValue([entry({ id: 'e1', familyName: 'Smith Family' })])
+  const user = userEvent.setup()
+  render(<Families navigate={vi.fn()} />)
+  await user.click(await screen.findByRole('button', { name: 'Remove Smith Family' }))
+  await user.click(screen.getByRole('button', { name: 'Remove' }))
+  await waitFor(() => expect(removeServer).toHaveBeenCalledWith('e1'))
+  expect(unregisterFrom).not.toHaveBeenCalled()
+})
+
+test('a failing unregister network call does not block removal or vault clearing', async () => {
+  const vault = fakeVault()
+  vi.mocked(createVault).mockReturnValue(vault)
+  await setLastToken('tok-1')
+  vi.mocked(listServers).mockResolvedValue([entry({ id: 'e1', familyName: 'Smith Family' })])
+  const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'))
+  const user = userEvent.setup()
+  render(<Families navigate={vi.fn()} />)
+  await user.click(await screen.findByRole('button', { name: 'Remove Smith Family' }))
+  await user.click(screen.getByRole('button', { name: 'Remove' }))
+  await waitFor(() => expect(removeServer).toHaveBeenCalledWith('e1'))
+  expect(vault.clear).toHaveBeenCalledWith('e1')
+  fetchSpy.mockRestore()
 })
 
 test('remove confirmation can be dismissed with Keep, leaving the family in place', async () => {
