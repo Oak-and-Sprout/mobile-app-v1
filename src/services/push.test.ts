@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
+import { PushNotifications } from '@capacitor/push-notifications'
 import { permissionState, requestPermission, acquireToken, registerWith } from './push'
 
 function fakePlugin(over: Record<string, unknown> = {}) {
@@ -10,6 +11,27 @@ function fakePlugin(over: Record<string, unknown> = {}) {
     ...over,
   }
 }
+
+// Guards against push.ts reaching into globalThis.Capacitor.Plugins instead of
+// importing the plugin directly. That reach-through pattern is correct for the
+// server's native-aware layer (loaded from a remote origin, must tolerate the
+// plugin being absent) but wrong for the shell, which owns its own bundle: an
+// unimported plugin never runs Capacitor's registerPlugin() side effect, so
+// Capacitor.Plugins.PushNotifications stays undefined and every push call
+// silently degrades to its swallowed-failure path with no error anywhere. jsdom
+// has no native PushNotifications implementation to call through to, so this
+// asserts the imported binding itself is live and shaped like a plugin, which
+// is exactly what breaks (import removed -> binding undefined/incomplete) if
+// the globalThis approach is reintroduced.
+describe('PushNotifications import wiring', () => {
+  it('imports a live plugin binding with the methods push.ts depends on', () => {
+    expect(PushNotifications).toBeDefined()
+    expect(typeof PushNotifications.register).toBe('function')
+    expect(typeof PushNotifications.addListener).toBe('function')
+    expect(typeof PushNotifications.checkPermissions).toBe('function')
+    expect(typeof PushNotifications.requestPermissions).toBe('function')
+  })
+})
 
 describe('permissionState', () => {
   it('maps the plugin receive value straight through', async () => {

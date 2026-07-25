@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { PushNotifications } from '@capacitor/push-notifications'
 import { postJson } from '../lib/api-client'
 
 export type PermissionState = 'granted' | 'denied' | 'prompt'
@@ -16,14 +17,17 @@ export interface PushDeps {
   timeoutMs: number
 }
 
-function livePlugin(): PushPlugin | null {
-  const cap = (globalThis as { Capacitor?: { Plugins?: Record<string, unknown> } }).Capacitor
-  return (cap?.Plugins?.PushNotifications as PushPlugin) ?? null
-}
-
+// Unlike the server's native-aware layer (which is loaded from a remote origin
+// inside the shell's WebView and can only reach a plugin through globalThis,
+// tolerating its absence), the shell owns its own bundle - it must import the
+// plugin directly so Capacitor's registerPlugin() side effect actually runs.
+// Every other native-plugin service here does the same (credential-vault.ts,
+// server-registry.ts, main.tsx); reaching through globalThis instead silently
+// leaves `Capacitor.Plugins.PushNotifications` unpopulated and every push call
+// below degrades to its swallowed-failure path with no error anywhere.
 function defaults(): PushDeps {
   return {
-    plugin: livePlugin(),
+    plugin: PushNotifications as unknown as PushPlugin,
     platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
     timeoutMs: 15_000,
   }
