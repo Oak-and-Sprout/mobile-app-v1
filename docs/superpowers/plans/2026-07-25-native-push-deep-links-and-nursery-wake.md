@@ -1059,9 +1059,18 @@ const BY_KIND: Record<string, (typeof NOTIFICATION_ROUTES)[number]> = {
 };
 
 export function routeForNotification(kind: string): string {
-  return BY_KIND[kind] ?? 'log-entry';
+  const candidate = BY_KIND[kind];
+  // The membership check is load-bearing, not belt-and-braces: BY_KIND is a plain
+  // object literal, so a lookup for 'constructor' / '__proto__' / 'toString' etc.
+  // resolves through Object.prototype and returns something TRUTHY — which means a
+  // bare `?? 'log-entry'` fallback never fires and a non-route escapes.
+  return (NOTIFICATION_ROUTES as readonly string[]).includes(candidate) ? candidate : 'log-entry';
 }
 ```
+
+The allow-list test must exercise prototype keys (`constructor`, `__proto__`,
+`toString`, `hasOwnProperty`, `valueOf`), not just an unknown word — an unknown
+word passes even with the broken version.
 
 - [ ] **Step 4: Add route and slug to notification payloads**
 
