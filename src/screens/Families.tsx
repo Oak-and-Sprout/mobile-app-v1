@@ -42,9 +42,14 @@ export default function Families({
   async function remove(entry: ServerEntry) {
     await removeServer(entry.id)
     // Best effort: stops this household's notifications immediately rather than
-    // waiting for the token to go stale on the server. Must never block removal.
-    const token = await getLastToken()
-    if (token) await unregisterFrom(entry.baseUrl, token)
+    // waiting for the token to go stale on the server. Must never block removal -
+    // including a failed *read* of the stored token, not just a failed unregister.
+    try {
+      const token = await getLastToken()
+      if (token) await unregisterFrom(entry.baseUrl, token)
+    } catch {
+      // Best effort - see comment above.
+    }
     await createVault().clear(entry.id)
     setConfirmingId(null)
     setToast(`${entry.familyName} was removed from this phone.`)

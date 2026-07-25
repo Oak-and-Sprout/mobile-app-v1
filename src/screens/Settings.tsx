@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { Preferences } from '@capacitor/preferences'
 import type { Screen } from '../App'
 import { Header } from '../components/chrome'
@@ -22,7 +23,12 @@ export function notificationRowState(perm: PermissionState, optIn: OptIn): 'on' 
   return perm === 'granted' && optIn === 'granted' ? 'on' : 'off'
 }
 
-export default function Settings({ navigate }: { navigate: (s: Screen) => void }) {
+export default function Settings({
+  navigate, platform = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
+}: {
+  navigate: (s: Screen) => void
+  platform?: 'ios' | 'android'
+}) {
   const [autoOpen, setAutoOpen] = useState(true)
   const [confirming, setConfirming] = useState(false)
   const [defName, setDefName] = useState<string | null>(null)
@@ -47,8 +53,12 @@ export default function Settings({ navigate }: { navigate: (s: Screen) => void }
   async function clearAll() {
     const vault = createVault()
     for (const entry of await listServers()) {
-      const token = await getLastToken()
-      if (token) await unregisterFrom(entry.baseUrl, token)
+      try {
+        const token = await getLastToken()
+        if (token) await unregisterFrom(entry.baseUrl, token)
+      } catch {
+        // Best effort - a failed read/unregister must never block clearing.
+      }
       await vault.clear(entry.id)
     }
     await Preferences.clear()
@@ -88,11 +98,17 @@ export default function Settings({ navigate }: { navigate: (s: Screen) => void }
               <button className="m-btn sm" onClick={() => navigate({ name: 'push-intro', next: { name: 'settings' } })}>Turn on notifications</button>
             </>
           )}
-          {notif === 'blocked' && (
+          {/* Android has no URL scheme this shell can open straight into notification
+              settings (unlike iOS's app-settings:), so it gets guidance text instead of
+              a live link-out - a silent no-op button would be worse than no button. */}
+          {notif === 'blocked' && platform === 'ios' && (
             <>
               <p style={{ marginBottom: 12 }}>Turned off in your phone&rsquo;s settings.</p>
               <button className="m-btn ghost sm" onClick={() => window.location.assign('app-settings:')}>Open settings</button>
             </>
+          )}
+          {notif === 'blocked' && platform === 'android' && (
+            <p>Turned off in your phone&rsquo;s settings. Open your phone&rsquo;s Settings app, find Sprout Track, and turn Notifications back on.</p>
           )}
         </div>
         <div className="sect">

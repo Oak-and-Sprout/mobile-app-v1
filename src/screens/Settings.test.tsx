@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import Settings, { notificationRowState } from './Settings'
 import { permissionState, unregisterFrom } from '../services/push'
-import { getOptIn, setOptIn, setLastToken } from '../services/push-opt-in'
+import { getOptIn, setOptIn, getLastToken, setLastToken } from '../services/push-opt-in'
 import { listServers, saveServer } from '../services/server-registry'
 
 vi.mock('../services/push', async importOriginal => {
@@ -15,10 +15,19 @@ vi.mock('../services/push', async importOriginal => {
   return { ...actual, permissionState: vi.fn(), unregisterFrom: vi.fn(actual.unregisterFrom) }
 })
 
+vi.mock('../services/push-opt-in', async importOriginal => {
+  const actual = await importOriginal<typeof import('../services/push-opt-in')>()
+  // getLastToken wraps the actual (Preferences-backed) implementation so most
+  // tests exercise the real read, while specific tests can force it to reject
+  // to prove a failed read can't block clearAll.
+  return { ...actual, getLastToken: vi.fn(actual.getLastToken) }
+})
+
 beforeEach(() => {
   localStorage.clear()
   vi.mocked(permissionState).mockReset().mockResolvedValue('prompt')
   vi.mocked(unregisterFrom).mockClear()
+  vi.mocked(getLastToken).mockClear()
 })
 
 describe('notificationRowState', () => {
@@ -70,16 +79,16 @@ describe('notifications row', () => {
     expect(navigate).toHaveBeenCalledWith({ name: 'push-intro', next: { name: 'settings' } })
   })
 
-  test('shows the blocked copy and a settings link when the OS denied, even if opt-in was granted', async () => {
+  test('on iOS: shows the blocked copy and a settings link when the OS denied, even if opt-in was granted', async () => {
     vi.mocked(permissionState).mockResolvedValue('denied')
     await setOptIn('granted')
-    render(<Settings navigate={vi.fn()} />)
+    render(<Settings navigate={vi.fn()} platform="ios" />)
     expect(await screen.findByText(/turned off in your phone.s settings/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /open settings/i })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /turn on notifications/i })).not.toBeInTheDocument()
   })
 
-  test('the settings link opens the OS settings app', async () => {
+  test('on iOS: the settings link opens the OS settings app', async () => {
     vi.mocked(permissionState).mockResolvedValue('denied')
     const assign = vi.fn()
     const originalLocation = window.location
@@ -87,10 +96,18 @@ describe('notifications row', () => {
     // spied on directly - swap the whole object out for the duration of the test.
     Object.defineProperty(window, 'location', { value: { ...originalLocation, assign }, writable: true })
     const user = userEvent.setup()
-    render(<Settings navigate={vi.fn()} />)
+    render(<Settings navigate={vi.fn()} platform="ios" />)
     await user.click(await screen.findByRole('button', { name: /open settings/i }))
     expect(assign).toHaveBeenCalledWith('app-settings:')
     Object.defineProperty(window, 'location', { value: originalLocation, writable: true })
+  })
+
+  test('on Android: shows guidance text instead of a dead settings button when the OS denied', async () => {
+    vi.mocked(permissionState).mockResolvedValue('denied')
+    render(<Settings navigate={vi.fn()} platform="android" />)
+    expect(await screen.findByText(/turned off in your phone.s settings/i)).toBeInTheDocument()
+    expect(screen.getByText(/find sprout track, and turn notifications back on/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /open settings/i })).not.toBeInTheDocument()
   })
 })
 
@@ -142,6 +159,21 @@ describe('clear all data unregisters push tokens, best effort', () => {
     await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'fork' }))
     expect(await listServers()).toHaveLength(0)
     fetchSpy.mockRestore()
+  })
+
+  test('still clears every family and navigates to fork even when reading the stored token rejects', async () => {
+    await saveServer({
+      baseUrl: 'https://a.example.com', familySlug: 'a', familyName: 'A',
+      deploymentMode: 'selfhosted', authType: 'SYSTEM',
+    })
+    vi.mocked(getLastToken).mockRejectedValueOnce(new Error('native preferences failure'))
+    const navigate = vi.fn()
+    const user = userEvent.setup()
+    render(<Settings navigate={navigate} />)
+    await user.click(screen.getByRole('button', { name: /clear all data/i }))
+    await user.click(screen.getByRole('button', { name: /yes, clear it/i }))
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith({ name: 'fork' }))
+    expect(await listServers()).toHaveLength(0)
   })
 })
 
