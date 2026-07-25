@@ -2,10 +2,11 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Screen } from '../../App'
 import { SAAS_BASE } from '../../services/account'
 import type { WizardResume } from '../../services/account-routing'
-import type { AccountCreds } from '../../services/credential-vault'
+import type { AccountCreds, StoredCredentials } from '../../services/credential-vault'
 import { listServers } from '../../services/server-registry'
 import {
-  checkSlugAvailability, createFamily, finishWizard, linkAccountToCaretaker, saveBaby, saveSecurity, suggestSlug,
+  checkSlugAvailability, createFamily, exchangeSetupToken, finishSetupWizard, finishWizard, linkAccountToCaretaker,
+  saveBaby, saveSecurity, suggestSlug, validateSetupToken,
   WizardError, type BabyConfig, type FinishDeps, type SecurityConfig,
 } from '../../services/wizard'
 import Step1Family from './Step1Family'
@@ -20,6 +21,9 @@ export interface WizardDeps {
   saveBaby: typeof saveBaby
   linkAccountToCaretaker: typeof linkAccountToCaretaker
   finishWizard: typeof finishWizard
+  finishSetupWizard: typeof finishSetupWizard
+  validateSetupToken: typeof validateSetupToken
+  exchangeSetupToken: typeof exchangeSetupToken
   listServers: typeof listServers
   finish?: FinishDeps
 }
@@ -32,9 +36,24 @@ const defaultDeps = (): WizardDeps => ({
   saveBaby,
   linkAccountToCaretaker,
   finishWizard,
+  finishSetupWizard,
+  validateSetupToken,
+  exchangeSetupToken,
   listServers,
-  // finish left undefined - finishWizard falls back to its own real (login/saveServer/vault) deps.
+  // finish left undefined - finishWizard/finishSetupWizard fall back to their own real
+  // (login/saveServer/vault) deps.
 })
+
+/** Derives the PIN/caretaker credential from step 2's security config, for setup mode's
+ *  finishSetupWizard (there is no account credential to reuse there). Caretakers mode uses
+ *  the first-added caretaker - that's always the admin, per Step2Security's own invariant. */
+function credsFromSecurityConfig(config: SecurityConfig): StoredCredentials {
+  if (config.mode === 'pin') {
+    return { type: 'pin', loginId: null, securityPin: config.securityPin }
+  }
+  const admin = config.caretakers[0]
+  return { type: 'pin', loginId: admin.loginId, securityPin: admin.securityPin }
+}
 
 const CANCEL_TOAST = 'Setup paused - sign back in anytime to finish.'
 const GENERIC_ERROR_MSG = 'That didn’t work - check your details and try again.'
@@ -57,14 +76,16 @@ function messageForError(err: unknown, slug: string): ReactNode {
 }
 
 export default function Wizard({
-  navigate, token, creds, biometric, resume, firstName, deps: depsOverride,
+  navigate, token, creds, biometric, resume, firstName, mode: wizardMode = 'account', setupToken, deps: depsOverride,
 }: {
   navigate: (s: Screen) => void
   token: string
-  creds: AccountCreds
+  creds: AccountCreds | null
   biometric: boolean
   resume?: WizardResume
   firstName?: string
+  mode?: 'account' | 'setup'
+  setupToken?: string
   deps?: Partial<WizardDeps>
 }) {
   const [deps] = useState<WizardDeps>(() => ({ ...defaultDeps(), ...depsOverride }))
@@ -72,6 +93,10 @@ export default function Wizard({
   const [familyId, setFamilyId] = useState(resume?.familyId ?? '')
   const [familyName, setFamilyName] = useState(resume?.familyName ?? '')
   const [slug, setSlug] = useState(resume?.slug ?? '')
+  // Captured from step 2's security config, for setup mode's finishSetupWizard - there is no
+  // account credential in that mode, so the PIN/caretaker credential the user just configured
+  // is what gets logged in with and stored (see credsFromSecurityConfig above).
+  const [pinCreds, setPinCreds] = useState<StoredCredentials | null>(null)
   // Security mode, needed by linkAccountToCaretaker to know which caretaker-lookup endpoint to
   // hit when linking the account. Set in step 2, or carried through resume.mode when resuming
   // directly at stage 3 (account-routing.ts maps the server's setup-status authType). If still
@@ -105,7 +130,8 @@ export default function Wizard({
     setError(null)
     setBusy(true)
     try {
-      const { familyId: id } = await deps.createFamily(SAAS_BASE, token, { name, slug: nextSlug })
+      const args = wizardMode === 'setup' ? { name, slug: nextSlug, setupToken } : { name, slug: nextSlug }
+      const { familyId: id } = await deps.createFamily(SAAS_BASE, token, args)
       setFamilyId(id)
       setFamilyName(name)
       setSlug(nextSlug)
@@ -123,6 +149,7 @@ export default function Wizard({
     try {
       await deps.saveSecurity(SAAS_BASE, token, familyId, config)
       setMode(config.mode)
+      setPinCreds(credsFromSecurityConfig(config))
       setStep(3)
     } catch (e) {
       setError(messageForError(e, slug))
@@ -143,8 +170,17 @@ export default function Wizard({
         await deps.saveBaby(SAAS_BASE, token, familyId, baby)
         babySavedRef.current = true
       }
-      await deps.linkAccountToCaretaker(SAAS_BASE, token, familyId, effectiveMode)
-      const { toast } = await deps.finishWizard(SAAS_BASE, creds, familyName, biometric, deps.finish)
+      let toast: string
+      if (wizardMode === 'setup') {
+        // No account to link in setup mode - finishSetupWizard logs in with the PIN/caretaker
+        // credential captured from step 2 instead.
+        if (!pinCreds) throw new WizardError('rejected')
+        ;({ toast } = await deps.finishSetupWizard(SAAS_BASE, slug, familyName, pinCreds, biometric, deps.finish))
+      } else {
+        if (!creds) throw new WizardError('rejected')
+        await deps.linkAccountToCaretaker(SAAS_BASE, token, familyId, effectiveMode)
+        ;({ toast } = await deps.finishWizard(SAAS_BASE, creds, familyName, biometric, deps.finish))
+      }
       navigate({ name: 'families', toast })
     } catch (e) {
       setError(messageForError(e, slug))

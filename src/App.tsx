@@ -12,6 +12,7 @@ import AccountVerify from './screens/AccountVerify'
 import AccountVerifyLink from './screens/AccountVerifyLink'
 import AccountReset from './screens/AccountReset'
 import AccountResetConfirm from './screens/AccountResetConfirm'
+import SetupLink from './screens/SetupLink'
 import Offline from './screens/Offline'
 import Connecting from './screens/Connecting'
 import ReAuth from './screens/ReAuth'
@@ -35,10 +36,17 @@ export type Screen =
   | { name: 'acct-reset' }
   | { name: 'acct-reset-confirm'; token: string }
   | { name: 'acct-verify-link'; token: string }
-  // Built in a later task: the deep-link resolver already needs to type-check
-  // against this, but its screen/render branch isn't wired up yet.
   | { name: 'setup-link'; token: string }
-  | { name: 'wizard'; token: string; creds: AccountCreds; biometric: boolean; resume?: WizardResume; firstName?: string }
+  | {
+      name: 'wizard'
+      token: string
+      creds: AccountCreds | null
+      biometric: boolean
+      resume?: WizardResume
+      firstName?: string
+      mode?: 'account' | 'setup'
+      setupToken?: string
+    }
   | { name: 'add-family'; prefillInput?: string }
   | { name: 'families'; toast?: string; notice?: string }
   | { name: 'settings' }
@@ -182,6 +190,7 @@ export default function App({
       {screen.name === 'acct-reset-confirm' && (
         <AccountResetConfirm navigate={setScreen} token={screen.token} />
       )}
+      {screen.name === 'setup-link' && <SetupLink navigate={setScreen} token={screen.token} />}
       {screen.name === 'wizard' && (
         <Wizard
           navigate={setScreen}
@@ -190,6 +199,8 @@ export default function App({
           biometric={screen.biometric}
           resume={screen.resume}
           firstName={screen.firstName}
+          mode={screen.mode}
+          setupToken={screen.setupToken}
         />
       )}
       {screen.name === 'families' && <Families navigate={setScreen} toast={screen.toast} notice={screen.notice} />}

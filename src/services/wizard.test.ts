@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest'
+import { describe, expect, it, test, vi } from 'vitest'
 import {
   checkSlugAvailability,
   suggestSlug,
@@ -7,6 +7,8 @@ import {
   saveBaby,
   linkAccountToCaretaker,
   finishWizard,
+  validateSetupToken,
+  exchangeSetupToken,
   FEED_TYPE_OPTIONS,
   WizardError,
   type BabyConfig,
@@ -87,6 +89,77 @@ test('createFamily maps envelope failure to WizardError(rejected, error) and net
   await expect(createFamily(BASE, 'jwt-1', { name: 'Smith', slug: 'smith' }, post)).rejects.toMatchObject({ kind: 'rejected', message: 'Bad request' })
   const postErr = vi.fn().mockRejectedValue(new TypeError('net'))
   await expect(createFamily(BASE, 'jwt-1', { name: 'Smith', slug: 'smith' }, postErr)).rejects.toMatchObject({ kind: 'unreachable' })
+})
+
+// --- validateSetupToken -----------------------------------------------------
+
+describe('validateSetupToken', () => {
+  it('reports a usable token', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { valid: true } } })
+    expect(await validateSetupToken('https://s.test', 'a1b2c3', post)).toBe('valid')
+    expect(post).toHaveBeenCalledWith('https://s.test/api/setup/validate-token', { token: 'a1b2c3' })
+  })
+
+  it('distinguishes expired from invalid from already-used', async () => {
+    const mk = (status: number) => vi.fn().mockResolvedValue({ status, body: { success: false } })
+    expect(await validateSetupToken('https://s.test', 't', mk(404))).toBe('invalid')
+    expect(await validateSetupToken('https://s.test', 't', mk(410))).toBe('expired')
+    expect(await validateSetupToken('https://s.test', 't', mk(409))).toBe('used')
+  })
+
+  it('reports unreachable when the request throws', async () => {
+    const post = vi.fn().mockRejectedValue(new Error('offline'))
+    expect(await validateSetupToken('https://s.test', 't', post)).toBe('unreachable')
+  })
+})
+
+describe('exchangeSetupToken', () => {
+  it('returns the setup JWT', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { token: 'jwt-setup' } } })
+    expect(await exchangeSetupToken('https://s.test', 'a1b2c3', 'pw', post))
+      .toEqual({ ok: true, jwt: 'jwt-setup' })
+    expect(post).toHaveBeenCalledWith('https://s.test/api/auth/token', { token: 'a1b2c3', password: 'pw' })
+  })
+
+  it('maps 401 to wrong-password so the user can retry', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 401, body: { success: false } })
+    expect(await exchangeSetupToken('https://s.test', 't', 'bad', post))
+      .toEqual({ ok: false, error: 'wrong-password' })
+  })
+
+  it('maps 410 to invalid', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 410, body: { success: false } })
+    expect(await exchangeSetupToken('https://s.test', 't', 'pw', post))
+      .toEqual({ ok: false, error: 'invalid' })
+  })
+
+  it('maps a thrown request to unreachable', async () => {
+    const post = vi.fn().mockRejectedValue(new Error('offline'))
+    expect(await exchangeSetupToken('https://s.test', 't', 'pw', post))
+      .toEqual({ ok: false, error: 'unreachable' })
+  })
+})
+
+describe('createFamily in setup mode', () => {
+  it('sends the setup token and isNewFamily alongside name and slug', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { id: 'fam1' } } })
+    await createFamily('https://s.test', 'jwt', { name: 'Smith', slug: 'smith', setupToken: 'a1b2c3' }, post)
+    expect(post).toHaveBeenCalledWith(
+      'https://s.test/api/setup/start',
+      { name: 'Smith', slug: 'smith', token: 'a1b2c3', isNewFamily: true },
+      { token: 'jwt' },
+    )
+  })
+
+  it('omits both in account mode', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: { id: 'fam1' } } })
+    await createFamily('https://s.test', 'jwt', { name: 'Smith', slug: 'smith' }, post)
+    expect(post).toHaveBeenCalledWith(
+      'https://s.test/api/setup/start',
+      { name: 'Smith', slug: 'smith' },
+      { token: 'jwt' },
+    )
+  })
 })
 
 // --- saveSecurity ----------------------------------------------------------
