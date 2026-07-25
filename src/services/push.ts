@@ -78,13 +78,14 @@ export async function acquireToken(
 
     void (async () => {
       try {
-        // Only the `registration` listener is attached before register() - it's
-        // the one that carries the retainUntilConsumed guarantee on Android and
-        // the one iOS drops if attached late. A registrationError listener would
-        // be a second addListener call here with no test coverage to justify it;
-        // the try/catch below already routes a synchronous register() failure to
-        // finish(null), and the timeout covers a registration that never resolves.
+        // Both listeners are attached before register(): `registration` is the
+        // one that carries the retainUntilConsumed guarantee on Android and the
+        // one iOS drops if attached late; `registrationError` is the signal that
+        // tells us *why* registration failed (bad APNs entitlement, no FCM
+        // config, etc.) and must resolve immediately rather than waiting out the
+        // timeout below.
         await plugin.addListener('registration', t => finish({ token: t.value, platform }))
+        await plugin.addListener('registrationError', () => finish(null))
         await plugin.register()
       } catch {
         finish(null)
