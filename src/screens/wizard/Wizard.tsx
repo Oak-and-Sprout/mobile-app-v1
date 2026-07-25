@@ -46,11 +46,14 @@ const defaultDeps = (): WizardDeps => ({
 
 /** Derives the PIN/caretaker credential from step 2's security config, for setup mode's
  *  finishSetupWizard (there is no account credential to reuse there). Caretakers mode selects
- *  by role, not position: the first-added caretaker is forced ADMIN at add-time, but
- *  Step2Security's `ok2` gate only requires `cts.length > 0` - it does not require an admin
- *  among the survivors, so removing the original admin and keeping only USER caretakers is
- *  reachable through the UI. `caretakers[0]` falls back only for the (currently unreachable,
- *  but not type-guaranteed) case of a config with no ADMIN entry at all. */
+ *  by role, not position, since the first-added caretaker is only forced ADMIN at add-time -
+ *  a later removal can leave the real admin at a non-zero index (or, in principle, leave no
+ *  admin at all). The `?? caretakers[0]` is a last-resort fallback for that no-admin shape;
+ *  in practice it should never fire for setup mode because `handleStep2Next` below refuses to
+ *  advance past step 2 without an ADMIN present in a caretakers-mode config. The underlying gap
+ *  - Step2Security's removal handler doesn't re-promote or block removing the sole admin - is
+ *  a UX issue in that file, deliberately left alone here; this fallback exists only so a
+ *  malformed config can't crash the finish step instead of surfacing a coherent error. */
 function credsFromSecurityConfig(config: SecurityConfig): StoredCredentials {
   if (config.mode === 'pin') {
     return { type: 'pin', loginId: null, securityPin: config.securityPin }
@@ -62,6 +65,7 @@ function credsFromSecurityConfig(config: SecurityConfig): StoredCredentials {
 const CANCEL_TOAST = 'Setup paused - sign back in anytime to finish.'
 const GENERIC_ERROR_MSG = 'That didn’t work - check your details and try again.'
 const UNREACHABLE_MSG = 'Can’t reach that server. Check the address and your connection.'
+const NO_ADMIN_MSG = 'You need at least one admin caretaker - promote one before continuing.'
 
 /** Maps a WizardError to the ErrBox copy for whichever step threw it. */
 function messageForError(err: unknown, slug: string): ReactNode {
@@ -149,6 +153,16 @@ export default function Wizard({
 
   async function handleStep2Next(config: SecurityConfig) {
     setError(null)
+    // Setup mode's finish logs in as whichever caretaker credsFromSecurityConfig picks - it
+    // must be an admin (that's the whole point of a provisioning link). Step2Security's UI
+    // lets a caretakers-mode config end up with no ADMIN at all (add one, add a second as
+    // USER, remove the first) with nothing stopping Next - refuse to advance here instead of
+    // silently handing an admin-provisioning flow a non-admin credential. Account mode never
+    // reads this credential (it links via the account, not a caretaker PIN), so it's unaffected.
+    if (wizardMode === 'setup' && config.mode === 'caretakers' && !config.caretakers.some(c => c.role === 'ADMIN')) {
+      setError(NO_ADMIN_MSG)
+      return
+    }
     setBusy(true)
     try {
       await deps.saveSecurity(SAAS_BASE, token, familyId, config)

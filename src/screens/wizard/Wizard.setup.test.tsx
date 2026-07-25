@@ -137,6 +137,56 @@ test('setup mode (caretakers): finishSetupWizard gets the ADMIN caretaker’s cr
   expect(deps.linkAccountToCaretaker).not.toHaveBeenCalled()
 })
 
+test('setup mode (caretakers): refuses to advance past step 2 when removing the sole admin leaves no ADMIN caretaker', async () => {
+  // The two-caretaker version of the reachable bad path: add A (forced ADMIN), add B
+  // (defaults USER), remove A - cts = [B(USER)]. Step2Security's own `ok2` gate (cts.length >
+  // 0) has nothing to say about this, so handleStep2Next's guard must be the one that stops it.
+  const deps = makeDeps()
+  render(
+    <Wizard
+      navigate={vi.fn()} token="setup-jwt" creds={null} biometric={false}
+      mode="setup" setupToken="a1b2c3" deps={deps}
+    />,
+  )
+
+  await fillStep1()
+  expect(await screen.findByText('Family saved')).toBeInTheDocument()
+  expect(deps.createFamily).toHaveBeenCalledTimes(1)
+
+  await addCaretaker('01', 'Alice', '111111')
+  await addCaretaker('02', 'Bob', '222222', 'USER')
+  fireEvent.click(screen.getByRole('button', { name: /Remove Alice/i }))
+  fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+
+  expect(await screen.findByText(/at least one admin/i)).toBeInTheDocument()
+  // Still on step 2 - saveSecurity never ran, and createFamily (step 1) was not re-invoked.
+  expect(screen.getByText('Who can open the book?')).toBeInTheDocument()
+  expect(deps.saveSecurity).not.toHaveBeenCalled()
+  expect(deps.createFamily).toHaveBeenCalledTimes(1)
+})
+
+test('setup mode (caretakers): advances past step 2 once an ADMIN caretaker is present', async () => {
+  const deps = makeDeps()
+  render(
+    <Wizard
+      navigate={vi.fn()} token="setup-jwt" creds={null} biometric={false}
+      mode="setup" setupToken="a1b2c3" deps={deps}
+    />,
+  )
+
+  await fillStep1()
+  expect(await screen.findByText('Family saved')).toBeInTheDocument()
+
+  await addCaretaker('01', 'Alice', '111111')
+  fireEvent.click(screen.getByRole('button', { name: /^next$/i }))
+
+  await waitFor(() => expect(deps.saveSecurity).toHaveBeenCalledWith(BASE, 'setup-jwt', 'fam1', {
+    mode: 'caretakers',
+    caretakers: [{ loginId: '01', name: 'Alice', type: '', role: 'ADMIN', securityPin: '111111' }],
+  }))
+  expect(await screen.findByText('Security saved')).toBeInTheDocument()
+})
+
 test('account mode still calls linkAccountToCaretaker', async () => {
   const deps = makeDeps()
   render(<Wizard navigate={vi.fn()} token="tok" creds={creds} biometric={true} deps={deps} />)
