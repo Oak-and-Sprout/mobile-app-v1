@@ -1417,6 +1417,14 @@ Create `mobile-app-v1/src/services/push.ts`:
 
 ```ts
 import { Capacitor } from '@capacitor/core'
+// Import the plugin directly, exactly as credential-vault.ts, server-registry.ts and
+// main.tsx do for theirs. Capacitor populates Capacitor.Plugins[name] only as a side
+// effect of registerPlugin() running when the package is imported — reaching into
+// globalThis without an import yields undefined on a REAL DEVICE, and since every
+// failure path here is swallowed, push would silently never work with no error anywhere.
+// (The sprout-track web app must use globalThis, because it is loaded from a remote
+// origin and cannot import the package. The shell is the opposite case.)
+import { PushNotifications } from '@capacitor/push-notifications'
 import { postJson } from '../lib/api-client'
 
 export type PermissionState = 'granted' | 'denied' | 'prompt'
@@ -1434,14 +1442,9 @@ export interface PushDeps {
   timeoutMs: number
 }
 
-function livePlugin(): PushPlugin | null {
-  const cap = (globalThis as { Capacitor?: { Plugins?: Record<string, unknown> } }).Capacitor
-  return (cap?.Plugins?.PushNotifications as PushPlugin) ?? null
-}
-
 function defaults(): PushDeps {
   return {
-    plugin: livePlugin(),
+    plugin: PushNotifications as unknown as PushPlugin,
     platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
     timeoutMs: 15_000,
   }
