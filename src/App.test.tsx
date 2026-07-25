@@ -306,6 +306,22 @@ test('a bridge event beats a queued push tap for a different family', async () =
   expect(connectSpy).not.toHaveBeenCalled()
 })
 
+test('a bridge event beats a concurrent deep link', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const deepLink = fakeDeepLinkPlugin()
+  const bridgeEvent = encodeURIComponent(encodeMessage({ type: 'loggedOut', reason: 'switch-family' }))
+  window.history.replaceState(null, '', `/?bridge-event=${bridgeEvent}`)
+  render(<App deepLinkPlugin={deepLink.plugin} />)
+  await flushBootEffect()
+  // Without the bootAction guard, this would win and land on AccountResetConfirm instead.
+  await deepLink.open('https://sprout-track.com/passwordreset?token=abc123')
+  await finishSplash()
+  expect(screen.getByText(/my families/i)).toBeInTheDocument()
+})
+
 test('a Universal Link for password reset routes to the reset-confirm screen', async () => {
   const deepLink = fakeDeepLinkPlugin()
   // AccountResetConfirm isn't given injectable deps from App.tsx, so it calls the
@@ -327,6 +343,23 @@ test('a Universal Link the shell does not claim leaves the normal boot destinati
   await deepLink.open('https://sprout-track.com/account')
   await finishSplash()
   expect(screen.getByText(/Everyone you love,/)).toBeInTheDocument()
+})
+
+test('a deep link tapped after landing on the push intro does not clobber it', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  await Preferences.set({ key: 'has-connected-once', value: 'true' })
+  // push-opt-in left unset -> getOptIn() === 'unasked' -> boots to push-intro.
+  const deepLink = fakeDeepLinkPlugin()
+  render(<App deepLinkPlugin={deepLink.plugin} />)
+  await finishSplash()
+  expect(screen.getByRole('button', { name: /turn on/i })).toBeInTheDocument()
+  // Once splash is done, applyBootTarget only swaps the live screen while it's
+  // still 'splash' - a link tapped after landing on a real screen can't override it.
+  await deepLink.open('https://sprout-track.com/passwordreset?token=abc123')
+  expect(screen.getByRole('button', { name: /turn on/i })).toBeInTheDocument()
 })
 
 test('a push tap with a malicious route degrades to log-entry', async () => {

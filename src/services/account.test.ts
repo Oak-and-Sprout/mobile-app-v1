@@ -136,6 +136,12 @@ describe('verifyEmailToken', () => {
       .toEqual({ ok: false, error: 'unreachable', message: 'Verification failed. Please try again or contact support.' })
   })
 
+  it('fails closed on a 200 whose envelope is missing data.success, rather than reporting verified', async () => {
+    const post = vi.fn().mockResolvedValue({ status: 200, body: { success: true, data: {} } })
+    const result = await verifyEmailToken('https://s.test', 'tok', post)
+    expect(result.ok).toBe(false)
+  })
+
   it('maps a thrown request to unreachable', async () => {
     const post = vi.fn().mockRejectedValue(new Error('offline'))
     expect(await verifyEmailToken('https://s.test', 'tok', post)).toEqual({ ok: false, error: 'unreachable' })

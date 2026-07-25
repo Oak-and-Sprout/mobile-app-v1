@@ -115,15 +115,25 @@ export default function App({
     // A Universal/App Link (setup, verify, password-reset) can arrive at any
     // point after launch, cold-start included. Route through applyBootTarget
     // (never setScreen) so it's still subject to the splash/bootTarget guards
-    // above - a pending bridge event or queued push tap keeps winning over it.
-    // screenForDeepLink returns null for anything it doesn't claim (including
-    // /account, deliberately, for App Store payment compliance) - that means
-    // "not ours", so the link is simply not routed and the normal boot proceeds.
-    // Same web-implementation caveat as the push listener: addListener rejects
-    // outright outside a native runtime (dev server, tests), which must never
-    // surface as an unhandled rejection - but is worth a console.warn so a
-    // genuine on-device registration failure stays diagnosable.
+    // above. Same `bootAction !== 'auto-open'` guard as the push listener: a
+    // pending bridge event (logout, switch-family, session-expired) is an
+    // explicit signal from the web app and must keep winning over a deep
+    // link, exactly like it wins over a queued push tap. There's no ordering
+    // guarantee between a deep link and a push tap themselves - whichever's
+    // applyBootTarget call lands last (while still on splash) wins, same as
+    // any other boot-target race; once splash is done, applyBootTarget only
+    // updates bootTarget.current and no longer swaps the live screen (see the
+    // splashDone check below), so a link tapped after landing on a screen
+    // can't silently override it. screenForDeepLink returns null for
+    // anything it doesn't claim (including /account, deliberately, for App
+    // Store payment compliance) - that means "not ours", so the link is
+    // simply not routed and the normal boot proceeds. Same web-implementation
+    // caveat as the push listener: addListener rejects outright outside a
+    // native runtime (dev server, tests), which must never surface as an
+    // unhandled rejection - but is worth a console.warn so a genuine
+    // on-device registration failure stays diagnosable.
     deepLinkPlugin.addListener('appUrlOpen', ({ url }) => {
+      if (bootAction !== 'auto-open') return
       const target = screenForDeepLink(url)
       if (target) applyBootTarget(target)
     }).catch(err => {

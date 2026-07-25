@@ -217,7 +217,7 @@ export async function verifyEmailToken(
   const envelope = res.body as
     | { success?: boolean; error?: string; data?: { success?: boolean; message?: string } }
     | null
-  if (res.status === 200 && envelope?.success && envelope.data?.success !== false) {
+  if (res.status === 200 && envelope?.success && envelope.data?.success) {
     return { ok: true }
   }
   const message = envelope?.error ?? envelope?.data?.message
