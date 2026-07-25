@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { PushNotifications } from '@capacitor/push-notifications'
+import type { PluginListenerHandle } from '@capacitor/core'
+import { PushNotifications, type ActionPerformed } from '@capacitor/push-notifications'
 import Splash from './screens/Splash'
 import Fork from './screens/Fork'
 import Families from './screens/Families'
@@ -37,7 +38,20 @@ export type Screen =
   | { name: 'reauth'; entry: ServerEntry }
   | { name: 'push-intro'; next: Screen }
 
-export default function App() {
+// Narrowed to the one listener this component attaches (the real plugin's
+// `addListener` is overloaded across several event names, which doesn't
+// structurally match a single-signature test double). Defaults to the real
+// plugin; tests inject a fake so the tap listener is exercised without
+// `vi.mock('@capacitor/...')` (none exists in this repo) - there's no other
+// clean seam, since the plugin proxy only exists as an import side effect.
+interface PushActionPlugin {
+  addListener(
+    eventName: 'pushNotificationActionPerformed',
+    listenerFunc: (notification: ActionPerformed) => void,
+  ): Promise<PluginListenerHandle>
+}
+
+export default function App({ pushPlugin = PushNotifications }: { pushPlugin?: PushActionPlugin } = {}) {
   const [screen, setScreen] = useState<Screen>({ name: 'splash' })
   const bootTarget = useRef<Screen | null>(null)
   const splashDone = useRef(false)
@@ -62,12 +76,18 @@ export default function App() {
     // signal from the web app and must keep winning over a queued tap.
     // The plugin has no web implementation, so addListener rejects outright
     // in a browser (dev server, tests) - that must never surface as an
-    // unhandled rejection or block anything else in this effect.
-    PushNotifications.addListener('pushNotificationActionPerformed', async action => {
+    // unhandled rejection or block anything else in this effect. It's still
+    // worth a diagnostic though: on a real device this same rejection would
+    // mean a genuine registration failure, and push already swallows every
+    // other failure silently by design (see push.ts) - this is the one place
+    // left where that could be surfaced.
+    pushPlugin.addListener('pushNotificationActionPerformed', async action => {
       if (bootAction !== 'auto-open') return
       const match = entryForNotification(action.notification.data, await listServers())
       if (match) applyBootTarget({ name: 'connecting', entry: match.entry, route: match.route })
-    }).catch(() => {})
+    }).catch(err => {
+      console.warn('[push] failed to attach pushNotificationActionPerformed listener', err)
+    })
 
     void (async () => {
       const servers = await listServers()

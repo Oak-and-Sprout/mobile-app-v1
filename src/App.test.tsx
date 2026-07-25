@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { Preferences } from '@capacitor/preferences'
+import type { ActionPerformed } from '@capacitor/push-notifications'
 import App from './App'
 import { saveServer, touchServer } from './services/server-registry'
 import { AUTO_OPEN_KEY } from './screens/Settings'
@@ -25,6 +26,27 @@ async function flushBootEffect() {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(0)
   })
+}
+
+// A fake `PushActionPlugin` that captures the listener App.tsx registers, so
+// tests can fire a "tap" without vi.mock('@capacitor/...') - none exists in
+// this repo, and the real plugin has no web implementation to exercise.
+function fakePushPlugin() {
+  let handler: ((action: ActionPerformed) => void) | null = null
+  return {
+    plugin: {
+      addListener: vi.fn(async (_event: string, cb: typeof handler) => {
+        handler = cb
+        return { remove: async () => {} }
+      }),
+    },
+    async fire(data: unknown) {
+      await act(async () => {
+        handler?.({ actionId: 'tap', notification: { id: 'n1', data } })
+        await vi.advanceTimersByTimeAsync(0)
+      })
+    },
+  }
 }
 
 // Runs the splash to completion (HOLD_MS 2150 + FADE_MS 550 = 2700ms) so the resolved
@@ -210,4 +232,74 @@ test('a fresh account with no family routes straight from signup into the wizard
   await flushBootEffect()
 
   expect(screen.getByRole('heading', { name: 'Create your family.' })).toBeInTheDocument()
+})
+
+test('a queued push tap routes to the tapped family with its route', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const push = fakePushPlugin()
+  // Never resolves, so the app stays on Connecting for the assertion below.
+  const connectSpy = vi.spyOn(connectService, 'connectToFamily').mockReturnValue(new Promise(() => {}))
+  render(<App pushPlugin={push.plugin} />)
+  await flushBootEffect()
+  await push.fire({ familySlug: 'smith-family', route: 'medicine' })
+  await finishSplash()
+  expect(screen.getByText(/opening smith family/i)).toBeInTheDocument()
+  expect(connectSpy).toHaveBeenCalledWith(
+    expect.objectContaining({ familySlug: 'smith-family' }),
+    undefined,
+    'medicine',
+  )
+})
+
+test('a push tap for an unsaved family is ignored and the normal boot destination wins', async () => {
+  const push = fakePushPlugin()
+  render(<App pushPlugin={push.plugin} />)
+  await flushBootEffect()
+  await push.fire({ familySlug: 'nobody', route: 'medicine' })
+  await finishSplash()
+  // No saved servers -> the normal boot destination is Fork.
+  expect(screen.getByText(/Everyone you love,/)).toBeInTheDocument()
+})
+
+test('a bridge event beats a queued push tap for a different family', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  await saveServer({
+    baseUrl: 'https://y.com', familySlug: 'jones-family', familyName: 'Jones Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const push = fakePushPlugin()
+  const connectSpy = vi.spyOn(connectService, 'connectToFamily')
+  const bridgeEvent = encodeURIComponent(encodeMessage({ type: 'loggedOut', reason: 'switch-family' }))
+  window.history.replaceState(null, '', `/?bridge-event=${bridgeEvent}`)
+  render(<App pushPlugin={push.plugin} />)
+  await flushBootEffect()
+  await push.fire({ familySlug: 'jones-family', route: 'medicine' })
+  await finishSplash()
+  expect(screen.getByText(/my families/i)).toBeInTheDocument()
+  expect(connectSpy).not.toHaveBeenCalled()
+})
+
+test('a push tap with a malicious route degrades to log-entry', async () => {
+  await saveServer({
+    baseUrl: 'https://x.com', familySlug: 'smith-family', familyName: 'Smith Family',
+    deploymentMode: 'selfhosted', authType: 'SYSTEM',
+  })
+  const push = fakePushPlugin()
+  const connectSpy = vi.spyOn(connectService, 'connectToFamily').mockReturnValue(new Promise(() => {}))
+  render(<App pushPlugin={push.plugin} />)
+  await flushBootEffect()
+  await push.fire({ familySlug: 'smith-family', route: '../evil' })
+  await finishSplash()
+  expect(screen.getByText(/opening smith family/i)).toBeInTheDocument()
+  expect(connectSpy).toHaveBeenCalledWith(
+    expect.objectContaining({ familySlug: 'smith-family' }),
+    undefined,
+    'log-entry',
+  )
 })
