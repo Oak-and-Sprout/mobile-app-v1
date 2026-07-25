@@ -3,6 +3,7 @@ import {
   ArrowClockwiseIcon,
   ArrowLeftIcon,
   ArrowSquareOutIcon,
+  BellIcon,
   CaretDownIcon,
   CaretRightIcon,
   CheckIcon,
@@ -68,6 +69,7 @@ const ICONS: Record<string, { C: ComponentType<IconProps>; weight?: IconWeight }
   'i-key': { C: KeyIcon },
   'i-check': { C: CheckIcon },
   'i-link': { C: LinkSimpleIcon },
+  'i-bell': { C: BellIcon },
 }
 
 export function Ic({ id, s = 18, style }: { id: string; s?: number; style?: CSSProperties }) {

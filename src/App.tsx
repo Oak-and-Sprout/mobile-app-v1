@@ -11,9 +11,11 @@ import Offline from './screens/Offline'
 import Connecting from './screens/Connecting'
 import ReAuth from './screens/ReAuth'
 import Settings, { isAutoOpenEnabled } from './screens/Settings'
+import NotificationsIntro from './screens/NotificationsIntro'
 import Wizard from './screens/wizard/Wizard'
 import { getDefaultServer, listServers, type ServerEntry } from './services/server-registry'
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
+import { getOptIn, hasConnectedOnce } from './services/push-opt-in'
 import type { AccountCreds } from './services/credential-vault'
 import type { WizardResume } from './services/account-routing'
 
@@ -31,6 +33,7 @@ export type Screen =
   | { name: 'offline'; entry: ServerEntry }
   | { name: 'connecting'; entry: ServerEntry }
   | { name: 'reauth'; entry: ServerEntry }
+  | { name: 'push-intro'; next: Screen }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ name: 'splash' })
@@ -60,7 +63,14 @@ export default function App() {
       }
       const def = await getDefaultServer()
       const autoOpen = def ? await isAutoOpenEnabled() : false
-      applyBootTarget(def && autoOpen ? { name: 'connecting', entry: def } : { name: 'families' })
+      const next: Screen = def && autoOpen ? { name: 'connecting', entry: def } : { name: 'families' }
+      // The soft pre-prompt only makes sense once the user has connected at
+      // least once before (see push-opt-in.ts) and only while the choice is
+      // still unmade - never re-show it after granted/declined.
+      if ((await getOptIn()) === 'unasked' && (await hasConnectedOnce())) {
+        return applyBootTarget({ name: 'push-intro', next })
+      }
+      applyBootTarget(next)
     })()
   }, [])
 
@@ -96,6 +106,7 @@ export default function App() {
       {screen.name === 'offline' && <Offline navigate={setScreen} entry={screen.entry} />}
       {screen.name === 'connecting' && <Connecting entry={screen.entry} navigate={setScreen} />}
       {screen.name === 'reauth' && <ReAuth entry={screen.entry} navigate={setScreen} />}
+      {screen.name === 'push-intro' && <NotificationsIntro navigate={setScreen} next={screen.next} />}
     </div>
   )
 }
