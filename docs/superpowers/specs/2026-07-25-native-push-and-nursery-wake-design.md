@@ -70,7 +70,8 @@ Not built:
 | D6 | **Native URL observation drives keep-awake and immersive mode.** | The shell's JS is not running once the WebView is on the remote server. Native code is the only actor that always exists. |
 | D7 | **`DELETE /device-tokens` is unauthenticated, keyed on the exact token.** | The shell has no JWT when a family is removed, and acquiring one would fire a biometric prompt on a delete action. Routes are disabled entirely when native push is unconfigured. |
 | D8 | **Notifications carry an allow-listed target route.** | A medicine-due notification should land on the medicine screen. The route is validated against a fixed list, never used raw. |
-| D9 | **Universal / App Links claim `/setup/*` and `/verify*` only.** | These are the two links that mean "resume something in the app." `/account` is deliberately excluded to preserve IAP compliance, and root-level family slugs are deferred (§9.6). |
+| D9 | **Universal / App Links claim `/setup/*`, `/verify*`, and `/passwordreset*`.** | The three links that mean "resume something in the app." `/account` is deliberately excluded to preserve IAP compliance, and root-level family slugs are deferred (§9.6). |
+| D10 | **The shell gains a password-reset screen.** | Completes the reset flow in-app rather than bouncing to the browser, and is what makes `/passwordreset*` worth claiming. |
 
 ### D7 in detail
 
@@ -150,7 +151,7 @@ POST /3/device/<deviceToken>
 `unregistered` is returned **only** on HTTP 410 with reason `Unregistered`,
 mirroring the existing conservative FCM rule. A `400 BadDeviceToken` is logged as
 a transient failure, not a deletion — it is far more often an
-environment mismatch (see §9) than a genuinely dead token.
+environment mismatch (see §11) than a genuinely dead token.
 
 ### 5.3 Schema change
 
@@ -259,6 +260,57 @@ notifications immediately, rather than waiting for the token to go stale.
 - APNs auth key (`.p8`) registered to the App ID
 - **No Firebase SDK, no `GoogleService-Info.plist`, no SPM Firebase dependency**
 
+### 6.5 Password reset screen (D10)
+
+`AccountReset.tsx` is the reset-*request* screen (email input). The shell has
+nothing that consumes a reset token, so a `/passwordreset` deep link has nowhere
+to land. New screen `src/screens/AccountResetConfirm.tsx`, themed to match the
+existing account screens exactly — `Header` + `ErrBox` from `components/chrome`,
+`f-grid` / `fl` / `fi` / `m-btn` / `auth-alt` classes, deps-injected like its
+neighbours.
+
+**Screen union:** `{ name: 'acct-reset-confirm'; token: string }`.
+
+**Two new functions in `src/services/account.ts`**, matching the existing
+envelope-unwrapping style:
+
+| Function | Endpoint |
+|---|---|
+| `validateResetToken(base, token)` | `GET /api/accounts/reset-password?token=` → `{ valid, email? }` |
+| `submitPasswordReset(base, token, password)` | `POST /api/accounts/reset-password` → `{ ok } \| { ok: false, error }` |
+
+**States:**
+
+| State | UI |
+|---|---|
+| Validating | Spinner while `validateResetToken` runs |
+| Valid | The account's email as read-only context, a new-password field, and the `PW_REQS` checklist rendered exactly as `AccountSignUp` renders it |
+| Invalid / expired | Explanation plus a button to `acct-reset` to request a fresh link |
+| Submitted | Navigate to `acct-signin` with a notice |
+
+**Error handling:** `400` mid-flow means the token expired between validation and
+submission — fall back to the invalid state rather than showing a generic error.
+`429` is the shared IP lockout and gets the same treatment as elsewhere in the
+shell. Network failure keeps the entered password so it isn't retyped.
+
+**`PW_REQS` moves out of `AccountSignUp.tsx`** into a shared module so the reset
+screen doesn't import a screen from a screen. `AccountSignUp` keeps re-exporting
+it, since its test imports it by name.
+
+**Password rule divergence (observation, not in scope).** The shell's `PW_REQS`
+mirrors the **register** endpoint exactly — 8+, lower, upper, number, and a
+symbol from a fixed charset. The **reset-password** endpoint enforces only 8+
+with a letter and a number. Reusing `PW_REQS` here is therefore strictly stricter
+than the server, so nothing the client accepts can be server-rejected. The
+underlying inconsistency — a user can reset to a password that registration would
+have refused — is a server-side matter and is deliberately left alone.
+
+**Stale saved credentials.** An account password stored in the shell's vault is
+invalidated by a reset. This already degrades correctly: the next connect fails
+authentication and `connectToFamily` returns `'needs-reauth'`, which routes to
+the `ReAuth` screen and overwrites the stored credential only after a new one
+verifies. No new handling is required.
+
 ## 7. Permission UX
 
 New `src/screens/NotificationsIntro.tsx` in the shell's storybook theme, shown
@@ -323,6 +375,7 @@ unit-tested table.
 |---|---|---|
 | `/setup/*` | Shell `Wizard` | Family setup links from `create-setup-link` |
 | `/verify*` | Shell `AccountVerify` | Requires the server change in §9.2 |
+| `/passwordreset*` | Shell `AccountResetConfirm` | New screen, §6.5; requires the server change in §9.2 |
 
 **`/account` and `/account/*` are deliberately not claimed.**
 `MANAGE_SUBSCRIPTION_URL` points at `https://sprout-track.com/account`
@@ -334,20 +387,19 @@ a test over the claimed-path list, not merely documented.
 Also unclaimed: `/`, `/features`, `/pricing`, `/privacy`, `/terms`, `/home`,
 `/login`, `/family-select`, `/family-manager/*`.
 
-### 9.2 Server: move verification off the hash
+### 9.2 Server: move account links off the hash
 
-`app/api/utils/account-emails.ts` builds `${domainUrl}/#verify?token=`. Universal
-and App Links match on **path**, and the fragment is not part of matching — the
-path here is `/`, the marketing homepage, which cannot be claimed.
+`app/api/utils/account-emails.ts` builds `${domainUrl}/#verify?token=` and
+`${domainUrl}/#passwordreset?token=`. Universal and App Links match on **path**,
+and the fragment is not part of matching — the path here is `/`, the marketing
+homepage, which cannot be claimed.
 
-- Add a real route `app/verify/page.tsx` that reads `?token=` and renders what
-  the existing hash handler renders.
-- Switch `sendVerificationEmail` to `${domainUrl}/verify?token=`.
-- **Keep the `/#verify` hash path working**, unchanged and indefinitely — links
-  already sitting in inboxes must not break.
-
-`/#passwordreset` is left alone. Its browser flow works correctly today, and the
-shell has no screen to land it on (§13).
+- Add real routes `app/verify/page.tsx` and `app/passwordreset/page.tsx` that
+  read `?token=` and render what the existing hash handlers render.
+- Switch `sendVerificationEmail` to `${domainUrl}/verify?token=` and
+  `sendPasswordResetEmail` to `${domainUrl}/passwordreset?token=`.
+- **Keep both hash paths working**, unchanged and indefinitely — links already
+  sitting in inboxes must not break.
 
 ### 9.3 Association files
 
@@ -516,7 +568,8 @@ them unset and are unaffected.
   unauthenticated DELETE by exact token, DELETE success when no row existed
 - `shell-chrome` — `nurseryDisplayControls` both branches
 - `deployment-config` — `nativePushEnabled` retained alongside `nativePush`
-- `account-emails` — verification email uses the `/verify?token=` path form
+- `account-emails` — verification and reset emails use the `/verify?token=` and
+  `/passwordreset?token=` path forms
 - Notification-type → route mapping table, and every entry present in the
   allow-list
 
@@ -535,6 +588,12 @@ them unset and are unaffected.
   `log-entry`
 - `screenForDeepLink` — every claimed path resolves; **`/account` and
   `/account/*` resolve to `null`**; unknown paths resolve to `null`
+- `AccountResetConfirm` — all four states; `400` mid-flow falls back to the
+  invalid state rather than a generic error; `429` surfaces the lockout message;
+  submit disabled until every `PW_REQS` rule passes; entered password survives a
+  network failure
+- `account.ts` — `validateResetToken` and `submitPasswordReset` envelope
+  unwrapping, including malformed and non-200 responses
 
 Both suites stay green: 706 (sprout-track) and 122 (shell).
 
@@ -550,10 +609,8 @@ recorded as an explicit manual step in the plan.
 
 - Native push for third-party self-hosted deployments (D1)
 - Cross-family notification taps while the app is warm (§8)
-- Deep links for password reset. `/#passwordreset` keeps working in the browser;
-  landing it in the app would require a new "set a new password" screen in the
-  shell, which does not exist today (`AccountReset.tsx` is the *request* screen).
 - Deep links for root-level family slugs (§9.6)
+- Aligning the server's reset-password rule with its register rule (§6.5)
 - Per-device notification preferences in the shell — native push continues to
   inherit the server's existing `NotificationPreference` matching unchanged
 - Rich notifications: images, actions, reply-inline
@@ -586,7 +643,13 @@ Confirmed by reading source in this repo and `node_modules`, not assumed:
   (`app/api/utils/account-emails.ts:30,72`) — so neither is matchable by
   Universal or App Links as written
 - `AccountReset.tsx` is the reset-*request* screen (email input only); the shell
-  has no screen that consumes a reset token
+  has no screen that consumes a reset token, which is why §6.5 adds one
+- `app/api/accounts/reset-password/route.ts` already exposes both halves of the
+  flow: `GET ?token=` → `{ valid, email? }` and `POST { token, password }`, with
+  a shared IP lockout returning 429
+- That route's `isValidPassword` requires only 8+ characters with a letter and a
+  number, whereas `app/api/accounts/register/route.ts` additionally requires
+  upper, lower, and a symbol — the shell's `PW_REQS` mirrors the *register* rule
 - `AccountVerify.tsx` polls `fetchAccountStatus` every 5 s while telling the user
   to tap the emailed link and return, so verification already resolves without a
   deep link — the deep link improves it rather than enabling it
