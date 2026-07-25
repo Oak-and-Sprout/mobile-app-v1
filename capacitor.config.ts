@@ -28,11 +28,11 @@ const config: CapacitorConfig = {
     },
   },
   ios: {
-    appendUserAgent: 'SproutTrackApp/0.1.0 (ios)',
+    appendUserAgent: 'SproutTrackApp/0.2.0 (ios)',
   },
   android: {
     allowMixedContent: false,
-    appendUserAgent: 'SproutTrackApp/0.1.0 (android)',
+    appendUserAgent: 'SproutTrackApp/0.2.0 (android)',
   },
 }
 

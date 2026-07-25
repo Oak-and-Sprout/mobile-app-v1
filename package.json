@@ -1,6 +1,6 @@
 {
   "name": "sprout-track-mobile",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "This repo is for the Sprout Track V1 mobile app for Android and iOS devices",
   "private": true,
   "scripts": {

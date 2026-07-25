@@ -8,3 +8,7 @@ sprout-track/
 
 # Heavyweight mockup art kept local-only (design reference lives in docs/mockups)
 docs/mockups/v1-storybook/art/family-porch-flipped.png
+
+# Firebase config artifacts (real files come from the Firebase console; not checked in)
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
