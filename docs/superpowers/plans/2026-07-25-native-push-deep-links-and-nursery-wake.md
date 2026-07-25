@@ -1342,18 +1342,32 @@ describe('requestPermission', () => {
 })
 
 describe('acquireToken', () => {
+  // Record the EVENT NAME, not a constant: acquireToken attaches two listeners, and a
+  // fixture that pushes 'listen' for both cannot express the invariant being guarded.
   it('attaches the registration listener BEFORE register - iOS does not retain it', async () => {
     const order: string[] = []
     const plugin = fakePlugin({
-      addListener: vi.fn(async (_e: string, cb: (t: { value: string }) => void) => {
-        order.push('listen')
-        setTimeout(() => cb({ value: 'tok-123' }), 0)
+      addListener: vi.fn(async (event: string, cb: (t: { value: string }) => void) => {
+        order.push(event)
+        if (event === 'registration') setTimeout(() => cb({ value: 'tok-123' }), 0)
       }),
       register: vi.fn(async () => { order.push('register') }),
     })
     const result = await acquireToken({ plugin, platform: 'ios' })
-    expect(order).toEqual(['listen', 'register'])
+    expect(order).toEqual(['registration', 'registrationError', 'register'])
+    // The real invariant, and it survives someone adding a third listener later.
+    expect(order.indexOf('registration')).toBeLessThan(order.indexOf('register'))
     expect(result).toEqual({ token: 'tok-123', platform: 'ios' })
+  })
+
+  it('resolves null immediately on registrationError, without waiting for the timeout', async () => {
+    const plugin = fakePlugin({
+      addListener: vi.fn(async (event: string, cb: (t: unknown) => void) => {
+        if (event === 'registrationError') setTimeout(() => cb({ error: 'no APNs' }), 0)
+      }),
+    })
+    // The long timeout is the point: if this resolves fast, the error listener did it.
+    expect(await acquireToken({ plugin, platform: 'ios', timeoutMs: 60_000 })).toBeNull()
   })
 
   it('resolves null on timeout rather than hanging', async () => {
