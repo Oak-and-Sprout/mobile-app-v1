@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PluginListenerHandle } from '@capacitor/core'
+import { App as CapApp } from '@capacitor/app'
 import { PushNotifications, type ActionPerformed } from '@capacitor/push-notifications'
 import Splash from './screens/Splash'
 import Fork from './screens/Fork'
@@ -20,6 +21,7 @@ import { getDefaultServer, listServers, type ServerEntry } from './services/serv
 import { bootActionFromSearch, stripBridgeEvent } from './services/bridge-events'
 import { entryForNotification } from './services/notification-routing'
 import { getOptIn, hasConnectedOnce } from './services/push-opt-in'
+import { screenForDeepLink } from './services/deep-links'
 import type { AccountCreds } from './services/credential-vault'
 import type { WizardResume } from './services/account-routing'
 
@@ -31,6 +33,10 @@ export type Screen =
   | { name: 'acct-verify'; token: string; creds: AccountCreds; biometric: boolean }
   | { name: 'acct-reset' }
   | { name: 'acct-reset-confirm'; token: string }
+  // Built in a later task: the deep-link resolver already needs to type-check
+  // against these two, but the screens/render branches aren't wired up yet.
+  | { name: 'acct-verify-link'; token: string }
+  | { name: 'setup-link'; token: string }
   | { name: 'wizard'; token: string; creds: AccountCreds; biometric: boolean; resume?: WizardResume; firstName?: string }
   | { name: 'add-family'; prefillInput?: string }
   | { name: 'families'; toast?: string; notice?: string }
@@ -53,7 +59,21 @@ interface PushActionPlugin {
   ): Promise<PluginListenerHandle>
 }
 
-export default function App({ pushPlugin = PushNotifications }: { pushPlugin?: PushActionPlugin } = {}) {
+// Same narrowing rationale as PushActionPlugin above, for @capacitor/app's
+// `appUrlOpen` (Universal/App Link) event: the real plugin's `addListener` is
+// overloaded across several event names, and there's no `vi.mock('@capacitor/...')`
+// in this repo, so tests inject a fake through this single-signature seam.
+interface DeepLinkPlugin {
+  addListener(
+    eventName: 'appUrlOpen',
+    listenerFunc: (event: { url: string }) => void,
+  ): Promise<PluginListenerHandle>
+}
+
+export default function App({
+  pushPlugin = PushNotifications,
+  deepLinkPlugin = CapApp,
+}: { pushPlugin?: PushActionPlugin; deepLinkPlugin?: DeepLinkPlugin } = {}) {
   const [screen, setScreen] = useState<Screen>({ name: 'splash' })
   const bootTarget = useRef<Screen | null>(null)
   const splashDone = useRef(false)
@@ -89,6 +109,24 @@ export default function App({ pushPlugin = PushNotifications }: { pushPlugin?: P
       if (match) applyBootTarget({ name: 'connecting', entry: match.entry, route: match.route })
     }).catch(err => {
       console.warn('[push] failed to attach pushNotificationActionPerformed listener', err)
+    })
+
+    // A Universal/App Link (setup, verify, password-reset) can arrive at any
+    // point after launch, cold-start included. Route through applyBootTarget
+    // (never setScreen) so it's still subject to the splash/bootTarget guards
+    // above - a pending bridge event or queued push tap keeps winning over it.
+    // screenForDeepLink returns null for anything it doesn't claim (including
+    // /account, deliberately, for App Store payment compliance) - that means
+    // "not ours", so the link is simply not routed and the normal boot proceeds.
+    // Same web-implementation caveat as the push listener: addListener rejects
+    // outright outside a native runtime (dev server, tests), which must never
+    // surface as an unhandled rejection - but is worth a console.warn so a
+    // genuine on-device registration failure stays diagnosable.
+    deepLinkPlugin.addListener('appUrlOpen', ({ url }) => {
+      const target = screenForDeepLink(url)
+      if (target) applyBootTarget(target)
+    }).catch(err => {
+      console.warn('[deep-link] failed to attach appUrlOpen listener', err)
     })
 
     void (async () => {

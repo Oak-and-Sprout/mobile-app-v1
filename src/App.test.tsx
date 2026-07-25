@@ -49,6 +49,27 @@ function fakePushPlugin() {
   }
 }
 
+// A fake `DeepLinkPlugin` that captures the listener App.tsx registers for
+// `appUrlOpen`, mirroring fakePushPlugin above - same rationale (no
+// vi.mock('@capacitor/...') in this repo, no web implementation to exercise).
+function fakeDeepLinkPlugin() {
+  let handler: ((event: { url: string }) => void) | null = null
+  return {
+    plugin: {
+      addListener: vi.fn(async (_event: string, cb: typeof handler) => {
+        handler = cb
+        return { remove: async () => {} }
+      }),
+    },
+    async open(url: string) {
+      await act(async () => {
+        handler?.({ url })
+        await vi.advanceTimersByTimeAsync(0)
+      })
+    },
+  }
+}
+
 // Runs the splash to completion (HOLD_MS 2150 + FADE_MS 550 = 2700ms) so the resolved
 // boot target is applied.
 async function finishSplash() {
@@ -283,6 +304,29 @@ test('a bridge event beats a queued push tap for a different family', async () =
   await finishSplash()
   expect(screen.getByText(/my families/i)).toBeInTheDocument()
   expect(connectSpy).not.toHaveBeenCalled()
+})
+
+test('a Universal Link for password reset routes to the reset-confirm screen', async () => {
+  const deepLink = fakeDeepLinkPlugin()
+  // AccountResetConfirm isn't given injectable deps from App.tsx, so it calls the
+  // real validateResetToken on mount - stub fetch to keep this test off the network.
+  vi.spyOn(globalThis, 'fetch').mockReturnValue(new Promise(() => {}))
+  render(<App deepLinkPlugin={deepLink.plugin} />)
+  await flushBootEffect()
+  await deepLink.open('https://sprout-track.com/passwordreset?token=abc123')
+  await finishSplash()
+  expect(screen.getByRole('heading', { name: 'Set a new password.' })).toBeInTheDocument()
+})
+
+test('a Universal Link the shell does not claim leaves the normal boot destination alone', async () => {
+  const deepLink = fakeDeepLinkPlugin()
+  render(<App deepLinkPlugin={deepLink.plugin} />)
+  await flushBootEffect()
+  // /account is deliberately unclaimed (App Store payment compliance) - screenForDeepLink
+  // returns null, so this must not disturb the boot target already in flight.
+  await deepLink.open('https://sprout-track.com/account')
+  await finishSplash()
+  expect(screen.getByText(/Everyone you love,/)).toBeInTheDocument()
 })
 
 test('a push tap with a malicious route degrades to log-entry', async () => {
