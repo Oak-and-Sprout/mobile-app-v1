@@ -16,4 +16,7 @@ android/app/google-services.json
 # an operator who mistakenly drops one in doesn't accidentally commit it.
 ios/App/App/GoogleService-Info.plist
 
+# Browser APKs for emulator testing (download from apkmirror.com), plus the
+# manifest.json that scripts/install-test-browsers.mjs generates to track them.
+# Hundreds of MB each - never checked in; see CLAUDE.md.
 apks/

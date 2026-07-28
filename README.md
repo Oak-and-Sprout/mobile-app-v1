@@ -13,7 +13,8 @@ Plan:   `docs/superpowers/plans/2026-07-20-capacitor-shell-first-pass.md`
     npm run dev        # shell in the browser
     npm test           # vitest
     npm run sync       # build + cap sync
-    npm run android    # run on Android device/emulator (needs Android SDK)
+    npm run android    # sync test browsers (below), then run on device/emulator
+    npm run android:browsers   # just the test-browser sync
 
 The Android build needs a Java runtime. If `java` isn't on your PATH, point
 `JAVA_HOME` at Android Studio's bundled one (add to `~/.zshrc` to persist):
@@ -26,6 +27,53 @@ bundled via @fontsource (no network needed at runtime).
 To test against a Sprout Track server running on your Mac (`npm run dev` in the
 sprout-track repo), add the server in the app as `http://10.0.2.2:3000/<family-slug>`
 — `10.0.2.2` is the emulator's alias for the host machine; cleartext http is enabled.
+
+### Test browsers on the emulator
+
+Some flows hand off to a real browser rather than staying in the app — most
+importantly subscription management at `/account`, which the shell deliberately
+does not claim as a deep link (App Store compliance). To exercise those, the
+emulator needs browsers installed.
+
+Download them from **[apkmirror.com](https://apkmirror.com)** — Firefox,
+Waterfox, Chrome, Brave and anything else we've needed are all there — and drop
+the downloads into an **`apks/`** folder at the repo root. That folder is
+gitignored and **does not exist on a fresh clone**, so create it; the files run
+to hundreds of MB and are never committed. Either apkmirror format works: a
+plain universal `.apk`, or an `.apkm`/`.apks`/`.xapk` split bundle (unpacked
+automatically to the base APK plus only the ABI and density splits your target
+can use — installing every split at once conflicts).
+
+The folder is the source of truth. `npm run android` scans it recursively and
+brings each attached device in line with it:
+
+| you do this in `apks/`          | next run does this on the device |
+| ------------------------------- | -------------------------------- |
+| add an APK                      | installs it                      |
+| delete an APK                   | uninstalls it                    |
+| swap in a newer download        | reinstalls it                    |
+| move an APK between subfolders  | nothing — recognized as a move   |
+
+State lives in `apks/manifest.json`, generated for you: a catalog of the folder
+(package id, app label, version, size) plus, per device serial, what the folder
+owns there. A package is only ever uninstalled if the manifest says the folder
+owns it — either the script installed it, or it was already on the device while
+its APK sat in `apks/` (adopted on the first sync). A browser with no APK in the
+folder is never touched.
+
+    npm run android:browsers -- --dry-run   # show the plan, touch nothing
+    REINSTALL_TEST_BROWSERS=1 npm run android:browsers   # force reinstall
+    SKIP_TEST_BROWSERS=1 npm run android                 # skip the sync entirely
+
+This step never fails the build: a missing Android SDK, no attached device, or
+no `apks/` folder just prints a warning and `cap run android` continues. If the
+emulator wasn't running yet, start it and run `npm run android:browsers`.
+
+Installing a browser does not make it the default — Chrome holds the browser
+role on a Play-services image, so hand-off still opens Chrome. To point it
+elsewhere:
+
+    adb shell cmd role add-role-holder android.app.role.BROWSER org.mozilla.firefox
 
 ## App flows
 

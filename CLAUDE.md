@@ -23,14 +23,8 @@ on mobile-app-v1; server-side changes go on the sprout-track feature branch.
 - `npm run sync` — build + `cap sync` (run after changing web code or capacitor.config.ts).
 - `npm run android` — needs `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"` if `java` isn't on PATH.
   Runs `android:browsers` first (see below), then `cap run android`.
-- `npm run android:browsers` — installs any APKs in `apks/` (gitignored, ~900MB:
-  Firefox universal `.apk`, Waterfox apkmirror `.apkm` split bundle) onto every
-  attached target, so browser hand-off (e.g. `/account`, which is deliberately
-  not deep-linked) is testable. Skips packages already installed
-  (`REINSTALL_TEST_BROWSERS=1` to force) and never fails the build — no SDK, no
-  device, or no `apks/` just warns, so `npm run android` still proceeds. If the
-  emulator wasn't running yet, run this once it is. Installing doesn't change
-  the default browser; `adb shell cmd role add-role-holder android.app.role.BROWSER <pkg>` does.
+- `npm run android:browsers` — syncs the APKs in `apks/` onto every attached
+  target. See "Test browsers on the emulator" below.
 - `npx cap run ios` — full Xcode required; deps resolve via **SPM, not CocoaPods**.
 
 In `sprout-track/`: `npm test` (920 tests, node env, `@/` alias), `npm run dev` (Next.js on :3000).
@@ -42,6 +36,40 @@ In `sprout-track/`: `npm test` (920 tests, node env, `@/` alias), `npm run dev` 
   `http://10.0.2.2:3000/<family-slug>` (or `localhost:3000` after
   `adb reverse tcp:3000 tcp:3000`). The port is required — nothing answers on 80.
 - **iOS Simulator shares the Mac's network**: `http://localhost:3000/<family-slug>` works directly.
+
+## Test browsers on the emulator
+
+The emulator needs real browsers to exercise hand-off — above all `/account`,
+which `deep-links.ts` deliberately does **not** claim so subscription
+management opens outside the app.
+
+**Getting APKs:** download from **https://apkmirror.com** — Firefox, Waterfox,
+Chrome, Brave and everything else we've needed is there — and drop the file
+into **`apks/`** at the repo root. That directory is **gitignored and does not
+exist on a fresh clone** (the files run to hundreds of MB); create it and add
+whatever you need. Both apkmirror formats work: a plain universal `.apk`, and
+the `.apkm`/`.apks`/`.xapk` split bundle (unpacked to base + only the ABI and
+density splits the target can use — installing every split at once conflicts).
+
+**`apks/` is the source of truth.** `scripts/install-test-browsers.mjs` scans it
+recursively on every `npm run android` and reconciles each attached device:
+add a file → installed; delete one → uninstalled; replace one with a newer
+download → reinstalled; move one between subfolders → left alone. State lives
+in `apks/manifest.json` (auto-generated, also gitignored): a catalog of the
+folder plus, per device serial, what the folder owns there. A package is only
+uninstalled if the manifest says the folder owns it — either the script
+installed it, or it was already present while its APK sat in `apks/` (adopted
+on first sync). A browser with no APK in the folder is never touched.
+
+- `--dry-run` prints the plan without touching a device.
+- `REINSTALL_TEST_BROWSERS=1` forces reinstall; `SKIP_TEST_BROWSERS=1` skips the
+  whole step.
+- It never fails the build: no SDK, no device, or no `apks/` only warns, and
+  `cap run android` still proceeds. If the emulator wasn't up yet, just run
+  `npm run android:browsers` once it is.
+- Installing does **not** change the default browser — Chrome keeps the BROWSER
+  role on a Play image, so implicit VIEW intents still resolve to it. Switch it
+  with `adb shell cmd role add-role-holder android.app.role.BROWSER <pkg>`.
 
 ## Networking model in the shell
 
