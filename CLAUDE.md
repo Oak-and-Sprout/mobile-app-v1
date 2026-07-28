@@ -22,6 +22,15 @@ on mobile-app-v1; server-side changes go on the sprout-track feature branch.
 - `npm run dev` — shell in a browser.
 - `npm run sync` — build + `cap sync` (run after changing web code or capacitor.config.ts).
 - `npm run android` — needs `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"` if `java` isn't on PATH.
+  Runs `android:browsers` first (see below), then `cap run android`.
+- `npm run android:browsers` — installs any APKs in `apks/` (gitignored, ~900MB:
+  Firefox universal `.apk`, Waterfox apkmirror `.apkm` split bundle) onto every
+  attached target, so browser hand-off (e.g. `/account`, which is deliberately
+  not deep-linked) is testable. Skips packages already installed
+  (`REINSTALL_TEST_BROWSERS=1` to force) and never fails the build — no SDK, no
+  device, or no `apks/` just warns, so `npm run android` still proceeds. If the
+  emulator wasn't running yet, run this once it is. Installing doesn't change
+  the default browser; `adb shell cmd role add-role-holder android.app.role.BROWSER <pkg>` does.
 - `npx cap run ios` — full Xcode required; deps resolve via **SPM, not CocoaPods**.
 
 In `sprout-track/`: `npm test` (920 tests, node env, `@/` alias), `npm run dev` (Next.js on :3000).

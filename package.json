@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "test:watch": "vitest",
     "sync": "npm run build && npx cap sync",
-    "android": "npx cap run android"
+    "android": "npm run android:browsers && npx cap run android",
+    "android:browsers": "node scripts/install-test-browsers.mjs"
   },
   "repository": {
     "type": "git",
