@@ -30,6 +30,19 @@ describe('SetupLink', () => {
     expect(await screen.findByText(/already been used/i)).toBeInTheDocument()
   })
 
+  it('offers a browser continuation for a used link, since setup may be half-finished', async () => {
+    const openExternal = vi.fn().mockResolvedValue(undefined)
+    setup({ validateSetupToken: vi.fn().mockResolvedValue('used'), openExternal })
+    await userEvent.click(await screen.findByRole('button', { name: /continue in your browser/i }))
+    expect(openExternal).toHaveBeenCalledWith('https://sprout-track.com/login?setup=token&token=a1b2c3')
+  })
+
+  it('does not offer the browser continuation for expired or invalid links', async () => {
+    setup({ validateSetupToken: vi.fn().mockResolvedValue('expired') })
+    expect(await screen.findByText(/expired/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /continue in your browser/i })).not.toBeInTheDocument()
+  })
+
   it('hands off to the wizard in setup mode with the exchanged jwt', async () => {
     const { navigate } = setup()
     await userEvent.type(await screen.findByLabelText(/setup password/i), 'hunter22')

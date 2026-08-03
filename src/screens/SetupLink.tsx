@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Browser } from '@capacitor/browser'
 import type { Screen } from '../App'
 import { Header, ErrBox } from '../components/chrome'
 import { BioCheck } from '../components/BioCheck'
@@ -9,9 +10,14 @@ import { validateSetupToken, exchangeSetupToken, type SetupTokenState } from '..
 export interface SetupLinkDeps {
   validateSetupToken: typeof validateSetupToken
   exchangeSetupToken: typeof exchangeSetupToken
+  openExternal: (url: string) => Promise<void>
 }
 
-const defaultDeps = (): SetupLinkDeps => ({ validateSetupToken, exchangeSetupToken })
+const defaultDeps = (): SetupLinkDeps => ({
+  validateSetupToken,
+  exchangeSetupToken,
+  openExternal: url => Browser.open({ url }),
+})
 
 type Phase = 'checking' | 'password' | 'bad'
 
@@ -91,6 +97,22 @@ export default function SetupLink({
         <div className="m-bd">
           <div className="f-grid">
             <p className="fh" style={{ marginTop: 0 }}>{BAD_MESSAGE[badState]}</p>
+            {/* 'used' can also mean half-finished: the server marks a token used the moment
+                step 1 creates the family, but /api/auth/token still accepts it until setup
+                completes. This app can't resume a setup-mode wizard, so hand off to the web
+                login → resume-setup flow. /login is not an AASA-claimed path, so opening it
+                externally can't route back into this app. */}
+            {badState === 'used' && (
+              <>
+                <p className="fh">Started setting up but didn&rsquo;t finish? You can pick up where you left off in your browser.</p>
+                <button
+                  className="m-btn"
+                  onClick={() => void deps.openExternal(`${SAAS_BASE}/login?setup=token&token=${encodeURIComponent(token)}`)}
+                >
+                  Continue in your browser
+                </button>
+              </>
+            )}
             <div className="auth-alt">
               <button className="m-link" onClick={() => navigate({ name: 'fork' })}>Back</button>
             </div>
