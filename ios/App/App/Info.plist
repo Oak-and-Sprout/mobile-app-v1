@@ -64,5 +64,9 @@
 	<array>
 	    <string>remote-notification</string>
 	</array>
+	<!-- Only exempt encryption (HTTPS/ATS) is used; skips the export-compliance
+	     question on every App Store Connect upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
